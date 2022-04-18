@@ -1,0 +1,7 @@
+\section{Compiler}
+In this section, we will go into details on the implementation of our Futhark code generation.  The code generation consists of several preprocessing steps, two of which are optional, and then two different code generators.  The first preprocessing stage is caramelization (desugaring).  Since many of the constructs in our language can be expressed in terms of others, we deemed it prudent to do this, so as to reduce the complexity and semantic overlap of different parts of the code generators.  The second is optimization, which combines some \tt{LFun}s and reduces them when possible to simpler and more regular structures without changing the semantics.  The third preprocess stage is the
+'matrix' stage, which expresses the \tt{LFun}s as matrices, to simulate the naive alternative approach to Futhark.  The first code-generator, as far as is possible, does a one-to-one translation of \tt{LFun}s to assembler-like Futhark code, which relies on a Futhark library we have defined.  The second code generator is less straightforward, and kicks in when the first encounters a \tt{Zip} operation which contains lists of functions - something which is inexpressible in Futhark, and which must be transformed before it can be expressed in Futhark.
+
+\input{sections/preprocessing.tex}
+\input{sections/matrix.tex}
+\input{sections/codegen.tex}

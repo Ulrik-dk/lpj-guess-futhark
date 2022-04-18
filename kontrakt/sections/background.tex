@@ -1,0 +1,90 @@
+\section{Background}
+
+In this section we will introduce relevant concepts and technologies needed for
+our work.  We discuss AD in more depth, and we introduce Fréchet and Futhark,
+the languages that we are going to tie together.  Our project are completely
+reliant on the existing work in these and would not have been possible without
+them.
+
+\subsection{Auto Differentiation}\label{sec:ad}
+AD is implemented by a \textit{non-standard interpretation} that, along with the
+usually evaluation result, called the \textit{primal}, keeps track of values of
+derivatives.  These can then be composed by using the chain-rule to find the
+derivative of their composition.
+We will not go into the implementation details in this report as it is outside
+the scope of our project.  What is important for us to note is the existence of
+these extra values.  AD has two modes:  forward mode and reverse mode.
+
+\paragraph{Forward Mode}  For each of the unit vectors, where the components are
+the inputs of the program, the derivative is calculated.  This process
+eventually produces the full \(m \times n\) Jacobian of the program of \(n\)
+inputs and \(m\) outputs.  Forward mode is a single-phase algorithm that is run
+once for each input.
+
+\paragraph{Reverse Mode} Is a two-phase algorithm, where the first phase runs
+in forward direction and the second phase where the actual derivatives are
+computed by \enquote{propagating adjoints} from outputs to inputs along the
+computational graph constructed in the first phase.  \textit{Adjoint} here means
+conjugate transpose and in particular, since we are not working with complex
+numbers, just the transpose.
+
+\paragraph{Backpropagation} It turns out that reverse mode AD is a general
+technique of which the special case backpropagation (BP) is widely used today.
+BP traces its origins back to the 1960s but the term was first coined in 1986,
+and it has since exploded in popularity and applications during the 2010s.  This
+is largely due to the pervasiveness of affordable GPUs.  BP is used in various
+types of machine learning as well as diverse fields such as computer vision,
+natural language processing and self-driving cars.  It is arguably one of the
+algorithms with highest impact on today's computing environment~
+\cite[Sec. 3.3, Origins of AD and Backpropagation]{adsurvey}.
+
+
+
+
+\subsection{The Fréchet Language} Fréchet\cite{popl} is a research DSL with an
+interpreter that allows for non-standard interpretation, as discussed earlier in
+section \autoref{sec:ad}.  Fréchet is a purely functional language where programs
+are constructed by operations on vector spaces.  It uses high-level operations
+such as Hadamard products, inner products, tensor products and different
+second-order combinators (SOACs), such as sequential and parallel composition,
+map, reduction, recursion, conditionals and more.
+
+It also features various abstract data-types, such as probability distributions
+and high-dimensional tensors, which like the high-level operators, are
+inherently data-parallel.
+
+The expectation is that Fréchet will be implemented in an automatically
+differentiating interpreter, which will for a given input \tt{x}, return both
+the result at \tt{x} and the derivative of the function at \tt{x}. This
+derivative will be expressed in a sub-DSL, and will consist of linear maps.
+
+The question then is:  how to most efficiently compute these linear maps?  Since
+all linear maps can be expressed as matrices, it is possible to translate them
+to matrices and execute them using something like CUDA.\@  However, this is
+likely to be inefficient, and it is desired to investigate whether an
+alternative representation implemented in Futhark could be more efficient.
+
+\subsection{The Futhark Language}  Futhark\cite{futhark} is both the name of a
+research language designed to produce efficient data-parallel code and the name
+of an optimizing compiler for this language.  They are designed and implemented
+at the Department of Computer Science, University of Copenhagen (DIKU).\@  It is
+a purely functional and statically-typed language. The main feature of the
+language is the ability to express and compose the most common data-parallel
+operations efficiently and concisely.  Compared to hand-writing and
+hand-optimizing CUDA or OpenCL kernels, it is also provides a more efficient and
+less error-prone development process because many things are handled
+automatically.  For example, the user need not worry about block and register
+tiling.  As such the Futhark language promises to help the user write efficient
+and correct general-purpose GPU (GPGPU) programs.
+
+Solving problems and modeling computations in functional languages can lead to
+the use of arbitrarily-nested parallelisms, such maps over maps over lists.
+Since the underlying GPU architecture does not efficiently support this nested
+parallelism.  Futhark contains optimizations to automatically flatten this type
+of computation which could be relevant if one were to implement maps over maps.
+
+\paragraph{Limitations in Futhark} For the Futhark compiler to be able to
+optimize the source code, the language can be experienced restrictive in some
+regards.  These limitations include absence of recursion, immutable values and
+lack of function overloading.  And while functions are first-class citizens,
+and tuples can contain functions, Futhark does not support arrays of functions.

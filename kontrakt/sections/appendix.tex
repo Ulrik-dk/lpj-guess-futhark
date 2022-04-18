@@ -1,0 +1,24 @@
+\appendix
+\section{Appendix}
+
+\subsection{GPU Information}\label{gpuinfo}
+The benchmarks was run on the server \texttt{futharkhpa01fl}.  Access was kindly
+provided by DIKU.\@  It has an NVIDIA A100 Tensor Core GPU with 40 GBs of memory.
+The details of the card can bee seen in the output from the CUDA SDK utility
+\texttt{/usr/local/cuda-11.2/samples/1_Utilities/deviceQuery} in the following
+listing:
+
+\inputminted[firstline=5,lastline=43]{text}{sections/a100.txt}
+
+
+\subsection{Ad-hoc JSON parser}\label{jsonparser}
+The following listing shows our ad-hoc parser for the JSON output from
+\texttt{futhark bench}:
+\code{benchmark/JSON.hs}{14}{50}
+
+%\input{sections/execution.tex}
+
+
+
+%\subsection{Types}\label{types}
+%\code{src/Types.hs}

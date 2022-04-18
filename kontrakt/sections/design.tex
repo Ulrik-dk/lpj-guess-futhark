@@ -1,0 +1,171 @@
+\section{Design of a Linear Map Language}
+We will refer to our intermediate language as \tad{}.
+In this section, we go through the design of \tad{}. Our function definitions
+are based on a draft of~\cite{popl}. A \tad{} program is essentially a linear
+function, which can be applied to a real numbered value or some collection of
+such. The result of the evaluation of a \tad{} program, whether compiled or
+interpreted, is likewise a value. The semantics of \tad{} are kept very limited,
+as it is designed to be an intermediate language between two DSLs, and to
+maximize the opportunity for automatic code optimizations.
+
+\subsection{Value Types}
+The value types of the language are constructed using the following algebraic datatype:
+
+\begin{grammar}
+  <Val> ::= <Real>
+  \alt Zero
+  \alt Vector [<Val>]
+  \alt Pair <Val> <Val>
+\end{grammar}
+
+
+
+A value is therefore either the regular atom Real
+(a real number), the special atom Zero, a vector of values or a pair of values.
+Because our language is designed for efficient GPU execution, for which regular
+parallelism is crucial, vectors must only contain values of the same size, i.e.,
+we allow no irregular or mixed vectors.
+
+A pair is a way to pass multiple arguments to parallel functions, and therefore
+should not be contained in vectors either. Vectors should only contain atoms or
+other vectors, but pairs may contain anything. Pairs can be used to express
+arbitrary tensors, by constructing trees. Trees of pairs with identical non-pair
+elements in the same absolute ordering (left to right) may be assumed to be
+identical, semantically.
+
+A zero represents the zero-vector for whichever vector space it is used it.
+
+\subsection{Linear Functions}\label{linearmaps}
+\tad{} has various linear functions which are defined on the values.
+
+\begin{grammar}
+<LFun>
+  ::= Id
+  \alt KZero
+  \alt Scale <Real>
+  \alt Neg
+  \alt LSec <Val> <BilOp>
+  \alt RSec <BilOp> <Val>
+  \alt LMap <LFun>
+  \alt Zip [<LFun>]
+  \alt Para <LFun> <LFun>
+  \alt Comp <LFun> <LFun>
+  \alt Dup
+  \alt Prj <Int> <Int>
+  \alt Fst
+  \alt Snd
+  \alt Add
+  \alt Lplus <LFun> <LFun>
+  \alt Red <Rel>
+\end{grammar}
+
+Each \texttt{LFun} can be applied to a value to return a value corresponding to
+the result of that application. We also have the following bilinear operators:
+
+\begin{grammar}
+<BilOp>
+  ::= MatrixMult
+  \alt DotProd
+  \alt Outer
+\end{grammar}
+
+\begin{grammar}
+  <Rel> ::= List [(<Int>, <Int>)]
+  \alt Func RelFun
+\end{grammar}
+
+
+\subsection{Simple Linear Functions}
+The linear function Id is the identity function, and the result of its
+application is to leave the input value unchanged. It works for all values.
+
+Scale scales a scalar or vector with a given number. \texttt{KZero} is equivalent to
+scaling by zero, and \texttt{Neg} negates all the values in the input. None of these
+three are defined for Pairs, and so to for example negate two values in a Pair,
+one must compose two \texttt{Neg}s in a \texttt{Para}, and apply this to the Pair of \texttt{Val}s.
+
+\subsection{Compositions} \texttt{Comp $g$ $f$} composes two linear functions
+sequentially, such that the right-most \texttt{LFun} is applied first, and then
+the left-most, as expected in normal math notation.  Potentially infinitely long
+series of \texttt{LFun}s can be composed by using nested \texttt{Comp}
+expressions. \texttt{Para} composes two \texttt{LFun}s in parallel, rather than in
+sequence. This means that the two given \texttt{LFun}s are applied, each to one
+Value in a Pair. For this reason, \texttt{Para} must be applied to a Pair. If one wishes
+to apply three functions to three values in parallel, one must compose two Pairs
+and two \texttt{Para}s.  Like with pairs, trees of sequential or parallel compositions
+can be considered equivalent, as long as the absolute ordering is identical.
+
+The \texttt{LMap} function applies a given \texttt{LFun} to every value of a vector of any
+representation, and must therefore be applied to a vector.
+
+The \texttt{Zip} function applies a list of \texttt{LFun}s to each value in a
+vector. The lengths must be idential. Because it is
+impossible in Futhark to have lists of functions, and because we need to
+preserve as much parallelism as possible, our design makes the following
+assumption: We know that all \texttt{Zip}s are differentiated Maps at different
+points, and therefore with different \texttt{Val} constants. Therefore they all
+essentially are of the same function, just with different constants. For this
+reason we assume that we can recover the general form and extract the constants.
+\texttt{Zip} then becomes a map over an array of parameters and an array of
+values. More on this in the CodeGen\autoref{sec:codegen} section. We do not have If functions, but the Fréchet
+language does. When an If function is automatically differentiated, it can be
+reduced to just either branch. This breaks our assumption, because one branch
+will have parameters different to the other. However, if instead of reducing it,
+these \enquote{superfluous} non-taken branches are preserved, the general form
+will still be shared between all functions, making our implementation compatible
+with all auto-differentiated functions.
+
+The \texttt{Dup} function takes a Value and creates a Pair of two copies of the input Value.
+
+The Add function simply adds to Values. This assumes that the two have the same value shape.
+
+\texttt{LPlus} applies one of two \texttt{LFUN}s to each of pair of values and
+then adds them. It is considered sugar for sequential composition of \texttt{Para}
+followed by Add.
+
+The \texttt{Red} reduce function performs a reduction, and the only relation currently
+is that of pairs of source and destination indices.
+
+Scale works for all values except Pairs, and scales
+
+\subsection{Projections} Projections, \texttt{Prj}, \texttt{Fst} and
+\texttt{Snd} all extract values from Pairs. \texttt{Fst} returns the first
+element, \texttt{Snd} returns the second (rightmost) element. \texttt{Prj}
+returns the value at the index of the first integer, from a tuple of size of the
+second integer. Currently \texttt{Prj} does not work for tuples of any shape but
+2, i.e., a pair, but in the future it could be expanded to be sugar for
+compositions of sequential \texttt{Fst} and \texttt{Snd}'s, and tuples could be
+implemented as sugar for nested Pairs. I.e., taking the third element would be
+taking the second element of the second element of a Pair of a Value and a Pair
+of Values, and so on.
+
+\subsection{Bilinear Operators} We currently have three bilinear operators,
+which apply bilinear functions to two values---outer product, inner product and
+matrix multiplication. The first two are completely generalized for arbitrary
+vectors, while the last only works for matrices, or vectors of vectors of
+scalars.
+
+The outer product is the pairing of every real value of the first \texttt{Val}
+with every real value of the second \texttt{Val}, thereby constructing a new
+\texttt{Val} of the products of all these combinations. Scale can be thought of
+as the outer product of a simple scalar with some \texttt{Val}---that is
+actually what it is compiled to. One way of explaining it is that one takes the
+second Value and pairs it with every real number of the first Value, and
+performs a scaling of the second Value with each real number of the first, and
+inserts the result at the place of the given real number in the first value. If
+one is familiar with the concept of a shape array, the resulting shape array is
+the appending of the second to the first shape array.
+
+The inner product is an attempt to see the commonalities of the dot product and
+matrix multiplication, and to generalize this to any arbitrary combination of
+vectors. This means that the inner product, given two matrices, performs matrix
+multiplication, and given two vectors, performs dot product.
+
+\subsection{Section Notation} Section notation or simply \enquote{sections} are
+partial applications of bilinear operators, where either the left or right value
+are given as a constant. The constructors denote which side of the operator the
+constant is placed at, meaning that \texttt{LSec} (left section) is given the
+left-side argument to the bilinear function, and \texttt{RSec} is given the
+right-side argument.
+
+\input{sections/proofs.tex}

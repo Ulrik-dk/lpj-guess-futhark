@@ -1,0 +1,42 @@
+\subsection{Preprocessing}
+In this subsection, we go into details on which exact constructs are reduced to,
+or expressed as, other more general constructs, or as compositions of simpler
+constructs. We also explain how the structure of composed \tt{Comp}s and \tt{Para}s
+can be simplified and standardized, and how some \tt{LFun}s can be combined or
+simplified. We also get into the details of how \tt{LFun}s can be expressed as
+matrices, how this is done for different and composed \tt{LFun}s.
+\subsubsection{Desugaring}
+Due to some of the language constructs having complex sematics that can be expressed
+as compositions of other simpler constructs, we decided that as a preprocessing step
+before code generation, caramelize these constructs before we go on to generate the
+Futhark code.
+\code{src/Preprocesser.hs}{54}{65}
+\begin{itemize}
+	\item 55. The caramelization function is structured as a match case, where the input \tt{LFun} is deconstructed in various cases, and the result of the function in each case then corresponds to the result of desugaring.
+	\item 56. \tt{KZero} is translated into a left-sectioned outer product with 0, which is the not the most efficient implementation. See the section on future work for more.
+	\item 57. \tt{Scale} is likewise translated as \tt{KZero}, although the real number is preserved, as one would expect.
+	\item 58---61. \tt{Para}, \tt{Comp}, \tt{LMap} and \tt{Zip} are not changed, but the \tt{LFun}s they compose are recursively desugared.
+	\item 62. \tt{Lplus} is expressed as a sequential composition such that a the \tt{Val} to which \tt{Lplus} is applied is first duplicated in a tuple, then the two imbedded \tt{LFun}s are applied to these two values, and the result is then added. This is expressed as a \tt{Dup}, followed by \tt{Para} and then \tt{Add}. The imbedded \tt{LFun}s are also recursively desugared.
+	\item 63---65 \tt{Prj} (custom) projections are desugared such that those corresponding to \tt{Fst} and \tt{Snd} are translated into those, and the rest are reported as errors.
+\end{itemize}
+The rest of the \tt{LFun}s are unchanged, and therefore omitted here.
+\subsubsection{Optimization}
+We have another preprocessing step, which is optional, and which recursively reshapes and simplifies an \tt{LFun}.
+\code{src/Preprocesser.hs}{4}{6}
+This is implemented by \tt{optimize}, which calls \tt{optimizeRun} untill it has no effect on the input. This way we make sure that the optimizations are fully effected.
+
+\code{src/Preprocesser.hs}{8}{29}
+Two of the optimization cases (l18-19) attempt to regularize sequences of operations (\tt{Comp}) such that all sequences are in a regularized form. This reduction in possible equivalent expressions of the same semantics lead to simpler application of other optimizations.
+
+\begin{itemize}
+	\item 11---12. \tt{Id}s in sequence with some other \tt{LFun} can be reduced to that other \tt{LFun}.
+	\item 13. Two parallel \tt{Id}s can be more simply expressed as a single \tt{Id}, since it works with all values.
+	\item 18. Tree's of sequantial compositions (\tt{Comp}s) which all express the same terminal \tt{LFun}s in the same order can be restructured to also have the same simple shape, which is done in such a way that all left-nodes in the tree are leaf-nodes.
+	\item 19. In order to make more optimizations, which are generally applicable to sequences of operations, simpler to apply, equivalent sequences of parallel operations are expressed as parallel sequences of operations.
+	\item 20. The above is repeated for the case where the two parallel operations are in a sequence of a different shape.
+	\item 23---24. Sequential \tt{Scale} operations are combined, in the two cases relevant in the regularized form, by multiplying the factors at compile-time.
+	\item 26---29. The last four cases simply recurse on inner \tt{LFuns}.
+\end{itemize}
+
+The rest of the cases (not shown) do not modify the input.
+

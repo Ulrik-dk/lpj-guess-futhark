@@ -1,0 +1,206 @@
+\subsection{Proof of Linearity}
+In this subsection, we will prove that our constructs have the property of linearity.
+
+We will proceed with the linear functions the order presented in
+\autoref{linearmaps}.  Note that we use ML-like notation where function application
+has the highest precedence among all operators.  We will also take the liberty
+of using ML-like list notation instead of the more conventional tuple notation
+in used in~\cite{ladr}.
+
+\paragraph{Claim:  Programs constructed in TAD are linear by construction}
+
+\textbf{Proof}
+We are going to make a proof by cases.  We are focusing on the most challenging
+constructs here.
+
+\begin{itemize}
+
+  \item{\textbf{Case} \texttt{Id}:}
+
+
+\begin{align*}
+  \texttt{int Id}\; (ax + by) &= ax+by \\
+  &= a(\texttt{Id}\; x) + b(\texttt{Id} \;y).
+\end{align*}
+Both equalities follows simply from the definition \( \texttt{Id} \; x = x \).
+
+\item{\textbf{Case} \texttt{KZero}:}
+
+
+\begin{align}
+  \texttt{int KZero}\; (ax + by) &= 0 \label{kzero1} \\
+  &= a\cdot 0 + b\cdot 0 \\
+  &= a(\texttt{KZero}\; x) + b(\texttt{KZero} \;y).\label{kzero3}
+\end{align}
+Equation~\eqref{kzero1} and~\eqref{kzero3} follow simply from the definition \( \texttt{KZero} \; x = 0 \).
+
+\item{\textbf{Case} \texttt{Scale n}:}
+
+
+\begin{align}
+  \texttt{int (Scale n)}\; (ax + by)
+  &= n (a x + b y) \label{scale1} \\
+  &= n a x + n b y \label{scale2} \\
+  &= a n x + b n y \label{scale3} \\
+  &= a(\texttt{(Scale n)}\; x) + b(\texttt{(Scale n)} \;y).\label{scale4}
+\end{align}
+Equalities~\eqref{scale1} and~\eqref{scale4} follow from the definition \( \texttt{Scale n} \; x = n\cdot x \),
+Equality~\eqref{scale2} follows distributivity of scalar multiplication with respect to vector addition.
+Equality~\eqref{scale3} follows from commutativity in the underlying field \(F\).
+
+\item{\textbf{Case} \texttt{Neg}:}
+This also shows the case for \texttt{Neg} as a special case with \( n = -1 \).
+
+\item{\textbf{Case} \texttt{LMap}:}
+Assuming $f$ is a linear map, then \( \texttt{int (LMap $f$)} \colon R^n \rightarrow
+R^n\) is also a linear map.
+
+
+\begin{align*}
+  &\phantom{=} \texttt{int (LMap $f$)}\; (a[x_1,\dots,x_n] + b[y_1,\ldots,y_n]) \\
+  &= \texttt{int (LMap $f$)}\; [(a x_1 + b y_1), \ldots, (a x_n + b y_n)] \\
+  &= [\texttt{$f$}\; (a x_1 + b y_1), \ldots, \texttt{$f$}\; (a x_n + b y_n)] \\
+  &= [a \texttt{$f$}\; x_1 + b \texttt{$f$} \; y_1, \ldots, a \texttt{$f$}\;  x_n + b \texttt{$f$}\; y_n] \\
+  &= [a \texttt{$f$}\; x_1 ,\ldots, a \texttt{$f$}\; x_n ] +  [b \texttt{$f$}\; y_1 ,\ldots, b \texttt{$f$}\; y_n] \\
+  &= a[\texttt{$f$}\; x_1 ,\ldots, \texttt{$f$}\; x_n ] + b [\texttt{$f$}\; y_1 ,\ldots, \texttt{$f$}\; y_n] \\
+  &= a\left(\texttt{int (LMap $f$)}\;  [x_1 ,\ldots, x_n ]\right) + b \left( \texttt{int (LMap $f$)}\; [ y_1 ,\ldots, y_n]\right)
+\end{align*}
+
+
+\item{\textbf{Case} \texttt{Zip}:}
+Assuming $f_1 \ldots f_n$ are linear maps, then \( \texttt{int (Zip [$f_1,\ldots,f_n$])} \colon R^n
+\rightarrow R^n\) is also a linear map.
+
+
+\begin{align*}
+  &\phantom{=} \texttt{int (Zip [$f_1,\ldots,f_n$])}\; (a[x_1,\dots,x_n] + b[y_1,\ldots,y_n]) \\
+  &= \texttt{int (Zip [$f_1,\ldots,f_n$])}\; [(a x_1 + b y_1), \ldots, (a x_n + b y_n)] \\
+  &= [\texttt{$f_1$}\; (a x_1 + b y_1), \ldots, \texttt{$f_n$}\; (a x_n + b y_n)] \\
+  &= [a \texttt{$f_1$}\; x_1 + b \texttt{$f_1$} \; y_1, \ldots, a \texttt{$f_n$}\;  x_n + b \texttt{$f_n$}\; y_n] \\
+  &= [a \texttt{$f_1$}\; x_1 ,\ldots, a \texttt{$f_n$}\; x_n ] +  [b \texttt{$f_n$}\; y_1 ,\ldots, b \texttt{$f_1$}\; y_n] \\
+  &= a[ \texttt{$f_1$}\; x_1 ,\ldots,  \texttt{$f_n$}\; x_n ] +  b[ \texttt{$f_n$}\; y_1 ,\ldots, \texttt{$f_1$}\; y_n] \\
+  &= a \left(\texttt{int (Zip [$f_1,\ldots,f_n$])}\;  [x_1 ,\ldots, x_n ]\right) + b\left( \texttt{int (Zip [$f_1,\ldots,f_n$])}\; [ y_1 ,\ldots, y_n] \right)
+\end{align*}
+
+
+\item{\textbf{Case} \texttt{Comp}:}
+Assuming $f$ and $g$ are linear maps, then
+\( \texttt{int (Comp $g$ $f$)} \colon V \rightarrow W \) is also linear.
+
+
+\begin{align}
+  \texttt{int (Comp $g$ $f$)}\; (ax + by)
+  &= g ( f (a x + b y)) \label{lmcomp1} \\
+  &= g ( a f x + b f y) \label{lmcomp2} \\
+  &=  a g (f x) + b g (f y) \label{lmcomp3}  \\
+  &= a \left( \texttt{int (Comp $g$ $f$)}\; x \right) + b \left( \texttt{int (Comp $g$ $f$)}\; y \right).
+\end{align}
+
+Equation~\eqref{lmcomp1} follows from the definition of the function composition
+operator, usually written \((g \, \circ \, f)(x)= g(f(x))\).
+Equation~\eqref{lmcomp2} holds since \(f\) is linear.
+Equation~\eqref{lmcomp3} since \(g\) is also linear.
+
+
+
+\item{\textbf{Case} \texttt{Para}:}
+Assuming $f$ and $g$ are linear maps, then
+\( \texttt{int (Para $f$ $g$)} \colon U \times V \rightarrow W \times X \) is also linear.
+
+
+\begin{align}
+  &\phantom{=} \texttt{int (Para $f$ $g$)}\; ( a(x_1, y_1) + b(x_2, y_2) ) \\
+  &= \texttt{int (Para $f$ $g$)}\; (ax_1+bx_2 , ay_1 + b y_2) \\
+  &= (f \; (ax_1+bx_2) , g\; ( a y_1 + b y_2)) \\
+  &= (af\;x_1+bf\;x_2 , a g\;  y_1 + b g\; y_2) \\
+  &= a(f\;x_1 ,  g\;  y_1) + b(f\;x_2 , g\; y_2) \\
+  &= a\left( \texttt{int (Para $f$ $g$)}\; (f\;x_1 , g\; y_1) \right)
+   + b\left( \texttt{int (Para $f$ $g$)}\; (f\;x_2 , g\; y_2) \right)
+\end{align}
+
+
+
+\begin{align}
+  \texttt{int (Lplus $f$ $g$)}\; (ax + by)
+  &= f (a x + b y) + g (a x + b y) \label{lmlp1} \\
+  &= ( a f x + b f y) + ( a g x + b g y)  \label{lmlp2} \\
+  &= a (f x + g x) + b (f y + g y) \label{lmlp3}  \\
+  &= a \texttt{(Lplus $f$ $g$)}\;x + b  \texttt{(Lplus $f$ $g$)}\;y.
+\end{align}
+
+Equation~\eqref{lmlp1} follows from the definition of \texttt{LPlus}:  Duplicate the input
+so it becomes a pair.  Then apply the functions on the first and second component
+respectively.  Finally add the results.  Here we just express the result directly.
+Equation~\eqref{lmlp2} holds since \(f\) and \(g\) are linear.
+Equation~\eqref{lmlp3} is rearrangement of the terms.
+
+\begin{align}
+  &\phantom{=} \texttt{int (Red $r$)}\; (a[t_1,\dots,t_n] + b[z_1,\ldots,z_n]) \\
+  &= \texttt{int (Red $r$)}\; [(a t_1 + b z_1), \ldots, (a t_n + b z_n)] \\
+  &= \left[
+    \sum_{(x,1)\in r} (at+bz)_x
+    ,\ldots,
+    \sum_{(x,n)\in r} (at+bz)_x
+    \right] \\
+  &= \left[
+    a\sum_{(x,1)\in r} t_x
+    +
+    b\sum_{(x,1)\in r} z_x
+    ,\ldots,
+    a\sum_{(x,n)\in r} t_x
+    +
+    b\sum_{(x,n)\in r} z_x
+    \right]
+    \\
+  &= \left[
+    a\sum_{(x,1)\in r} t_x
+    ,\ldots,
+    a\sum_{(x,n)\in r} t_x
+    \right]
+  +
+    \left[
+    b\sum_{(x,1)\in r} z_x
+    ,\ldots,
+    b\sum_{(x,n)\in r} z_x
+    \right]
+    \\
+  &=a \left[
+    \sum_{(x,1)\in r} t_x
+    ,\ldots,
+    \sum_{(x,n)\in r} t_x
+    \right]
+  +
+    b \left[
+    \sum_{(x,1)\in r} z_x
+    ,\ldots,
+    \sum_{(x,n)\in r} z_x
+    \right]
+    \\
+  &= a\left(\texttt{int (Red $r$)}\;  [t_1 ,\ldots, t_n ]\right) + b \left( \texttt{int (Red $r$)}\; [ z_1 ,\ldots, z_n]\right)
+\end{align}
+
+See~\cite[Proposition F.17 \texttt{red} is linear, p. 51]{popl}.
+
+
+\item{\textbf{Case} \texttt{LSec}:}
+Assuming $f_1 \ldots f_n$ are linear maps, then \( \texttt{int (LSec Mtx MatrixMult)} \colon R^n \rightarrow R^n\) is also a linear map.
+
+
+
+\begin{align}
+  \texttt{int (LSec M MatrixMult)}\; ( aW_1 + bW_2)
+  &= M (a W_1 + b W_2)  \\
+  &= aMW_1 + bMW_2  \label{lsec1} \\
+  &= a\left( \texttt{int (LSec M MatrixMult)}\; W_1 \right) \\
+  &+ b\left( \texttt{int (LSec M MatrixMult)}\; W_2 \right)
+\end{align}
+
+Equation~\eqref{lsec1} holds because matrix multiplication is linear.
+
+\item{\textbf{Case} \texttt{RSec}:}
+  Symmetric to the proof for \texttt{LSec}.
+
+\item Cases for \texttt{Dup}, \texttt{Prj}, \texttt{Fst} and \texttt{Snd} are omitted for
+  brevity. %Add can be thought of as LPlus Fst Snd.
+
+\end{itemize}

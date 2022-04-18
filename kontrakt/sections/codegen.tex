@@ -1,0 +1,494 @@
+\subsection{Code generation}\label{sec:codegen}
+Translating the language into Futhark a lot more complicated than just
+evaluating it in the interpreter.  The initial idea is to map \tt{Val}s to
+Futhark values, and \tt{LFun}s to Futhark functions.  Whenever an
+\tt{LFun} contains a \tt{Val}, this should translate to an equivalent,
+partially applied, Futhark function.  We do this by generating one line
+of code for each \tt{LFun} - each defining a function, partially applied
+or not.
+
+In order to keep the generated code itself as simple as possible, we decided
+to define a Futhark library which each generated program imports, and
+which contains as much of the logic as possible, such that each of these
+generated functions is just the application of one of the functions in the
+library.  Because the \tt{LFun}s are simple in themselves, the generated code
+comes to resemble three-address code.
+
+In order to compose these functions correctly, whether in parallel or in
+sequence, we must give each function a unique name, and the compilation
+process must keep track of these names in such a way that the mutual
+relations of the \tt{LFun}s is carried over into the generated Futhark
+code.
+
+\subsubsection{Arity typing}
+Due to the constraints mentioned in the relevant section, our Futhark
+generated code and library must not contain any recursion or function
+overloading.  However, the \tt{LFun}s themselves are both recursive and
+overloaded.  The need to disambiguate these things in the code, created the
+need to define and identify the \tt{Arity} of a \tt{Val}, and keep track of
+these as well during the compilation.
+
+\code{src/Types.hs}{78}{81}
+Recall that the \tt{Tensor} data-type is recursive, as is --- for instance --
+the \tt{neg} \tt{LFun}.  In the interpreter, applying \tt{neg} requires one
+function with two overloaded definitions - one recursive case (\tt{Tensor})
+and one base case (\tt{Scalar}).  Since there is no overloading or recursion
+in Futhark, we must have one definition for each level of nestedness for
+the \tt{Tensor}s.  Since an \tt{Arity} of \tt{Atom 0} corresponds to a
+\tt{Scalar}, \tt{Atom 1} to a vector, \tt{Atom 2} to a matrix, and so on,
+identifying these is a requirement to then be able to apply \tt{neg\_0},
+\tt{neg\_1} and \tt{neg\_2} and so on as needed.  These are defined in
+terms of each other in this manner:
+
+\code{lib/lmaplib.fut}{69}{73}
+
+Arities are identified using the getArity function:
+
+\code{src/Types.hs}{88}{98}
+
+\tt{APair} corresponds to a \tt{Pair}, and contains the arities of the values
+of a given pair.  This helps us to ensure that functions can or cant take
+pairs are given or not give pairs, among other things.
+
+When generating the code for a single \tt{LFun}, several arities are relevant to
+both ensure correctness and to generate meaningful Futhark code: The
+arities of all the input values, and the arity of the resulting value.
+The arities of the input are given by the embedded value, if it is a
+sectioned \tt{LFun}, and by the preceding \tt{LFun} in the Comp chain, or by the input
+to the program, if it is the first \tt{LFun} in a chain.  The resulting arity
+depends on the \tt{LFun} in question, and is needed to determine that of the
+proceeding one in the given chain, or of the resulting program, assuming that
+the \tt{LFun} is the {\it{last}} in the given chain.
+
+Since most programs in the intermediate language will involve chains of
+sequentially composed \tt{LFun}s, one must, at compile time, know the arity of the
+value to which the whole program is applied.  This then disambiguates the
+semantics of the first \tt{LFun} in the chain, which then disambiguates the next
+one, and so forth.
+
+\subsubsection{The State Monad}
+In order to keep track of these things, the Futhark program \tt{String},
+the counter used to uniquely identify each \tt{LFun} and the \tt{Arity} of
+the \tt{Val} returned from the latest written line of code, during the
+compilation process, we decided to use a monad.
+
+The monad just has to contain this state triple of a \tt{Program} (a
+\tt{String})
+
+\code{src/Types.hs}{235}{237}
+
+The monad most suited for this purpose is the state monad, which we
+implemented this way:
+
+\code{src/CodeGen.hs}{5}{18}
+
+Which is equivalent to a standard implementation for a state monad.  To
+interact with this monad, we needed the following auxiliary functions:
+
+\code{src/CodeGen.hs}{20}{27}
+
+\begin{itemize}
+	\item 20---21: \tt{put} is used to initialize the state of the monad.
+	\item 23---27: \tt{getProg} and \tt{getLastFunIdAndArity} are used to
+	extract parts of the state as needed, in a relevant format.
+\end{itemize}
+
+\subsubsection{The code generation process}
+
+\code{src/CodeGen.hs}{29}{30}
+
+\begin{itemize}
+	\item 29---30: \tt{completeCodeGen} takes the program (\tt{LFun}) the
+	user wants to execute, and and example \tt{Val} that the user wants to
+	give as input to the program, and compiles it, after having desugared
+	and optimized it.  The \tt{Val} is only used to properly arity-type the
+	program.  Thus as long as the input has the correct Arity, the program
+	will work with.  We do not currently check at compile time whether
+	operations such as matrix multiplication will be valid.  This is enforced
+	by the Futhark compiler.
+\end{itemize}
+
+\code{src/CodeGen.hs}{32}{38}
+
+\begin{itemize}
+	\item 32---38: \tt{codeGenProgram} is invoked by \tt{completeCodeGen}.
+	It can also be invoked by itself, assuming the \tt{LFun} does not contain
+	'sugary' constructs.  The initial state of the monads is the import
+	statement for the library, the arity of the input (conceptually, the
+	input can be thought of as the output of the preceding program), and the
+	constant \tt{0}, which makes function id's start at \tt{1}.  Then
+	\tt{codeGenLFun} is called, followed by \tt{finishProg}, and finally the
+	source code for the resulting Futhark program is extracted.
+\end{itemize}
+
+
+\code{src/CodeGen.hs}{40}{44}
+
+\begin{itemize}
+	\item 40---44: \tt{genLineOfCode} takes the output arity of the function
+	being written, the function call itself, and updates the state of the
+	monad using these, by composing the complete code line, and updating the
+	program, arity and counter.
+\end{itemize}
+
+\subsubsection{\tt{Val} translation and Futhark standard input handling}
+
+In order to explain how a program is finished, we must first get into how
+\tt{Val}s are translated. When a \tt{Val} is a constant in a program, it
+is shown using the show instance:
+
+\code{src/Types.hs}{53}{65}
+
+This means that the \tt{Val} \tt{Pair Dummy (Tensor [Scalar 2, Scalar 3])}
+becomes the Futhark literal \tt{(f32.nan, [2.0f32, 3.0f32])}.
+
+However, since Futhark can not accept tuples or pairs via standard
+input, we have to deconstruct any tuples used for input and transmit them in
+some different way. It happens to be the case, that the 'leaves' in any
+'tree' of pairs will always have some mutual ordering, and by ordering these
+values in the same way, we can transfer them via standard input without using
+pairs. We can then reconstruct the 'tree' in \tt{main} entry point.
+
+\code{src/Types.hs}{68}{75}
+
+We use \tt{stdinShow} whenever the \tt{Val} is used for standard input
+rather than a literal in the program. The main difference is that the values
+of pairs are printed separately in order, with white space in between. Another difference is that negative numbers have to be encased in parentheses in Futhark literals, but not in standard input.
+
+In order for Futhark to be able to typecheck the generated program, we have
+to declare the type of the main entry point. This is not necessarily required
+for all Futhark programs in general, but it is sufficient for the compiler to
+be able to determine all types in our case.
+
+\code{src/CodeGen.hs}{110}{116}
+
+\tt{genTypeDeclaration} generates the type declaration for a single
+standard input value's \tt{Arity}.
+
+\code{src/CodeGen.hs}{119}{122}
+
+In \tt{inputArgDeclaration} each parameter to the \tt{main} entry point is
+given a unique name, in a similar way to functions in the main body of the
+program, except that this function is not monadic. It generates both the
+string corresponding to the declaration, and the string corresponding to the
+reconstruction of the input pair tree. These are the two strings in the
+return triple, respectively. Please see the code example of a neural network
+layer for an example of a result of this in practice.
+
+\code{src/CodeGen.hs}{124}{128}
+
+\tt{finishProg} is the function that actually generates the main entry point.
+It must first identify the type declarations and input argument
+reconstruction (if applicable), before it can call the last generated main
+body function, and append the result to the program.
+
+\subsubsection{\tt{LFun} code generation and Futhark implementations}
+The Futhark library begins with these definitions:
+\code{lib/lmaplib.fut}{1}{3}
+
+\paragraph{\tt{Id}, \tt{Dup}, \tt{Fst} and \tt{Snd}}
+\code{src/CodeGen.hs}{60}{64}
+\code{lib/lmaplib.fut}{7}{9}
+
+\begin{itemize}
+	\item 60: \tt{codeGenLFun} is the function that disambiguates and
+	generates the specific Futhark code for the different \tt{LFun}s.
+	It is the 'meat and potatoes' of the code generation process.
+	\item 61: \tt{Id} is equivalent to \tt{id}, which is a native Futhark
+	function. As one would expect, the output arity (given to the
+	\tt{genLineOfCode} function) is the same as the input arity (the
+	\tt{a1} argument to \tt{codeGenLFun}).
+	\item 62+7: \tt{Dup}'s implementation is self-explanatory. The
+	output arity is an \tt{APair} (read: \tt{Arity}-pair) of the input arity.
+	\item 63---64+8---9: \tt{Fst} and \tt{Snd} are also very simple, and no
+	not warrant long-winded explanation. This time we deconstruct an
+	\tt{APair} rather than construct it. Notice how tt{Arity} serves the same
+	role as the type system does in Futhark, and can be thought of as
+	a 'poor mans type system'.
+\end{itemize}
+
+
+\paragraph{\tt{Add}}
+
+\code{src/CodeGen.hs}{65}{65}
+
+\code{lib/lmaplib.fut}{26}{29}
+
+\begin{itemize}
+	\item 65+26---29: The implementation of \tt{Add} assumes that the
+	user is adding two values of same \tt{Arity} and length - both of
+	these are enforced by Futhark at runtime. The implementation
+	itself is very simple, although the type signatures are not. The
+	size-type annotations (e.g.. \tt{[n]}) are a necessary promise to the
+	Futhark compiler, that the operands are of the same lengths,
+	such that the operation will always be successful, as long as the
+	types are correct.
+\end{itemize}
+
+\paragraph{\tt{Neg}}
+
+\code{src/CodeGen.hs}{66}{66}
+
+\code{lib/lmaplib.fut}{70}{73}
+
+\begin{itemize}
+	\item 66---89: \tt{Neg} is a good example of the 'simulated
+	recursion' approach we have taken. Each implementation, other
+	than the 'base case' just maps over the previous one in the
+	'chain'.
+\end{itemize}
+
+\paragraph{\tt{Red}}
+
+\code{src/CodeGen.hs}{57}{58}
+Due to the constraints of the Futhark size-type system, the compiler
+must know at compile time what size the result of the reduce operation
+will have. This function determines the highest destination \tt{index}
+in the relation, and from this, the size of the resulting output.
+
+\code{src/CodeGen.hs}{68}{68}
+The code calling the Futhark function is very simple. We just have
+one version of a wrapper-function for each valid arity, and the relation
+is passed as a literal value to this function, along with the value we
+apply it to.
+
+\code{lib/lmaplib.fut}{86}{93}
+Each of the wrappers generate their respective neutral element using
+the different \tt{rep} functions, and call the \tt{reduce\_h} function
+using the relevant \tt{add} function.
+
+\code{lib/lmaplib.fut}{76}{78}
+Each \tt{rep} function replicates a given neutral element. They only vary
+in the respective arity of the result.
+
+\code{lib/lmaplib.fut}{80}{84}
+The main \tt{reduce\_h} (helper) function is essentially a wrapper for the
+native Futhark \tt{reduce\_by\_index} function, which receives a
+destination array, an operator with which to perform reduction, a neutral
+element for that operator, and two arrays, one of indices and another of
+values. It then copies, using the index array, from the value array to the
+destination array, using the reduction operator in case there are collisions.
+It comparable to a histogram operation, and it is very fast and surprisingly
+flexible. It fits with the semantics of our reduce operation, and since it is
+native to the Futhark compiler, it is basically impossible to implement
+a faster version, with equivalent semantics, using other Futhark
+constructs.
+
+\paragraph{\tt{LSec} and \tt{RSec}}
+\code{src/CodeGen.hs}{110}{116}
+The implementation of sections relies on \tt{bilOpOutputArity} which given the
+arities of a bilinear operator (or the loss function) and the arities of the
+operands, calculates the arity of the result. It also (currently) enforces
+the arities of operands to the various inner product operators to be exactly
+as the names suggest. Ideally we would have just one inner product operator,
+which was generalized over all these combinations, which would just add the
+arities and subtract \tt{2}.
+
+\code{src/CodeGen.hs}{69}{70}
+The code for left section is more or less straightforward. The arities and
+values are given and written in the same order. For right section, things
+get more complicated. Since the function is applied with the arguments
+swapped, all the places where the arities are used have to be swapped as
+well. Finally, the native Futhark function \tt{flip} must be applied to
+the function as well. This does not change the semantics, but only flips the
+order in which the arguments are given. \tt{flip} has the (simplified) type \texttt{(a \rightarrow b \rightarrow c) \rightarrow b \rightarrow a \rightarrow c}, which was what we wanted.
+
+\paragraph{\tt{BilOp}s}
+
+\code{src/CodeGen.hs}{46}{55}
+
+\begin{itemize}
+	\item 46---52: \tt{bilOp} is used map bilinear operators (and the utility
+	operator for calculating loss - this is an implementation detail) to the
+	respective Futhark library functions.
+	\item 54---55: \tt{arityAnnotation} is used to disambiguate the different
+	versions of the given functions.
+	\item Thus, calling \tt{bilOp Outer (Atom 2) (Atom 1)} will result in
+	\tt{outer\_2\_1} (and its output arity will be \tt{Atom 3}).
+\end{itemize}
+
+\code{lib/lmaplib.fut}{39}{40}
+The implementation of the generalized outer product relies on these two
+functions, \tt{mapr} (map right) and \tt{mapl} (map left). Both of these
+map over a single vector, but use operators that take two arguments. Map
+right maps over the right argument and passes the left argument to the
+operator, and map left maps over the left argument and passes the right
+to the operator.
+
+\code{lib/lmaplib.fut}{42}{58}
+Each instance of \tt{outer} builds on a previous one, with the 'base case'
+being floating point multiplication. Each just 'maps' over either a right
+or left vector. It should be easy for the reader to see how these can be
+automatically generated.
+
+In the case of the inner products, it is nontrivial to derive a generalized
+algorithm which fits all four cases. Nevertheless, all four \tt{BilOp}s
+translate to the same underlying Futhark functions. This is a forgiving
+implementation, and perhaps a controversial one.
+
+\code{lib/lmaplib.fut}{61}{61}
+The dot product of two vectors is the additive reduction of the vector of
+their pairwise products.
+
+\code{lib/lmaplib.fut}{62}{62}
+Vector matrix multiplication just maps the dot product over the matrix.
+
+\code{lib/lmaplib.fut}{63}{63}
+Matrix vector multiplication is the same as vector matrix multiplication,
+except that the matrix must first be transposed.
+
+\code{lib/lmaplib.fut}{64}{64}
+Matrix matrix multiplication requires mapping over the first argument, and
+mapping over the transpose of the second, before their common dimension is
+exposed, which then allows application of the dot product function.
+
+
+\code{lib/lmaplib.fut}{67}{67}
+The loss function is the sum of squared errors.
+
+\paragraph{\tt{Comp}}
+
+\code{src/CodeGen.hs}{71}{76}
+
+To compile a sequential composition of two \tt{LFun}s, we must first compile
+the first \tt{LFun}, extract its id and output arity, and feed the output
+arity as input to the compilation of the second \tt{LFun}. The output arity
+of the second becomes the output of the composition, and we then just write
+the line of code which chains the two together. This works with arbitrarily
+nested \tt{LFun}s, as long as the arity types are correct.
+
+\code{lib/lmaplib.fut}{11}{11}
+
+The Futhark function \tt{comp} then, receives two functions and an
+argument, and applies the left function to the result of the right function
+on the input, thereby applying them sequentially.
+
+\paragraph{\tt{Para}}
+
+\code{src/CodeGen.hs}{77}{82}
+
+\code{lib/lmaplib.fut}{12}{12}
+
+\tt{Para} is very similar to \tt{Comp}, except that it receives a \tt{Pair}
+of \tt{Vals}, and must apply two \tt{LFun}s to the components of the pair in
+parallel, and reconstruct a \tt{Pair} containing the result.
+
+
+\paragraph{\tt{LMap}}
+
+\code{src/CodeGen.hs}{84}{87}
+
+The embedded \tt{LFun} in the \tt{LMap} must first be compiled, and the
+value the \tt{LMap} is applied to must be a non-zero \tt{Tensor}. At that
+point, \tt{LMap} is equivalent to a Futhark \tt{map}.
+
+\paragraph{\tt{Zip}}
+
+Due to the inadequacy of the main symbolic compiler, in order to compile
+\tt{Zip}, we fall back on the secondary compiler, which was developed to
+solve this issue. We essentially just apply the alternative compiler to
+the subprogram of the \tt{Zip} \tt{LFun}, the result of which is a special
+kind of map2.
+
+\code{src/CodeGen.hs}{89}{93}
+
+\code{lib/lmaplib.fut}{14}{14}
+
+\subsubsection{Constant extraction compilation}
+
+As described in the relevant section, \tt{Zip} applies a list of functions
+to an equally long list of values. However, in Futhark, functions can
+not be stored in arrays. While this would make the problem intractable for
+arbitrary lists of functions, we know that \tt{Zip} operations are actually
+auto-differentiated maps. This means  that all the functions in the list are
+basically the same, they just contain different constant values.
+
+
+\code{src/Preprocesser.hs}{87}{101}
+
+We introduce the datatype \tt{LFunP} ('pure \tt{LFun}) to denote an
+\tt{LFun} which has had its constant \tt{Val}s extracted. We now define
+the extraction process in such a way that the constants can be reintroduced
+at a later point.
+
+\code{src/Preprocesser.hs}{103}{122}
+
+\begin{itemize}
+	\item 105---111: Due to the way the \tt{Val}s are transferred back
+	to their original functions, \tt{extractLFunConsts} must give dummy
+	values to the \tt{LFun} which do not contain \tt{Val}s.
+	\item 112---113: The sectioned functions are the only ones which
+	actually contain \tt{Vals}.
+	\item 114---120: The values in the embedded \tt{LFun}s in \tt{LMap},
+	\tt{Para} and \tt{Comp} are extracted recursively. In the latter two
+	cases, \tt{Pair}s are constructed, such that the values in the pairs
+	correspond to the embedded \tt{LFun}s.
+	\item 121---122: Since we are assuming that the \tt{LFun}s in a
+	\tt{Zip} are identical ignoring their constants, when we recursively map
+	extract the constants from each inner \tt{LFun}, we only need to keep
+	the pure \tt{LFunP} from the first \tt{LFun} in the list. We then
+	construct a \tt{Tensor} from the values.
+\end{itemize}
+
+\code{src/CodeGen.hs}{140}{149}
+The 'const-extracted' compiler, when used standalone, begins very
+similarly to the regular symbolic compiler, the main difference being
+that this one has to perform the extraction first.
+
+\code{src/CodeGen.hs}{152}{156}
+The compilation of the entry point is also very similar. The main difference
+being here, that the reconstructed input value pair-tree has to be the
+second part of a pair, where the first part consists of the extracted
+values pair-tree.
+
+\paragraph{Reconstitution}
+\code{src/CodeGen.hs}{159}{165}
+\code{src/CodeGen.hs}{167}{167}
+\code{lib/lmaplib.fut}{18}{18}
+
+For the \tt{LFunP}s which were given dummy values, we must now wrap the
+regular Futhark functions in the \tt{ignoreDummyVal} function, which as the
+name suggests, receives a const/arg tuple and throws away the constant
+(dummy value) and applies the given function only to the arg.
+
+\code{src/CodeGen.hs}{169}{170}
+
+For the sections, all we have to do is \tt{uncurry} (native in
+Futhark) the function such that it can be applied to the const/arg
+pair rather than two separate arguments.
+
+\code{src/CodeGen.hs}{172}{177}
+
+\code{lib/lmaplib.fut}{20}{20}
+
+Compiling \tt{CompP} is basically identical to a regular \tt{Comp},
+however, the Futhark function is more involved. We are given a const/arg
+pair and two functions. The const in the pair is itself a pair of consts,
+corresponding to the two functions. We must therefore apply the second (
+leftmost) function, with the leftmost constant, to the result of applying
+the rightmost function, with the rightmost constant, to the input value.
+
+\code{src/CodeGen.hs}{178}{183}
+
+\code{lib/lmaplib.fut}{21}{21}
+
+Like \tt{CompP}, compiling \tt{ParaP} is basically identical to a regular
+\tt{Para}. This time, we are given two functions, a const/arg pair, and
+both the const and the arg are themselves pairs. The result is the pair
+constructed from applying each function, with their respective constants,
+to their respective arguments.
+
+\code{src/CodeGen.hs}{186}{189}
+
+\code{lib/lmaplib.fut}{22}{22}
+
+Due to having to pass the const value to each iteration of the map,
+\tt{LMapP} is somewhat different from \tt{LMap}. This is solved by currying
+and partially applying \tt{f} to the const value.
+
+\code{src/CodeGen.hs}{191}{195}
+
+\code{lib/lmaplib.fut}{23}{23}
+
+The \tt{ZipP} case is similar to \tt{LMapP}, but now the constant is an
+array of constants, so it turns into a \tt{map2}.

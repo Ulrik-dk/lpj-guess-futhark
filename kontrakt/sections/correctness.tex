@@ -1,0 +1,41 @@
+\subsection{Correctness testing}\label{correctness}
+To help us in the development process, and in order to better argue for the
+soundness of our implementations, we had to develop a set of tests. Now, there
+are many different testing strategies we could use, we decided that black-box
+unit-testing would be a good starting point. This means that we developed
+tests for the different language constructs without assuming any knowledge
+of the implementation of these.
+
+The way we structured the tests were to define, for each feature we would test,
+a list of tuples of a name for a given test, an \tt{LFun}, an input \tt{Val}
+and an expected result \tt{Val}. For each test, for each feature, we would then
+generate a test for each of three different execution methods---the interpreter,
+the regular compiler, and the constant-extracting compiler. The interpreter
+functions as the reference implementation, to prove that the expected result
+is correct. The regular compiler of course relies on the correctness of the
+constant-extracting compiler, as any construct must function whether embedded
+in a \tt{Zip} or not.
+
+\code{test/Tests.hs}{201}{207}
+
+This is an example of a feature, which happens to have only a single test. The
+first \tt{Val} in the tuple is the input, and the second is the reference output.
+
+When we run all tests, which can be done with \tt{make t}, we get the following
+(abbreviated) output:
+
+\begin{minted}{text}
+...
+  dotprod
+    [1,2,3] * [4,5,6] = 32
+      Interpretor:                                                        OK
+      CodeGen:                                                            OK (1.71s)
+      ConstExtracted:                                                     OK (1.70s)
+...
+All 193 tests passed (235.04s)
+tad> Test suite integration-tests passed
+\end{minted}
+
+Further, we have tests for the optimizations and for the matrix execution path,
+however, as of now we do not (now) generate tests for the latter, as this requires
+shape values.

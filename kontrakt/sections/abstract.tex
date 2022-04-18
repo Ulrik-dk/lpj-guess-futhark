@@ -1,0 +1,31 @@
+\paragraph{Abstract}
+
+Auto Differentiation (AD) is the pursuit of computing the derivative of a
+program.  The has been the subject of research since the 1960s\cite{adsurvey}.
+The \textit{Fréchet language} is a domain specific language (DSL) in which
+programs are expressed in such a manner, that a special-purpose interpreter can
+derive expressions of the \textit{Fréchet derivative} during interpretation.
+However, this approach produces expressions for the derivative that can be
+computationally demanding.  Fortunately, this derivative is expressed entirely
+in terms of linear maps which are amenable to parallelization.
+
+Futhark\cite{futhark} is a data-parallel language with an optimizing compiler,
+that facilitates writing programs that can utilize massively-parallel
+hardware.  It produces executables that can then be run on graphics processing
+units (GPUs).\@
+
+In this thesis we investigate how we can speed-up computation of these Fréchet
+derivatives by utilizing Futhark.\@  We design a DSL suitable for expressing
+Fréchet derivatives and implement a translator from this DSL to Futhark
+source-code.  We further build an executor that compiles the generated Futhark
+source-code using the Futhark compiler and executes it on a GPU.\@  Thereby
+enabling us to optimize programs and execute them on a GPU.\@
+
+We provide a test suite to justify the correctness of our implementation, as
+well as four micro-benchmarks and an example of a neural network written in the
+DSL.\@ Finally, we visualize the performance characteristics over different
+input sizes.
+
+\paragraph{Keywords: Auto Differentiation, Fréchet, Futhark, Linear Maps, GPU}
+
+

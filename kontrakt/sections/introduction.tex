@@ -1,0 +1,42 @@
+\section{Introduction}
+
+\paragraph{The Derivative of a Program}   We will start by giving an intuition
+for what AD is, and what purpose it serves.  In calculus where we describe the
+derivative of a function as the instantaneous change of the function value at
+some point.  Analogous to calculus we can consider the derivative of a program.
+The easiest way is to picture the program to be a pure computation of its input
+variables yielding some result value.  We may then pose the question:  if we
+change one of the input variables infinitely little, how does that affect the
+result of that program?  A program that takes multiple input variables is
+analogous to multivariate functions in calculus.
+
+However, programs can contain structures not found in basic calculus.  For
+example:  how do we differentiate control-flow operators such as a
+\texttt{for} loop or an \texttt{if-then-else} expression?  The answers are
+outside the scope of this project, but we refer to~\cite{adsurvey}.
+
+\cite{adsurvey} describes four different methods for obtaining the
+derivative of a program:
+\begin{enumerate*}[label=(\arabic*)]
+
+  \item \textbf{Manually computed derivatives} is about first finding the derivative
+  by hand and then afterwards implement this it as a separate program.  It does
+    not scale to large programs and is prone to human error.
+
+  \item \textbf{Numerical differentiation} uses finite difference
+  approximations and while it can be fast it can suffer from precision errors.
+
+\item \textbf{Symbolic differentiation}  applies symbolic manipulation
+  rules for finding derivatives, but does so without manual assistance. It can
+    suffer from \textit{expression swell}.
+
+  \item \textbf{Automatic differentiation (AD)} is the approach we are concerned with,
+  and we will discuss it further in the following chapters.
+  AD and symbolic differentiation are equally accurate, but AD does not suffer
+    from \textit{expression swell} since it only uses a constant overhead during
+    interpretation and it supports control flow.
+
+\end{enumerate*}
+
+From this brief overview we see that AD has properties that makes it
+attractive and preferable over other the alternatives.

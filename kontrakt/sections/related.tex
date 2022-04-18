@@ -1,0 +1,11 @@
+\subsection{Related Work}
+There are several other projects in various stages of development that deal with
+automatic differentiation and execution of linear maps on GPUs or in other ways. We are
+aware of Robert Schenck's current research project on AD, which is work in
+progress, on not public. There is also \tt{caddie}\footnote{\url{https://github.com/diku-dk/caddie}},
+which is a tool for specifying gradients in a high level language and generating
+efficient code in Futhark or other languages. PyTorch is a machine learning library
+capable of AD\footnote{\url{https://pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html}},
+which is widely used, notably in Tesla's Autopilot\footnote{\url{https://insideevs.com/news/383390/video-tesla-andrej-karpathy-autopilot-full-self-driving/}},
+but which has been shown\cite{histogrammar} experimentally to be 100-400 times slower
+than Futhark in histogram benchmarks.

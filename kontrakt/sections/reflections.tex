@@ -1,0 +1,67 @@
+\subsection{Reflections} In this subsection we will reflect on selected
+practical considerations and difficulties we ran into, that may be relevant for
+other students who wish to embark on a similar project.
+
+\paragraph{Platform}
+In this project we built a foundation on which we can do experiments.  We made
+some experiments on this foundation, but it would certainly be interesting to
+do more.  We have prepared to do computations of neural networks with more
+layers, and it would be low hanging fruits.  Neural networks are just one
+well-studied class of computations, but we would like to test more real-world
+examples.
+
+\paragraph{Benchmarking with Futhark}
+One of the major feats of engineering was to orchestrate Futhark for data
+generation, program compilation, execution and plotting.
+We iterated over this three times, because it did not achieve satisfactory
+results.  Here we will discuss what we learnt from the earlier iterations.
+
+In the first iteration we generated a self-contained Futhark-program.
+Self-contained in the sense, that it contained the randomly generated input
+data (Usually a \texttt{Vector : Val}), and the entry point did not take any input.
+While it did work in terms of correctness and also in terms of measurements, it took
+surprisingly long time to execute.  While the measurements were in the order of
+seconds, we waited in the order of 10 minutes in wall clock time.  This turned out
+to be caused by the writing the values to the file and then later parsing them
+again, the latter of which, we suspect, taking up the larger fraction of the time.
+On a positive
+note, \texttt{futhark bench} was well-enough engineered that it did not include
+parsing time in the measurements it made.
+
+In the second iteration we moved on to using \texttt{futhark dataset} to
+generate the data.  We also moved to a binary format, which eliminated the
+delays we had experienced.  Since the vectors were random anyway, it did not
+affect us much.  Most of the debugging was done on the generated programs and
+not on the input data.  Unfortunately the problem returned when we started
+generating programs with large matrices involved in section notation, and we did
+not find an quick solution for this.  The problem is that the Fréchet
+interpreter and the Futhark compiler does not share memory space, so the Fréchet
+matrix representation has to be written to disk and then read and parsed by the
+Futhark compiler.
+
+\paragraph{Tool chain automation}
+We spend some effort on automating our processes es including
+correctness testing, benchmarking and parsing and plotting of the results.  Thus
+our results plotted in \autoref{plots} are produced by \texttt{stack bench}.
+
+\paragraph{Local GPU}
+We benefited a lot from setting tests up early, but one thing that ended up taking
+precious time was getting access to a GPU server where we could do benchmarks, as
+there were unforeseen issues with our university servers that in the past had worked as
+expected. Getting these kinds of things done as early as possible, and setting it up
+for easy automation and repetition, will give the student a better idea about how
+much time is expendable on the more scientific part of a project. Possibly figuring
+out a way to acquire ones own GPU if one does not have such already can help against
+externalities.
+
+\paragraph{Data representation} An important early consideration are how data is
+represented, as it has huge
+implications later on, about how different functions that operate on these will be
+implemented. It is well worth thinking this through, as changing it later will be
+very costly. A more efficient data representation than the default Haskell list
+would have been useful to take care of early in the project.
+
+\paragraph{Generating Futhark code} Generating the code
+in as small parts as possible, and then composing them, like assembler, turned out
+to be pretty straightforward and work well. Offloading as much as possible to a
+library also seems to have been prudent.

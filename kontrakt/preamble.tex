@@ -1,0 +1,106 @@
+\RequirePackage[l2tabu,orthodox]{nag}
+%\PassOptionsToClass{final}{article}
+\documentclass[a4paper,12pt]{article}
+
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[english]{isodate}
+\isodate{}
+
+\usepackage{caption}
+\usepackage{subcaption}
+
+\usepackage{url}
+\usepackage{listings}
+
+\usepackage{float}
+\usepackage[section]{placeins}
+
+%\usepackage[text={DRAFT 4}]{draftwatermark}
+
+\usepackage[inline]{enumitem}
+\setenumerate{noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt}
+\setitemize{noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt}
+
+
+\usepackage[
+    backend=biber,
+    %backref=true,
+    hyperref=true,
+    isbn=true,
+    %style=authoryear,
+    %style=numeric-comp,
+    %citestyle=apa,
+    %apabackref=true,
+    %style=ieee,
+    style=ieee,
+    %style=acm,
+    %citestyle=acm,
+    % ACM style: https://tex.stackexchange.com/q/172147
+    %style=trad-abbrv,
+    %firstinits=true,
+    url=true,
+    %doi=true,
+    %eprint=true,
+    %autolang=other,
+    %natbib
+]{biblatex}
+\addbibresource{thesis.bib}
+%\DeclareLanguageMapping{english}{english-apa}
+
+\newcommand{\feedback}[1]{{\marginpar{\color{red}{Fritz, Robert:  #1}}}}
+\newcommand{\husk}[1]{{\textit{ \color{blue}{#1}}}}
+\renewcommand{\tt}[1]{\texttt{#1}}
+\renewcommand{\it}[1]{\textit{#1}}
+
+\definecolor{bg}{rgb}{0.95,0.95,0.95}
+\usepackage[outputdir=build]{minted}
+\setminted
+  { bgcolor=bg
+  , linenos
+  , breaklines
+  , fontsize=\footnotesize
+  }
+
+\newcommand{\tad}{TAD}
+
+
+
+\newcommand{\code}[3]{{
+\setlength\abovecaptionskip{-5pt}
+\begin{center}
+\inputminted[firstline=#2,lastline=#3]{haskell}{../thesis-code/tad/#1}
+\captionof{figure}{Source-code snippet from the file \texttt{#1}.}
+\end{center}
+}
+}
+
+
+
+
+\usepackage{enumitem}
+\usepackage{csquotes}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\usepackage{graphicx}  % For including images
+\usepackage{svg}
+
+
+
+
+\usepackage{hyperref}
+\usepackage{float}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+\usepackage{syntax}
+
+\input{content.tex}

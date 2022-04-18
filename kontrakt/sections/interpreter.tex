@@ -1,0 +1,70 @@
+\section{Interpreter}
+To be able to argue for correctness of our generated Futhark programs, we
+decided to implement an interpreter to serve as a reference solution.
+
+With this reference solution, we can argue for the correctness of the much more
+complicated and optimized code-generation path.
+
+The interpreter applies an \texttt{LFun} to a \texttt{Val} and returns a wrapped
+result.  It follows the usual pattern of a evaluation function, that dispatches
+based on the \texttt{LFun} constructor, and makes use of recursive call to
+itself with subordinary values.
+
+The wrapped result is a monadic value belonging to the \texttt{Either String a}
+monad.  This gives us a number of advantages:
+
+\begin{enumerate}
+
+\item Pure computations and referential transparency.
+The function \textit{cannot} have any side effects, and must always
+return the same result value on a given input.  Thus
+
+\item Explicit types.  Instead of relying on exceptions during runtime to signal
+an error condition, we explicit declare this in the type signature.  We do this
+in terms of \texttt{InterpreterResult} which is a simple alias for \texttt{Either
+String}.
+
+\item Propagation of descriptive error-messages.  On errors, such
+as incompatible values in the constructor, we can propagate back an error
+value, that contains a description of exactly what condition was not satisfied.
+This is productive for debugging and negative unit tests.
+
+\item We benefit from Haskell's \texttt{do}-notation.  This makes the
+interpreter shorter, more readable and easier to reason about compared to other
+control-flow structures, such as \texttt{try-catch-finally}.
+
+\end{enumerate}
+
+\paragraph{Values and functions} are represented as the algebraic data types \tt{Val} and \tt{LFun}.
+\code{src/Types.hs}{16}{22}
+\code{src/Types.hs}{103}{124}
+
+\tt{SparseVector} and \tt{Dummy} are implementation-specific constructors, and not a part of the more theoretical design.Likewise, the injections \tt{InjFst} and \tt{InjSnd} are leftovers from incomplete features.
+
+\paragraph{Id, Dup, Fst and Snd} are implemented as one would expect.
+
+\code{src/Interpreter.hs}{115}{119}
+\code{src/Interpreter.hs}{68}{74}
+
+\paragraph{Comp and Para} are likewise.
+
+\code{src/Interpreter.hs}{120}{124}
+
+\paragraph{Sections, bilinear operators, Scale, Neg and KZero}
+
+\code{src/Types.hs}{138}{145}
+\code{src/Interpreter.hs}{27}{66}
+\code{src/Interpreter.hs}{125}{129}
+
+\paragraph{Add and LPlus}
+\code{src/Interpreter.hs}{130}{140}
+
+\paragraph{Reduction} are currently only implemented for source-destination index pairs.
+
+\code{src/Types.hs}{127}{134}
+\code{src/Interpreter.hs}{141}{150}
+\code{src/Interpreter.hs}{84}{113}
+
+\paragraph{LMap and Zp}
+\code{src/Interpreter.hs}{151}{158}
+\code{src/Interpreter.hs}{76}{82}

@@ -1,0 +1,38 @@
+\begin{document}
+\author{Ulrik Elmelund\\ {\small{} Advisor: Cosmin Oancea}}
+\date{\today}
+\title{Design and Implementation of a Compiler for Fréchet}
+%\title{Design and Prototyping of a AST-to-Source Compiler from a Fréchet derived intermediate language to Futhark}
+%\maketitle{}
+
+
+\section*{Project summary}
+\subsection*{Background}
+LPJ-GUESS is a framework for modelling terrestrial ecosystems at various scales.\cite{smith2001lpj} It models various different ecological systems, such as photosynthesis, respiration and stomatal regulation at high temporal resolution, with slower processes such as growth, population dynamics and disturbance at larger time steps. Input parameters involve climate parameters, atmospheric carbondioxide concentrations and a soil parameter. Daily air temperature, precipitation and a parameter for sunshine are also involved. All of these things, and more, come together to model the dynamics of plant growth in small or large areas over spans of years.
+
+The models constructed with the framework require intensive data-parallel computations, which lends itself to efficient GPU execution.
+
+Translating the existing industry-size and quality framework, written in idiomatic sequential imperative C++ code, into a language which makes GPU execution both possible and efficient would be desireable for the scientific community, as the performance-gains might be multiple orders of magnitude.
+
+Futhark is a morally functionally pure data-parallel array language, currently under development at diku, which generates efficient GPU code\cite{futhark}.
+
+\subsection*{Project}
+The project consist in investigating the feasability of translating the framework, written in sequential imperative code into Futhark.
+
+This will be quite challenging, as the existing implementation is very complex, and as I do not have much experience with large professional codebases of this kind.
+
+If time permits, there will also be performance evaluation of the resulting futhark implementation. However, the main burden of the project is software engineering of translating the code.
+
+idiomatic translation between very imperative c++, big project, idiomatic translation to morally purely data functional langauge
+
+describe challenges
+learning goals
+emphasis software engineering part
+\subsection*{Main learning goals}
+\begin{enumerate}
+\item asaa
+\end{enumerate}
+
+\printbibliography
+
+\end{document}

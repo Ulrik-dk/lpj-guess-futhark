@@ -1,0 +1,74 @@
+\subsection{Future Work}
+In the course of the project, we discovered many different tasks that could for one
+reason or another not be completed. The most interesting of these are:
+
+\begin{enumerate}
+\item Finishing incompletely implemented features like \tt{KZero}, \tt{Zero}, by
+adding more relations for \tt{Reduce} and by adding features injections (which
+are needed for reverse-mode execution).
+\item Investigating more preprocessing optimizations, especially in case of symbolic
+tensor products. By reordering the application of functions in ways that do not
+change the semantics, but which minimize the computational work-load, it is possible
+to achieve significant speedups.
+\item Investigating a way to handle conditionals. When conditionals are evaluated in
+the automatically differentiating compiler, they are reduced to either branch. Thus
+if any \texttt{Zip} contains conditionals, it will not be possible to derive the general form
+as we do. An alternative is to not reduce conditionals to the branch taken, but let
+the derivative contain both branches and the branch-deciding information, in the
+data structure. This will preserve the parallelism of the different derivatives, at
+the cost of larger programs, and will allow our approach to handle derivatives of
+conditionals.
+\item Using QuickCheck for property-based testing of the interpreter and compiler,
+by generating random \tt{LFun}s and discovering errors that slip through the cracks
+of our unit tests.
+\item Expanding the semantics slightly to make them more forgiving, such as treating
+trees of \tt{Pair}, and \tt{Para} as semantically flat by always conforming them to
+a standard shape, as is already done for \tt{Comp}.
+\end{enumerate}
+
+The \tt{Val} \tt{Zero} is partially implemented, and it can therefore be a useful tool in
+defining \tt{Val}s, but it is quite a hassle to implement, wherefore we have focused on
+other things. Its implementation requires contextual information about the shape of
+vectors of various types, which are not otherwise needed, and it breaks some of the
+assumptions about the disambiguation of an \texttt{LFun}'s arity, for instance, a program
+which just applies the outer product of a value to an input---if the value that is
+multiplied with is \texttt{Zero}, then the arity of the program is ambiguous, which is not
+allowed in Futhark. All Futhark arrays must have determinable arities, i.e., they may
+have runtime-dependent lengths, but the nestedness of arrays must be known.
+
+
+\paragraph{Improving the duration of the derivative evaluation}
+In future work it may be worth looking into solutions to this problem of
+redundant store-then-load.  We suggest three ideas to improve upon our work:
+
+\begin{description}
+
+\item [\textbf{Efficient encoding}]  Instead of storing the matrices as encoding
+  dense matrices in the program text, it could instead be stored as sparse
+    matrices.  This would alleviate the size problem for some matrices, but not
+    for all.  It would be fairly easy to implement.
+
+\item [\textbf{Binary encoding}]  Like for the input values, the embedded
+  matrices could be encoded in a binary.  This would improve parsing times, at
+    the cost of rendering the program texts harder to read and investigate for
+    debugging.
+
+\item [\textbf{Shared memory}] The underlying problem is that the two
+  compilation processes have isolated memory.  To avoid copying of the
+    derivative computation between the address space of Fréchet and Futhark, it
+    maybe possible to set up shared memory between them, thus eliminating
+    redundant copies of potentially large matrices, but also conversions between
+    different data-representations of the same data.
+
+\end{description}
+
+All of these are optimizations may be worth investigating in their own right,
+but to truly evaluate their strengths and weaknesses, it would be a good idea to
+have a large sample of derivatives from actual Fréchet programs.  This way
+the optimizations could be objectively evaluated and directed.
+
+\paragraph{Size Checker}
+The arity-based system for checking pre- and postconditions of values used in
+and generated from different functions has been sufficient for our implementation.
+However, in order to implement \tt{Zero} in Futhark, it would be necessary to
+implement something more akin to Futhark's size-type system.

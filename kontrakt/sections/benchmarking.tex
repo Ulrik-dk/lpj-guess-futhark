@@ -1,0 +1,176 @@
+\subsection{Benchmarking}
+In this section we want to evaluate how fast our approach is.
+We will assume that we generate one program that is
+then evaluated with many different inputs.  Thus as the number of evaluations
+grow, the translation time---in comparison---becomes insignificant and contrary,
+the execution time of every evaluation becomes the dominating part.  Thus the
+evaluation time is what we will focus on investigating more in depth in this
+chapter.
+
+To say something objectively about the performance of the programs translated by
+our compiler we need to do time measurements.  We need to consider what exactly
+we are measuring.
+
+The process in sequence contains three phases:
+\begin{enumerate}
+  \item Translation of \tad AST to Futhark source.
+  \item Compilation of the Futhark source with the Futhark compiler.
+  \item Execution of the resulting executable.
+\end{enumerate}
+For the abovementioned reason, we are thus only concerned with the third phase.
+
+\subsubsection{Futhark}  Futhark provides a number of features that makes
+benchmarking our compiler easier.  To reiterate, we use Futhark as a compile
+target exactly because it allows us to generate performant GPU code.  So since
+we are already dependent on the Futhark toolchain, we may as well leverage any
+provided feature that supports our goal.
+
+\paragraph{\texttt{futhark dataset}}
+Official documentation\footnote{\url{https://futhark.readthedocs.io/en/latest/man/futhark-dataset.html}}.
+The Futhark subcommand \texttt{dataset} is used to generate datasets of any size
+consisting of random values.  In our case we are concerned with generating
+vectors of \texttt{double}s that we can use as the \texttt{Val} on which we apply
+our \texttt{LFun}.  The subcommand takes an optional \texttt{seed} from which
+it generates the random numbers deterministically.  Further, it can generate the
+dataset files in binary format, which means that the time spent parsing it will be shorter.
+We did not time parsing, but changing from text to binary format made a
+perceivable difference during the development phase. Input parsing is not part of the runtime as calculated by \tt{futhark bench}.
+
+\paragraph{\texttt{futhark bench}}
+Official documentation\footnote{\url{https://futhark.readthedocs.io/en/latest/man/futhark-bench.html}}.
+The Futhark subcommand \texttt{bench} allows us to emit measurements in JSON
+format, that we can parse, see \autoref{jsonparser}, and export for analysis and
+plotting.
+
+\paragraph{Plotting}\label{plots} We use the Haskell package \texttt{matplotlib}
+to generate our plots.  It is a thin wrapper around the Python library of the
+same name.  Due to the doubling of input sizes we have chosen to use log-log
+plots with base two. Thus for linear scaling, we can hope that a doubling in
+input size to cause no more than a doubling in execution time.  All plots can
+be seen in \autoref{fig:micro} and \autoref{fig:nns}.
+
+%The later phase consist, in the case of a GPU-target executable, transferring
+%the data to GPU memory, executing the program, transferring the result back to
+%main memory.
+%
+%We have iterated the idea over the design.   We started with measuring the wall
+%clock time over all phases, but soon found out that this was slow.
+
+
+\paragraph{Resolution} \texttt{futhark bench} conducts measurements in
+microseconds (\mu{}s).  Thus we need to pick parameters for the benchmarks so
+they are measurable in this resolution.
+By choosing input size in orders of magnitude of two, i.e.\@ doubling the input
+size for each iteration, we quickly get to input sizes that produces measurable
+running times in the given resolution.  The required input size show to differ
+vastly between the symbolic and matrix branches.
+
+When benchmarking we discard the output of the computation.  The correctness
+of the compiler is justified in the \autoref{correctness} on correctness
+testing, and so we will, based on that, assume the computation is indeed correct.
+
+\subsubsection{Design}
+
+The benchmark suite consists of a four micro benchmarks and a compound benchmark
+simulating forward mode in a single layered neural network.
+For the micro benchmarks there are two
+branches:  One for the symbolic execution path and one where we first produce a
+matrix representation of the linear map.
+
+Each benchmark has been run 10 times in a row to deal with outliers.  Such
+outliers can be due to cache artifacts and other noise.  We considered the
+following ways to reduce the number of measurements to one:
+
+\begin{itemize}
+  \item \textbf{Average} Susceptible to outliers.  Easy to interpret.
+  \item \textbf{Median} Stable against outliers.  Slight harder to interpret.
+  \item \textbf{Minimum} Seems Biased. Stable w.r.t outliers.
+\end{itemize}
+
+Returning to the question, we are not trying to answer how fast a typical
+execution runs.  Instead, we are looking for the \textit{best possible case}.
+This justifies simply using the shorter of the execution times that we observed.
+
+To make the benchmarks more reproducible, we can make the random data pseudo
+random.  This means that the data does not vary between runs on the same machine and
+between runs across different machines.  Since our DSL does not include control
+flow constructs, we do not expect this to have an impact on the running time we
+measure.  We would assume that the same arithmetic operations on different floating point
+values have the same performance characteristics, but with pseudo randomness we
+do not need to make this assumption at all.
+
+
+
+\paragraph{Orchestration}  The benchmark suite is split between micro benchmarks,
+that test small unitary features and neural network benchmarks which benchmark
+compound features.  Before running the benchmarks we generate datasets that act
+as the input of type \texttt{Val} for the program of type \texttt{LFun}.  We can
+decide the number of runs of each benchmark as well as the Futhark backend.
+During development the sequential \texttt{C} backend was useful, but for the
+final performance measurements we used the \tt{OpenCL} backend to leverage GPU.\@
+
+Each benchmark was also run with multiple input sizes; each a order of magnitude
+larger than the previous.  This allowed us see how our implementation scaled.
+For each input size the specified number of runs, \texttt{noRuns}, was measured
+giving us a list of run times.  From the times the minimum was then selected for
+plotting.
+
+\texttt{futhark bench} produces a JSON file with the measurements.  This is
+relatively predictable except one of the nested key names.  Thus we had to write
+an ad-hoc parser to get the times into a Haskell list.  The parser can be seen in
+\texttt{benchmark/JSON.hs}, which is also included in \autoref{jsonparser}.
+
+
+The benchmarks and plotting is orchestrated in the \texttt{benchmarks/Benchmarks.hs}
+as seen below.
+\code{benchmark/Benchmarks.hs}{204}{237}
+
+The neural network benchmarks constitutes
+computations similar to those in multi layers neural network.  We compute
+a gradient by evaluating the derivative in a random input.
+
+%\code{benchmark/Benchmarks.hs}{276}{285}
+
+
+\pagebreak{}
+\subsubsection{Results: Micro Benchmarks}
+
+
+\begin{figure}[H]
+	\centering
+        \begin{subfigure}[l]{0.48\textwidth}
+          \centering
+          \includesvg[width=\textwidth]{figures/Scale.svg}
+          \caption{Micro benchmark of \texttt{Scale}.
+            }\label{fig:scale}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[l]{0.48\textwidth}
+          \centering
+          \includesvg[width=\textwidth]{figures/LMap.svg}
+          \caption{Micro benchmark of \texttt{LMap}.
+            }\label{fig:lmap}
+        \end{subfigure}
+        \begin{subfigure}[l]{0.48\textwidth}
+          \centering
+          \includesvg[width=\textwidth]{figures/Zip.svg}
+          \caption{Micro benchmark of \texttt{Zip}.
+            }\label{fig:zip}
+        \end{subfigure}
+        \begin{subfigure}[l]{0.48\textwidth}
+          \centering
+          \includesvg[width=\textwidth]{figures/Red.svg}
+          \caption{Micro benchmark of \texttt{Reduce}.
+            }\label{fig:red}
+        \end{subfigure}
+        \caption{Log-log plots of micro benchmarks of representative linear maps.}\label{fig:micro}
+\end{figure}
+
+
+\subsubsection{Results:  Neural Network Example}
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=\textwidth]{figures/NeuralNetworks.svg}
+    \caption{Log-log plots of 1-Layer Neural Network graphs}\label{fig:nns}
+\end{figure}

@@ -1,0 +1,62 @@
+\subsubsection{Linear Maps as Matrices}
+
+The canonical way to represent linear maps on vectors is usually as matrices
+with matrix-matrix multiplication as function composition and matrix-vector
+multiplication as function application.  Matrices are well-studied, and matrix
+operations are used as performance measure for hardware.  For example, GPU manufacturer
+NVIDIA\footnote{\url{https://developer.nvidia.com/cublas}} maintains a Basic
+Linear Algebra Subroutines (BLAS) library that performs well on their GPUs.
+
+We decided to use matrix computations as a baseline with which we could compare
+our symbolic execution, as this is a very common approach in AD. However, simply
+expressing linear maps as matrices and multiplying them together is probably very
+inefficient. For example, $Id : R^{10^{10}} \rightarrow_1 R^{10^{10}}$ can either be
+represented as just a few bytes in a symbolic approach, or it can be represented as a
+$R^{10^{20}}$ matrix, the data of which would take up an astronomical 400 exabytes.
+
+So we need a way to go from our existing symbolic
+representation to a matrix representation.  This required building an extra
+preprocessing step, which is contained in \texttt{src/Matrix.hs}.  A convenient
+nature of our project is, that since our DSL already supports a way to express
+matrix multiplication, we can write a function with the signature
+\texttt{getMatrixRep :: LFun \rightarrow{} LFun} and apply it on any
+\texttt{LFUN}.  This results in a new \texttt{LFun} that we can substitute for
+the original \texttt{LFun}.  Thus the preprocessing step is completely
+transparent for the rest of the compilation chain.
+
+There is a caveat, however.  When dealing with matrices, we need to specify up
+front the dimensions of the vector spaces that constitute their domain and
+codomain.  In this project we have worked only with endomorphisms, meaning that
+the domain and codomain are always the same.  This means that we only need to concern
+ourselves with square matrices, and thus it is sufficient to provide a single
+integer, specifying the number of {rows} \textit{and} {columns}.
+
+The function signature then becomes \texttt{getMatrixRep :: Int \rightarrow{}
+LFun \rightarrow{} LFun}.
+
+\paragraph{Implementation of \texttt{getMatrixRep}}
+This method is described in
+~\cite[Representing a Linear Map by a Matrix, ch. 3, p. 70]{ladr}.
+
+\code{src/Matrix.hs}{113}{133}
+
+It is important to note that we generate a matrix representation \textit{with
+respect to some basis}.  This representation is unique, again
+\textit{with respect to that basis}. However, we are only ever concerned with
+the \textbf{standard basis}, so this will be implicit in the following.
+
+The method consists of three steps:
+\begin{description}
+\item [Step 1] Generate the standard basis for the dimensions we want compute
+linear map of.  Note again, that we only need one integer here due to the
+endomorphic nature of the linear maps used.
+\item [Step 2] Apply the linear function in question on each of
+the column vectors of the standard basis matrix from the first step.  This
+results in a
+new set of columns which concatenated gives the desired matrix.
+\item [Step 3] Using this matrix together with matrix-vector multiplication,
+gives a way to apply the matrix to any vector in the domain.  Essentially
+we can wrap it in section notation as: \texttt{LSec Mtx MatrixMultiplication}.
+Using matrix-matrix multiplication with other such matrices effectively computes
+function composition of those linear maps.
+\end{description}

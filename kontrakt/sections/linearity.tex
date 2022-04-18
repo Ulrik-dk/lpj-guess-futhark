@@ -1,0 +1,81 @@
+\subsection{Linear Algebra}
+
+In the following section we are going to introduce basic definitions and
+nomenclature for concepts used in linear algebra.  We assume the reader is
+familiar with fields and start by introducing vector spaces.  The we introduce
+linearity and finally linear map.  These definition will facilitate a more
+precise description of our design in the later chapters.
+
+\subsubsection{Vector Spaces}
+
+\paragraph{Definition (Vector Space)}\label{vectorspace}
+
+A set \(V\) over some underlying field \(\pmb{F}\) with associated addition
+and scalar multiplication, for which the properties below hold, is called a
+vector space.\cite[Def. 1.19, p. 12]{ladr}
+
+
+\begin{description}
+
+  \item [Commutativity]
+    For all \(u,v \in V\) we have \(u+v = v+u \).
+
+  \item [Associativity]
+    For all \(u,v,w \in V\) and all \(a,b \in \pmb{F}\) we have both \((u+v)+w = u + (v+w)\)
+    and \( (ab)v = a(bv)\).
+
+  \item [Additive identity]
+    There exists an element \({0} \in V\) such that for all \(v \in V \) it holds
+    that \(v + {0} \).
+
+  \item [Additive inverse]
+    Every time we have a \(v \in V\), we must also be able to find a \(w \in V\)
+    so that \(v + w = 0 \).
+
+  \item [Mulitiplicative identity]
+    The exists an element \({1} \in \pmb{F}\) such that for all \(v \in V\) it
+    holds that \({1}v = v\).
+
+  \item [Distributive properties]
+    For all \(a,b \in \pmb{F} \) and for all \(u,v \in V\) both
+    \(a(u + v) = au + av \) as well as \((a+b)v = av + bv \) must hold.
+
+
+\end{description}
+
+
+\subsubsection{Linearity}
+
+In this section we will prove the linearity of each of the constructs that
+appear in our DSL.\@   We will then compare the derivation with the actual
+implementation of the interpreter to justify that our any program written in
+our DSL must also be linear by construction.
+
+\paragraph{Definition (Linearity)} Linearity is a property of a function.  We
+say that a function \(f \colon V \rightarrow W\) is linear if for \(x,y \in V\)
+and a constant \(a \in \pmb{F}\), it satisfies the following equations:
+
+\begin{description}
+
+\item [Homogeneity] \( f(ax) = af(x) \) The can be read as \enquote{scaling the
+  argument and then applying the function is the same as applying the function
+    and then scaling the result.}
+
+\item [Additivity] \(f(x+y) = f(x) + f(y) \) This can be understood as \enquote{adding
+  two argument and then applying the function is the same as applying the
+    function on each of the arguments and then adding the result.}
+
+\end{description}
+
+The combined form \(f(ax+ay) = af(x) + bf(y) \) is true if and only if both of
+the above rules hold.  This can sometimes be used to shorten proofs of linearity.
+
+\paragraph{Definition (Linear Map)}\label{linearmap}
+A \textit{linear map} is a mapping \(V \rightarrow W\) from a vector space \(V\) to
+another \(W\).
+
+\paragraph{Definition (Endomorphism)}\label{endomorphism}
+An \textit{endomorphism} of a vector space \(V\) is a linear map from \(V
+\rightarrow V\).  That is, a linear map from a vector space \(V\) to itself \(V\).
+
+

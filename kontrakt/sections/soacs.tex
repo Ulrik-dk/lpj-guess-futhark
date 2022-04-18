@@ -1,0 +1,63 @@
+\subsubsection{SOACs}
+\paragraph{\tt{map}} is a function which applies a function each value in an
+array in parallel. One example could be:
+
+\begin{minted}{haskell}
+let pow2 (v: []i32) : []i32 = map (**2) v
+\end{minted}
+
+This function raises every element in the given array to the power of two.
+Equivalent C-like code might be:
+
+\begin{minted}{C}
+void pow2 (int *v, int length) {
+	for (int i = 0; i < length; i++){
+		v[i] *= v[i];
+	}
+}
+\end{minted}
+
+\paragraph{\tt{reduce}} takes a binary operator, a neutral element and an
+array of values, and performs a \it{reduction} on the array. It is more or
+less equivalent to a \tt{foldl} in \tt{Haskell}. An example would be:
+
+\begin{minted}{haskell}
+let sum (v: []i32) : i32 = reduce 0i32 (+) v
+\end{minted}
+
+This function sums up the values in the array and returns the result.
+Equivalent C-like code might be:
+
+\begin{minted}{C}
+int sum (int *v, int length) {
+	int acc = 0;
+	for (int i = 0; i < length; i++){
+		acc += v[i];
+	}
+	return acc;
+}
+\end{minted}
+
+
+\paragraph{\tt{scan}} takes a binary operator, a neutral element and an
+array of values, and performs a \it{prefix sum} on the array. It is similar
+to \tt{reduce}. The difference is that all intermediate results are returned.
+The resulting array is the same length as the input array.
+
+\begin{minted}{haskell}
+let example [n] (v: [n]i32) : [n]i32 = scan (+) 0i32 v
+\end{minted}
+
+This function is adds the values in the array and returns the result.
+Equivalent C-like code might be:
+
+\begin{minted}{C}
+void example (int *v, int ne, int length) {
+	int acc = ne;
+	for (int i = 0; i < length; i++){
+		acc += v[i];
+		v[i] = acc;
+	}
+}
+\end{minted}
+
