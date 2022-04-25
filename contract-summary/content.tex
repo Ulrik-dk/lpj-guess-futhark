@@ -2,9 +2,6 @@
 \author{Ulrik Elmelund\\ {\small{} Advisor: Cosmin Oancea}}
 \date{\today}
 \title{Design and Implementation of a Compiler for Fréchet}
-%\title{Design and Prototyping of a AST-to-Source Compiler from a Fréchet derived intermediate language to Futhark}
-%\maketitle{}
-
 
 \section*{Project summary}
 \subsection*{Background}
@@ -23,14 +20,13 @@ This will be quite challenging, as the existing implementation is very complex, 
 
 If time permits, there will also be performance evaluation of the resulting futhark implementation. However, the main burden of the project is software engineering of translating the code.
 
-idiomatic translation between very imperative c++, big project, idiomatic translation to morally purely data functional langauge
+Practically, it involves getting familiarised with the existing codebase, its structure, and creating a mental model of this. Based on this understanding, a plan for which parts to initially emulate with futhark can be developed, and then as a start to translating the whole framework, a futhark equivalent of the main moving parts of the framwork can be constructed. Initially this can be tested using extracted input and output values from the framework as a reference, and eventually integrated directly. Futhark is only relevant for the parts of the framework that do the heavy lifting, and can be integrated to replace those parts in the existing framework.
 
-describe challenges
-learning goals
-emphasis software engineering part
 \subsection*{Main learning goals}
 \begin{enumerate}
-\item asaa
+\item Getting familiarised the software engineering and architecture of a large industry simulation framework.
+\item Investigate the challenges and feasability of translating idiomatic imperative C++ code to the functional array language Futhark.
+\item Investigate how to prove, test or argue for functional equivalence between a program and its manual translation.
 \end{enumerate}
 
 \printbibliography
