@@ -1,0 +1,45 @@
+!
+! Instruction file with global PFTs to be used with the 
+! CRU I/O module.
+!
+
+import "global.ins"
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Forcing Data & gridlists
+!
+
+param "file_gridlist_cf" (str "./gridlist_cf.txt")
+
+param "file_co2"      (str "./input/co2/co2_1901_2018.txt")
+param "file_cru"      (str "./input/meteo_cruncep/cruncep_1901_2015.bin")
+param "file_cru_misc" (str "./input/meteo_cruncep/cruncep_1901_2015misc.bin")
+
+param "file_temp"  (str "./input/meteo_cf/ERA5-Land_daily_Sahel_1981-2019.nc")
+param "file_prec"  (str "./input/meteo_cf/ERA5-Land_daily_Sahel_1981-2019.nc")
+param "file_insol" (str "./input/meteo_cf/ERA5-Land_daily_Sahel_1981-2019.nc")
+
+param "variable_temp" (str "t2m")
+param "variable_prec" (str "tp")
+param "variable_insol" (str "ssrd")
+
+param "file_wetdays"     (str "")
+param "file_min_temp"    (str "")
+param "file_max_temp"    (str "")
+param "file_pres"        (str "")
+param "file_specifichum" (str "")
+param "file_relhum"      (str "")
+param "file_wind"        (str "")
+
+! SIMFIRE
+param "file_simfire"     (str "")
+
+! N deposition (blank string to use constant pre-industrial level of 2 kgN/ha/year)
+param "file_ndep"     (str "./input/nitrogendeposition/GlobalNitrogenDeposition.bin")
+
+! Soil map. Either a file containing soil codes or a file containing soil texture data.
+! The model will detect which one based on the number of columns in the file, see examples below.
+! When using soil codes, the model will take soil parameters from a hard-coded table.
+
+!param "file_soildata" (str "./input/soil/FAO_soilcodes.dat") 			! soil codes (global)
+param "file_soildata" (str "./input/soil/LPJG_ISRIC_soil_Sahel_0.1.dat")	! soil texture (this file for Sahel only)
