@@ -22,34 +22,34 @@
 -- CONSTANTS
 
 --/ number of total soil layers. Must be at least NSOILLAYER + NLAYERS_SNOW + 1
-let NLAYERS : f64 =  22
+let NLAYERS : i64 =  22
 
 --/ Number of soil layers for soil temperature/water calculations. Typically 15 10mm layers, making up the 150cm-deep soil column
-let NSOILLAYER : f64 =  15	-- rootdist in .ins file must have NSOILLAYER components
+let NSOILLAYER : i64 =  15	-- rootdist in .ins file must have NSOILLAYER components
 
 --/ Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column
-let NSOILLAYER_SIMPLE : f64 =  2
+let NSOILLAYER_SIMPLE : i64 =  2
 
 --/ number of depths at which we want the soil T output in outannual
-let SOILTEMPOUT : f64 =  NSOILLAYER
+let SOILTEMPOUT : i64 =  NSOILLAYER
 
 --/ index of the first soil layer
-let IDX_STD : f64 =  NLAYERS-NSOILLAYER
+let IDX_STD : i64 =  NLAYERS-NSOILLAYER
 
 --/ number of padding layers in the soil
-let PAD_LAYERS : f64 =  5
+let PAD_LAYERS : i64 =  5
 
 --/ number of total soil layers in the acrotelm
-let NACROTELM : f64 =  3
+let NACROTELM : i64 =  3
 
 --/ number of total soil layers in the catotelm
-let NCATOTELM : f64 =  12
+let NCATOTELM : i64 =  12
 
 --/ Number of sublayers in the acrotelm, i.e. 1cm layers with this : f64 =  30
-let NSUBLAYERS_ACRO : f64 =  30
+let NSUBLAYERS_ACRO : i64 =  30
 
 --/ Maximum number of layers - for soil temperature calculations
-let active_layersmax : f64 =  NLAYERS + PAD_LAYERS
+let active_layersmax : i64 =  NLAYERS + PAD_LAYERS
 
 --/ Total depth [mm] of padding layers - set to 8000 when analyticalSolutionTest : f64 =  true
 let PAD_DEPTH : f64 =  48000
