@@ -36,7 +36,7 @@ let WR_SMART : wateruptaketype = 2
 let WR_SPECIESSPECIFIC : wateruptaketype = 3
 
 --/bvoc: define monoterpene species used
-type monoterpenecompoundtype = i8
+type monoterpenecompoundtype = i64
 let APIN : monoterpenecompoundtype = 0
 let BPIN : monoterpenecompoundtype = 1
 let LIMO : monoterpenecompoundtype = 2
