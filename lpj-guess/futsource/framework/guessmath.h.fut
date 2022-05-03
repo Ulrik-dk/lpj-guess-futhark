@@ -3,6 +3,23 @@
 
 --#include <cmath>
 
+--------------------------------------------- TODO: get these from elsewhere
+--------------------------------------------- TODO: get these from elsewhere
+--------------------------------------------- TODO: get these from elsewhere
+let Date_MAX_YEAR_LENGTH_plusone : i64 = 367
+let nan = f64.nan
+type xtring = i64 -- we wont care about strings
+
+let pow(a: f64, b: f64) = a*b --TODO: Not this
+let abs(a: f64) = f64.abs a --TODO: Not this
+
+--------------------------------------------- TODO: get these from elsewhere
+--------------------------------------------- TODO: get these from elsewhere
+--------------------------------------------- TODO: get these from elsewhere
+
+
+
+
 let PI : f64 = 4 * f64.atan 1.0
 
 let DEGTORAD : f64 = PI / 180.0
@@ -31,3 +48,13 @@ let KMH_PER_MS : f64 = 3.6
 let FRACT_TO_PERCENT : f64 = 100.0
 let PERCENT_TO_FRACT : f64 = 0.01
 let R_EARTH : f64 = 6371.2213 -- mean earth-radius[km]
+
+
+-- TODO default limit should be 0.0
+let negligible (dval : f64) : bool = abs(dval) < 1.0e-30
+-- Returns true if |dval| < EPSILON, otherwise false
+
+  -- TODO default limit should be 0.0
+let negligible_2 (dval : f64, limit : f64) : bool =
+	-- Returns true if |dval| < EPSILON, otherwise false
+	if (limit == 0.0) then (abs dval) < (pow (10.0, limit)) else abs(dval) < 1.0e-30

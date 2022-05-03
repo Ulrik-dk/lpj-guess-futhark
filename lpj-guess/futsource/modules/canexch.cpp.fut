@@ -46,10 +46,10 @@ let assimilation_wstress
   let lambda = -1
 
   in if (negligible(fpc) || negligible(fpar) || negligible(gcbase * daylength * 3600)) -- Return zero assimilation
-  then (pft, phot_result.clear(), lambda) else
+  then (pft, PhotosynthesisResult(), lambda) else
     -- Canopy conductance component associated with photosynthesis on a
     -- daily basis (mm / m2 / day)
-    let f64 gcphot = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV
+    let gcphot : f64 = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV
 
     -- At this point the function f(x) = g(x) - h(x) can be calculated as:
     --
@@ -58,8 +58,8 @@ let assimilation_wstress
 
     -- Evaluate f(lambda_max) to see if there's a root
     -- in the interval we're searching
-    let PhotosynthesisEnvironment ps_env = ps_env.set(co2, temp, par, fpar, daylength)
-    let PhotosynthesisStresses ps_stress = ps_stress.set(ifnlimvmax, moss_wtp_limit, graminoid_wtp_limit, inund_stress)
+    let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
+    let ps_stress = {ifnlimvmax=ifnlimvmax, moss_wtp_limit=moss_wtp_limit, graminoid_wtp_limit=graminoid_wtp_limit, inund_stress=inund_stress}
     let phot_result = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result)
 
     let f64 f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max) -- Return zero assimilation

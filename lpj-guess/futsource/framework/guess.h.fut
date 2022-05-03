@@ -14,30 +14,11 @@
 
 --#include "gutil.h"
 --#include "shell.h"
-local open import "../framework/guessmath.h"
+open import "../framework/guessmath.h"
 --#include "archive.h"
-local open import "../framework/parameters.h"
+open import "../framework/parameters.h"
 --#include "guesscontainer.h"
-local open import "../modules/soil.h"
-
-
-
-
---------------------------------------------- TODO: get these from elsewhere
---------------------------------------------- TODO: get these from elsewhere
---------------------------------------------- TODO: get these from elsewhere
-let Date_MAX_YEAR_LENGTH_plusone : i64 = 367
-let nan = f64.nan
-type xtring = i64 -- we wont care about strings
-
-let pow(a: f64, b: f64) = a*b --TODO: Not this
-
---------------------------------------------- TODO: get these from elsewhere
---------------------------------------------- TODO: get these from elsewhere
---------------------------------------------- TODO: get these from elsewhere
-
-
-
+open import "../modules/soil.h"
 
 
 ----------------------------------------------------------
@@ -291,12 +272,101 @@ let N_YEAR_BIOMEAVG : i64 = 3
 
 
 
+-- This struct contains the result of a photosynthesis calculation.
+-- see photosynthesis
+type PhotosynthesisResult = {
+	-- Constructs an empty result
+
+	-- RuBisCO capacity (gC/m2/day)
+	vm : f64,
+
+	-- gross daily photosynthesis (gC/m2/day)
+	agd_g : f64,
+
+	-- leaf-level net daytime photosynthesis
+	-- expressed in CO2 diffusion units (mm/m2/day) */
+	adtmm : f64,
+
+	-- leaf respiration (gC/m2/day)
+	rd_g : f64,
+
+	-- PAR-limited photosynthesis rate (gC/m2/h)
+	je : f64,
+
+	-- optimal leaf nitrogen associated with photosynthesis (kgN/m2)
+	nactive_opt : f64,
+
+	-- nitrogen limitation on vm
+	vmaxnlim : f64
+
+	-- net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
+}
+
+let net_assimilation(psr : PhotosynthesisResult) : f64 =
+  (psr.agd_g - psr.rd_g) * KG_PER_G
+
+--- Clears all members
+--  This is returned by the photosynthesis function when no photosynthesis
+--  takes place.
+let PhotosynthesisResult() : PhotosynthesisResult =
+  {
+    agd_g       = 0,
+    adtmm       = 0,
+    rd_g        = 0,
+    vm          = 0,
+    je          = 0,
+    nactive_opt = 0.0,
+    vmaxnlim    = 1.0
+  }
 
 
+-- This struct contains the environmental input to a photosynthesis calculation.
+-- \see photosynthesis */
+type PhotosynthesisEnvironment = {
+	-- atmospheric ambient CO2 concentration (ppmv)
+	co2 : f64,
+	-- mean air temperature today (deg C)
+	temp : f64,
+	-- total daily photosynthetically-active radiation today (J / m2 / day) (ALPHAA not yet accounted for)
+	par : f64,
+	-- fraction of PAR absorbed by foliage
+	fpar : f64,
+	-- day length, must equal 24 in diurnal mode(h)
+	daylength : f64
+}
 
+-- Constructs an empty result
+let PhotosynthesisEnvironment() : PhotosynthesisEnvironment =
+	{
+    co2 = 0,
+  	temp = 0,
+  	par = 0,
+  	fpar = 0,
+  	daylength = 0
+  }
 
+-- This struct contains the stresses used in a photosynthesis calculation.
+-- \see photosynthesis */
+type PhotosynthesisStresses = {
+  -- whether nitrogen should limit Vmax
+	ifnlimvmax : bool,
+	--  limit to moss photosynthesis. [0,1], where 1 means no limit
+	moss_ps_limit : f64,
+	-- limit to graminoid photosynthesis. [0,1], where 1 means no limit
+	graminoid_ps_limit : f64,
+	-- limit to photosynthesis due to inundation, where 1 means no limit
+	inund_stress : f64
+}
 
-
+let PhotosynthesisStresses() : PhotosynthesisStresses =
+  -- All members set to no stress values
+	-- Default values indicating no stress
+  {
+    ifnlimvmax = false,
+    moss_ps_limit = 1.0,
+    graminoid_ps_limit = 1.0,
+    inund_stress = 1.0
+  }
 
 
 -- Holds static functional parameters for a plant functional type (PFT).
@@ -306,8 +376,8 @@ let N_YEAR_BIOMEAVG : i64 = 3
 -- longevity, and for initialising sapling/regen characteristics (required for
 -- population mode).
 
-module Pft = {
-  type~ Pft  = {
+--module Pft = {
+  type Pft  = {
     -- MEMBER VARIABLES
     -- id code (should be zero based and sequential, 0...npft-1)
     id: i64,
@@ -994,4 +1064,4 @@ module Pft = {
   let isgrass(pft: Pft) : bool = pft.lifeform == GRASS
   let istree(pft: Pft) : bool = pft.lifeform == TREE
   let iswetlandspecies(pft: Pft) : bool = (ismoss(pft) || pft.has_aerenchyma)
-}
+--}
