@@ -1,3 +1,4 @@
+-------------------------------------PART FROM .h--------------------------------------
 --------------------------------------------------------------------------------------/
 -- #INCLUDES FOR LIBRARY HEADER FILES
 -- C/C++ libraries required for member functions of classes defined in this file.

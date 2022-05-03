@@ -1,5 +1,5 @@
+-------------------------------------PART FROM .cpp------------------------------------
 import "../framework/guess.h"
-
 --------------------------------------------------------------------------------------/
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)

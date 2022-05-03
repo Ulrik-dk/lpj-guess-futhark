@@ -1,3 +1,4 @@
+-------------------------------------PART FROM .h--------------------------------------
 --------------------------------------------------------------------------------------/
 --/ \file soil.h
 --/ \brief Constants and parameters used in Arctic and wetland code, with references.
