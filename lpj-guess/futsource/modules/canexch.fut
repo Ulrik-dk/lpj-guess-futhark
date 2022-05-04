@@ -1,5 +1,61 @@
+-------------------------------------Combined imports-----------------------------------
+open import "../framework/guess"
+
+--#include "config.h"
+--#include "canexch.h"
+--#include "driver.h"
+--#include "q10.h"
+--#include "bvoc.h"
+--#include "ncompete.h"
+--#include <assert.h>
+-------------------------------------PART FROM .h--------------------------------------
+
+-- Constants for photosynthesis calculations
+-- conversion factor for solar radiation at 550 nm from J/m2 to mol_quanta/m2 (E=mol quanta) mol J-1
+let CQ : f64 = 4.6e-6
+
+-- intrinsic quantum efficiency of CO2 uptake, C3 plants
+let ALPHA_C3 : f64 = 0.08
+
+-- intrinsic quantum efficiency of CO2 uptake, C4 plants
+let ALPHA_C4 : f64 = 0.053
+
+-- O2 partial pressure (Pa)
+let PO2 : f64 = 2.09e4
+
+-- colimitation (shape) parameter
+let THETA : f64 = 0.7
+
+-- 'saturation' ratio of intercellular to ambient CO2 partial pressure for C4 plants
+let LAMBDA_SC4 : f64 = 0.4
+
+-- leaf respiration as fraction of maximum rubisco, C3 plants
+let BC3 : f64 = 0.015
+
+-- leaf respiration as fraction of maximum rubisco, C4 plants
+let BC4 : f64 = 0.02
+
+-- leaf respiration as fraction of maximum rubisco, mosses
+-- see Wania et al. (2009b)
+let BC_moss : f64 = 0.03
+
+let CMASS : f64 = 12.0    -- atomic mass of carbon
+let ALPHAA : f64 = 0.5    -- value chosen to give global carbon pool and flux values that
+                -- agree with published estimates.
+                -- scaling factor for PAR absorption from leaf to plant projective area level
+                -- alias "twigloss". Should normally be in the range 0-1
+
+let ALPHAA_NLIM : f64 = 0.65 -- Same as ALPHAA above but chosen to give pools and flux values
+                 -- that agree with published estimates when Nitrogen limitation is
+                 -- switched on.
+
+let ALPHAA_CROP : f64 = 0.7      -- Value for crops without N limitation.
+let ALPHAA_CROP_NLIM : f64 = 0.9  -- Value for crops with N limitation
+
+-- Lambert-Beer extinction law (Prentice et al 1993 Monsi & Saeki 1953)
+let lambertbeer (lai : f64) = exp(-0.5 * lai)
+
 -------------------------------------PART FROM .cpp------------------------------------
-import "../framework/guess.h"
 --------------------------------------------------------------------------------------/
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)

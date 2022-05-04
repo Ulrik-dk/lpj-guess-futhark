@@ -15,12 +15,11 @@
 
 --#include "gutil.h"
 --#include "shell.h"
-open import "../framework/guessmath.h"
+open import "../framework/guessmath"
 --#include "archive.h"
-open import "../framework/parameters.h"
+open import "../framework/parameters"
 --#include "guesscontainer.h"
-open import "../modules/soil.h"
-
+open import "../modules/soil"
 
 ----------------------------------------------------------
 -- GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -362,12 +361,15 @@ type PhotosynthesisStresses = {
 let PhotosynthesisStresses() : PhotosynthesisStresses =
   -- All members set to no stress values
 	-- Default values indicating no stress
-  {
-    ifnlimvmax = false,
-    moss_ps_limit = 1.0,
-    graminoid_ps_limit = 1.0,
-    inund_stress = 1.0
-  }
+{
+  ifnlimvmax = false,
+  moss_ps_limit = 1.0,
+  graminoid_ps_limit = 1.0,
+  inund_stress = 1.0
+}
+
+
+
 
 
 -- Holds static functional parameters for a plant functional type (PFT).

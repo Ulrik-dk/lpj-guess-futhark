@@ -10,9 +10,10 @@
 let Date_MAX_YEAR_LENGTH_plusone : i64 = 367
 let nan = f64.nan
 type xtring = i64 -- we wont care about strings
-
+let euler : f64 = 2.71828
 let pow(a: f64, b: f64) = a*b --TODO: Not this
 let abs(a: f64) = f64.abs a --TODO: Not this
+let exp(a: f64) = pow(euler, a)
 
 --------------------------------------------- TODO: get these from elsewhere
 --------------------------------------------- TODO: get these from elsewhere
