@@ -41,10 +41,10 @@ let LookupQ10(q10 : f64, base25 : f64) =
 -- "Array element" operator
 -- \param temp  Temperature (deg C)
 -- \returns     Temperature-adjusted value based on Q10 and 25-degree base value
-let operator (temp: f64, table: LookupQ10) =
+let operator (temp: f64, table: [Q10_NDATA]f64) =
   -- Element number corresponding to a particular temperature
   let temp = if temp < Q10_MINTEMP then Q10_MINTEMP else if temp > Q10_MAXTEMP then Q10_MAXTEMP else temp
 
   let i = (i64.f64) ((temp-Q10_MINTEMP)/Q10_PRECISION+0.5)
 
-  in table.data[i]
+  in table[i]

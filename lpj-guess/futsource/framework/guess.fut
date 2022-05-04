@@ -259,17 +259,29 @@ let N_YEAR_BIOMEAVG : i64 = 3
 
 
 
+--- This struct contains the stresses used in a photosynthesis calculation.
+type PhotosynthesisStresses = {
+	--- whether nitrogen should limit Vmax
+	ifnlimvmax: bool,
+
+	---  limit to moss photosynthesis. [0,1], where 1 means no limit
+	moss_ps_limit: f64,
+
+	--- limit to graminoid photosynthesis. [0,1], where 1 means no limit
+	graminoid_ps_limit: f64,
+
+	--- limit to photosynthesis due to inundation, where 1 means no limit
+ inund_stress: f64
+	}
 
 
-
-
-
-
-
-
-
-
-
+let PhotosynthesisStresses() : PhotosynthesisStresses =
+	{
+		ifnlimvmax = false,
+		moss_ps_limit = 1.0,
+		graminoid_ps_limit = 1.0,
+		inund_stress = 1.0
+	}
 
 
 -- This struct contains the result of a photosynthesis calculation.
@@ -344,33 +356,6 @@ let PhotosynthesisEnvironment() : PhotosynthesisEnvironment =
   	fpar = 0,
   	daylength = 0
   }
-
--- This struct contains the stresses used in a photosynthesis calculation.
--- \see photosynthesis */
-type PhotosynthesisStresses = {
-  -- whether nitrogen should limit Vmax
-	ifnlimvmax : bool,
-	--  limit to moss photosynthesis. [0,1], where 1 means no limit
-	moss_ps_limit : f64,
-	-- limit to graminoid photosynthesis. [0,1], where 1 means no limit
-	graminoid_ps_limit : f64,
-	-- limit to photosynthesis due to inundation, where 1 means no limit
-	inund_stress : f64
-}
-
-let PhotosynthesisStresses() : PhotosynthesisStresses =
-  -- All members set to no stress values
-	-- Default values indicating no stress
-{
-  ifnlimvmax = false,
-  moss_ps_limit = 1.0,
-  graminoid_ps_limit = 1.0,
-  inund_stress = 1.0
-}
-
-
-
-
 
 -- Holds static functional parameters for a plant functional type (PFT).
 -- There should be one Pft object for each potentially occurring PFT. The same Pft object
@@ -1068,3 +1053,5 @@ let PhotosynthesisStresses() : PhotosynthesisStresses =
   let istree(pft: Pft) : bool = pft.lifeform == TREE
   let iswetlandspecies(pft: Pft) : bool = (ismoss(pft) || pft.has_aerenchyma)
 --}
+
+-------------------------------------PART FROM .cpp------------------------------------

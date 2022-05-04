@@ -4,7 +4,8 @@ open import "../framework/guess"
 --#include "config.h"
 --#include "canexch.h"
 --#include "driver.h"
---#include "q10.h"
+open import "../modules/q10"
+open import "../modules/extra"
 --#include "bvoc.h"
 --#include "ncompete.h"
 --#include <assert.h>
@@ -57,20 +58,299 @@ let lambertbeer (lai : f64) = exp(-0.5 * lai)
 
 -------------------------------------PART FROM .cpp------------------------------------
 --------------------------------------------------------------------------------------/
+
+
+-- leaf nitrogen (kgN/kgC) not associated with photosynthesis
+-- (value given by Haxeltine & Prentice 1996b) */
+let N0 : f64 = 7.15 * G_PER_MG
+
+-- Lookup tables for parameters with Q10 temperature responses
+
+-- lookup table for Q10 temperature response of CO2/O2 specificity ratio
+let lookup_tau = LookupQ10(0.57, 2600.0)
+
+-- lookup table for Q10 temperature response of Michaelis constant for O2
+let lookup_ko = LookupQ10(1.2, 3.0e4)
+
+-- lookup table for Q10 temperature response of Michaelis constant for CO2
+let lookup_kc = LookupQ10(2.1, 30.0)
+
+
+
+let alphaa(pft : Pft) =
+  if (pft.phenology == CROPGREEN) then
+    if ifnlim then ALPHAA_CROP_NLIM else ALPHAA_CROP
+  else
+    if ifnlim then ALPHAA_NLIM else ALPHAA
+
+
+--- Non-water stressed rubisco capacity, with or without nitrogen limitation
+let vmax(b : f64, c1 : f64, c2 : f64, apar : f64, tscal : f64,
+      daylength : f64, temp : f64, nactive : f64, ifnlimvmax : bool, ps_result: PhotosynthesisResult) =
+
+  -- Calculation of non-water-stressed rubisco capacity assuming leaf nitrogen not
+  -- limiting (Eqn 11, Haxeltine & Prentice 1996a)
+  -- Calculation of sigma is based on Eqn 12 (same source)
+
+  let s : f64 =  24.0 / daylength * b
+  let sigma : f64 = f64.sqrt(max(0.0, 1.0 - (c2 - s) / (c2 - THETA * s)))
+  let vm = 1 / b * CMASS * CQ * c1 / c2 * tscal * apar *
+              (2.0 * THETA * s * (1.0 - sigma) - s + c2 * sigma)
+
+  -- Calculate nitrogen-limited Vmax for current leaf nitrogen
+  -- Haxeltine & Prentice 1996b Eqn 28
+
+  let M : f64 = 25.0 -- corresponds to parameter p in Eqn 28, Haxeltine & Prentice 1996b
+
+  -- Conversion factor in calculation of leaf nitrogen: includes conversion of:
+  --    - Vm from gC/m2/day to umolC/m2/sec
+  --      - nitrogen from mg/m2 to kg/m2
+
+  let CN : f64 = 1.0 / (3600 * daylength * CMASS)
+
+  let tfac : f64 = exp(-0.0693 * (temp - 25.0))
+  let vm_max : f64 = nactive / (M * CN * tfac)
+
+  -- Calculate optimal leaf nitrogen based on [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
+  let nactive_opt : f64 = M * vm * CN * tfac
+
+  let (vm, vmaxnlim, nactive_opt) =
+    if (vm > vm_max && ifnlimvmax) then
+      let vmaxnlim = vm_max / vm  -- Save vmax nitrogen limitation
+      let vm = vm_max
+      in (vm, vmaxnlim, nactive_opt)
+    else
+      (vm, 1.0, nactive_opt)
+  let ps_result = ps_result with vm = vm
+  let ps_result = ps_result with vmaxnlim = vmaxnlim
+               in ps_result with nactive_opt = nactive_opt
+
+
+
+--- Total daily gross photosynthesis
+--- Calculation of total daily gross photosynthesis and leaf-level net daytime
+--  photosynthesis given degree of stomatal closure (as parameter lambda).
+--  Includes implicit scaling from leaf to plant projective area basis.
+--  Adapted from Farquhar & von Caemmerer (1982) photosynthesis model, as simplified
+--  by Collatz et al (1991), Collatz et al (1992), Haxeltine & Prentice (1996a,b)
+--  and Sitch et al. (2000).
+--
+--  To calculate vmax call w/ daily averages of temperature and par.
+--  Vmax is to be calculated daily and only with lambda == lambda_max.
+--  lambda values greater than lambda_max are forbidden.
+--  In sub-daily mode daylength should be 24 h, to obtain values in daily units.
+--
+--  INPUT PARAMETERS
+--
+--  \param PhotosynthesisEnvironment struct containing the following public members:
+--   - co2        atmospheric ambient CO2 concentration (ppmv)
+--   - temp       mean air temperature today (deg C)
+--   - par        total daily photosynthetically-active radiation today (J/m2/day)
+--   - daylength  day length, must equal 24 in diurnal mode (h)
+--   - fpar       fraction of PAR absorbed by foliage
+--
+--  \param PhotosynthesisStresses struct containing the following members:
+--   - ifnlimvmax      - whether nitrogen should limit Vmax
+--   - moss_ps_limit    - limit to moss photosynthesis. [0,1], where 1 means no limit
+--   - graminoid_ps_limit  - limit to graminoid photosynthesis. [0,1], where 1 means no limit
+--   - inund_stress      - limit to photosynthesis due to inundation, where 1 means no limit
+--
+--  \param pft        Pft object containing the following public members:
+--   - pathway         biochemical pathway for photosynthesis (C3 or C4)
+--   - pstemp_min      approximate low temperature limit for photosynthesis (deg C)
+--   - pstemp_low      approximate lower range of temperature optimum for
+--                     photosynthesis (deg C)
+--   - pstemp_high     approximate upper range of temperature optimum for photosynthesis
+--                     (deg C)
+--   - pstemp_max      maximum temperature limit for photosynthesis (deg C)
+--   - lambda_max      non-water-stressed ratio of intercellular to ambient CO2 pp
+--
+--  \param lambda     ratio of intercellular to ambient partial pressure of CO2
+--
+--  \param nactive    nitrogen available for photosynthesis
+--
+--  \param vm         pre-calculated value of Vmax for this stand for this day if
+--                    available, otherwise calculated
+--
+-- OUTPUT PARAMETERS
+--
+-- \param ps_result      see documentation of PhotosynthesisResult struct
+--
+--
+-- IMPORTANT for users adding new call parameters to the list above:
+--
+-- Never place new call parameters in the proper photosynthesis() function header, instead
+-- place new parameters insided the structs PhotosynthesisEnvironment and PhotosynthesisStresses,
+-- or in PhotosynthesisResult if it is a result.
+--/
+let photosynthesis(ps_env : PhotosynthesisEnvironment,
+          ps_stresses : PhotosynthesisStresses,
+          pft: Pft,
+          lambda : f64,
+          nactive : f64,
+          vm : f64,
+          ps_result : PhotosynthesisResult) =
+
+  -- NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
+  -- the formulation of low-temperature inhibition coefficient tscal (tstress LPJF).
+  -- The function adopted here draws down metabolic activity in approximately the
+  -- temperature range pstemp_min-pstemp_low but does not affect photosynthesis
+  -- at high temperatures.
+
+  -- HISTORY
+  -- Ben Smith 18/1/2001: Tested in comparison to LPJF subroutine "photosynthesis":
+  -- function showed identical behaviour except at temperatures >= c. 35 deg C where
+  -- LPJF temperature inhibition function results in lower photosynthesis.
+
+  -- Make sure that only two alternative modes are possible:
+  --  * daily non-water stressed (forces Vmax calculation)
+  --  * with pre-calculated Vmax (sub-daily and water-stressed)
+  --assert(vm >= 0 || lambda == pft.lambda_max) --TODO
+  --assert(lambda <= pft.lambda_max) --TODO
+
+  let PATMOS : f64 = 1e5  -- atmospheric pressure (Pa)
+
+  -- Get the environmental variables
+  let temp : f64 = ps_env.temp
+  let co2 : f64 = ps_env.co2
+  let fpar : f64 = ps_env.fpar
+  let par : f64 = ps_env.par
+  let daylength : f64 = ps_env.daylength
+
+  -- Get the stresses
+  let ifnlimvmax : bool = ps_stresses.ifnlimvmax
+
+  -- No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
+  in if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !(bool.f64 vm)) then (ps_env, ps_stresses, pft, PhotosynthesisResult()) else
+
+  -- Scale fractional PAR absorption at plant projective area level (FPAR) to
+  -- fractional absorption at leaf level (APAR)
+  -- Eqn 4, Haxeltine & Prentice 1996a
+  let apar : f64 = par * fpar * alphaa(pft)
+
+  -- Calculate temperature-inhibition coefficient
+  -- This function (tscal) is mathematically identical to function tstress in LPJF.
+  -- In contrast to earlier versions of modular LPJ and LPJ-GUESS, it includes both
+  -- high- and low-temperature inhibition.
+  let k1 : f64 = (pft.pstemp_min+pft.pstemp_low) / 2.0
+  let tscal : f64 = (1.0 - 0.01*exp(4.6/(pft.pstemp_max-pft.pstemp_high)*(temp-pft.pstemp_high)))/
+                    (1.0+exp((k1-temp)/(k1-pft.pstemp_min)*4.6))
+
+  let (b, c1, c2) : (f64, f64, f64) =
+    if (pft.pathway == C3) then      -- C3 photosynthesis
+      -- Calculate CO2 compensation point (partial pressure)
+      -- Eqn 8, Haxeltine & Prentice 1996a
+      let gammastar : f64 = PO2 / 2.0 / operator(temp, lookup_tau)
+
+      -- Intercellular partial pressure of CO2 given stomatal opening (Pa)
+      -- Eqn 7, Haxeltine & Prentice 1996a
+      let pi_co2 : f64 = lambda * co2 * PATMOS * CO2_CONV
+
+      -- Calculation of C1_C3, Eqn 4, Haxeltine & Prentice 1996a
+      -- High-temperature inhibition modelled by suppression of LUE by decreased
+      -- relative affinity of rubisco for CO2 with increasing temperature (Table 3.7,
+      -- Larcher 1983)
+      -- Notes: - there is an error in Eqn 4, Haxeltine & Prentice 1996a (missing
+      --          2.0* in denominator) which is fixed here (see Eqn A2, Collatz
+      --          et al 1991)
+      --        - the explicit low temperature inhibition function has been removed
+      --          and replaced by a temperature-dependent upper limit on V_m, see
+      --          below
+      --        - the reduction in maximum photosynthesis due to leaf age (phi_c)
+      --          has been removed
+      --        - alpha_a, accounting for reduction in PAR utilisation efficiency
+      --          from the leaf to ecosystem level, appears in the calculation of
+      --          apar (above) instead of here
+      --        - C_mass, the atomic weight of carbon, appears in the calculation
+      --          of V_m instead of here
+      let c1 : f64 = (pi_co2 - gammastar) / (pi_co2 + 2.0 * gammastar) * ALPHA_C3
+
+      -- Calculation of C2_C3, Eqn 6, Haxeltine & Prentice 1996a
+      let c2 : f64 = (pi_co2 - gammastar) / (pi_co2 + operator(temp, lookup_kc) * (1.0 + PO2/operator(temp, lookup_ko)))
+
+      let b : f64 = if pft.lifeform == MOSS then BC_moss else BC3
+      -- see Wania et al. 2009b
+      in (b, c1, c2)
+
+    else               -- C4 photosynthesis
+      -- Calculation of C1_C4 given actual pi (lambda)
+      -- C1_C4 incorporates term accounting for effect of intercellular CO2
+      -- concentration on photosynthesis (Eqn 14, 16, Haxeltine & Prentice 1996a)
+      let b = BC4
+      let c1 = min(lambda/LAMBDA_SC4, 1.0) * ALPHA_C4
+      let c2 = 1.0
+      in (b, c1, c2)
+
+  -- Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
+  let ps_result = if (vm < 0) then vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, ps_result) else ps_result
+
+  -- Calculation of daily leaf respiration
+  -- Eqn 10, Haxeltine & Prentice 1996a
+  let ps_result = ps_result with rd_g = (ps_result.vm * b)
+
+  -- PAR-limited photosynthesis rate (gC/m2/h)
+  -- Eqn 3, Haxeltine & Prentice 1996a
+  let ps_result = ps_result with je = (c1 * tscal * apar * CMASS * CQ / daylength)
+
+  -- Rubisco-activity limited photosynthesis rate (gC/m2/h)
+  -- Eqn 5, Haxeltine & Prentice 1996a
+  let jc : f64 = c2 * ps_result.vm / 24.0
+
+  -- Calculation of daily gross photosynthesis
+  -- Eqn 2, Haxeltine & Prentice 1996a
+  -- Notes: - there is an error in Eqn 2, Haxeltine & Prentice 1996a (missing
+  --       theta in 4*theta*je*jc term) which is fixed here
+  let ps_result = ps_result with agd_g = ((ps_result.je + jc - f64.sqrt((ps_result.je + jc) * (ps_result.je + jc) - 4.0 * THETA * ps_result.je * jc)) /(2.0 * THETA) * daylength)
+
+  let ps_result = if (!iftwolayersoil) then
+    -- LIMITS TO PHOTOSYNTHESIS
+    -- On wetlands, both agd_g and rd_g are scaled in the event of inundation (all PFTS),
+    -- or, for mosses and graminoids only, in the event of the water table dropping below
+    -- the PFT's optimal water table depth (dessication). See Wania et al. (2009b)
+    -- Get the stresses
+    let moss_ps_limit : f64 = ps_stresses.moss_ps_limit
+    let graminoid_ps_limit : f64 = ps_stresses.graminoid_ps_limit
+    let inund_stress : f64 = ps_stresses.inund_stress
+
+    -- 1) Inundation stress
+    -- Reduce GPP if there is inundation stress
+    -- (possibility of) inund stress (i.e. values < 1) only on PEATLAND stands and when ifinundationstress is true
+    let ps_result = ps_result with agd_g = (ps_result.agd_g * inund_stress)
+    let ps_result = ps_result with rd_g = (ps_result.rd_g * inund_stress)
+
+    -- 2a) Moss dessication
+    let ps_result = if (pft.lifeform == MOSS) then ps_result with agd_g = (ps_result.agd_g * moss_ps_limit) else ps_result
+    -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
+    let ps_result = if (pft.lifeform == MOSS) then ps_result with rd_g = (ps_result.rd_g * moss_ps_limit) else ps_result
+
+    -- 2b) Graminoid dessication (NB! all other PFTs have graminoid_ps_limit == 1)
+    let ps_result = ps_result with agd_g = ps_result.agd_g * graminoid_ps_limit
+    let ps_result = ps_result with rd_g = ps_result.rd_g * graminoid_ps_limit
+    in ps_result
+  else ps_result
+
+    -- Leaf-level net daytime photosynthesis (gC/m2/day)
+  -- Based on Eqn 19, Haxeltine & Prentice 1996a
+  let adt : f64 = ps_result.agd_g - daylength / 24.0 * ps_result.rd_g
+
+  -- Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
+  let ps_result = ps_result with adtmm = (adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3)
+  in (ps_env, ps_stresses, pft, ps_result)
+
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)
 
 let assimilation_wstress
       (pft: Pft, co2: f64, temp: f64, par: f64,
       daylength: f64, fpar: f64, fpc: f64, gcbase: f64,
-      vmax: f64, phot_result: PhotosynthesisResult, lambda: f64,
+      vmax: f64, phot_result: PhotosynthesisResult,
       nactive: f64, ifnlimvmax: bool, moss_wtp_limit: f64, graminoid_wtp_limit: f64, inund_stress: f64)
-      : (Pft, PhotosynthesisResult, f32)
+      : (Pft, PhotosynthesisResult, f64)
       =
 
     -- DESCRIPTION
     -- Calculation of net C-assimilation under water-stressed conditions
-    -- (demand>supply; see function canopy_exchange). Utilises a numerical
+    -- (demand>supply see function canopy_exchange). Utilises a numerical
     -- iteration procedure to find the level of stomatal aperture (characterised by
     -- lambda, the ratio of leaf intercellular to ambient CO2 concentration) which
     -- satisfies simulataneously a canopy-conductance based and light-based
@@ -115,55 +395,55 @@ let assimilation_wstress
     -- Evaluate f(lambda_max) to see if there's a root
     -- in the interval we're searching
     let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
-    let ps_stress = {ifnlimvmax=ifnlimvmax, moss_wtp_limit=moss_wtp_limit, graminoid_wtp_limit=graminoid_wtp_limit, inund_stress=inund_stress}
-    let phot_result = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result)
 
-    let f64 f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max) -- Return zero assimilation
+    let ps_stress = {ifnlimvmax=ifnlimvmax, moss_ps_limit=moss_wtp_limit, graminoid_ps_limit=graminoid_wtp_limit, inund_stress=inund_stress}
+
+    let (_, ps_stress, pft, phot_result) = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result)
+
+    let f_lambda_max : f64 = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max) -- Return zero assimilation
     in if (f_lambda_max <= 0)
-    then (pft, phot_result.clear(), lambda) else
-      let f64 EPS = 0.1 -- minimum precision of solution in bisection method
+    then (pft, PhotosynthesisResult(), lambda) else
+      let EPS : f64 = 0.1 -- minimum precision of solution in bisection method
 
-      let f64 xmid = 0.0 -- TODO
+      let xmid : f64 = 0.0 -- TODO
 
       -- Implement numerical solution
-      let f64 x1 = 0.02                      -- minimum bracket of root
-      let f64 x2 = pft.lambda_max            -- maximum bracket of root
-      let f64 rtbis = x1                     -- root of the bisection
-      let f64 dx = x2 - x1
+      let x1 : f64 = 0.02                      -- minimum bracket of root
+      let x2 : f64 = pft.lambda_max            -- maximum bracket of root
+      let rtbis : f64 = x1                     -- root of the bisection
+      let dx : f64 = x2 - x1
 
-      let int MAXTRIES = 6 -- maximum number of iterations towards a solution
-      let int b = 0        -- number of tries so far towards solution
+      let MAXTRIES : i64 = 6 -- maximum number of iterations towards a solution
+      let b : i64 = 0        -- number of tries so far towards solution
 
-      let f64 fmid = EPS + 1.0
+      let fmid : f64 = EPS + 1.0
 
-      let ps_env = ps_env.set(co2, temp, par, fpar, daylength)
-      in
-      loop (b,dx,xmid,phot_result,fmid)
-       while (abs(fmid) > EPS && b <= MAXTRIES) do
-        let b = b++
-        let dx = dx *= 0.5
-        let xmid = rtbis + dx -- current guess for lambda
+      let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
+      let (_,_,xmid,_,_,_, _, pft, phot_result) = loop (b,dx,xmid,rtbis,fmid,ps_env, ps_stress, pft, phot_result)
+        while (abs(fmid) > EPS && b <= MAXTRIES) do
+          let b = b + 1
+          let dx = dx * 0.5
+          let xmid = rtbis + dx -- current guess for lambda
 
-        -- Call function photosynthesis to calculate alternative value
-        -- for total daytime photosynthesis according to Eqns 2 & 19,
-        -- Haxeltine & Prentice (1996), and current guess for lambda
+          -- Call function photosynthesis to calculate alternative value
+          -- for total daytime photosynthesis according to Eqns 2 & 19,
+          -- Haxeltine & Prentice (1996), and current guess for lambda
 
-        let phot_result = photosynthesis(ps_env, ps_stress, pft,
-                                          xmid, nactive, vmax,
-                                          phot_result)
+          let (ps_env, ps_stress, pft, phot_result) = photosynthesis(ps_env, ps_stress, pft,
+                                                      xmid, nactive, vmax,
+                                                      phot_result)
 
-       -- Evaluate fmid at the point lambda=xmid
-       -- fmid will be an increasing function of xmid, with a solution
-       -- (fmid=0) between x1 and x2
+         -- Evaluate fmid at the point lambda=xmid
+         -- fmid will be an increasing function of xmid, with a solution
+         -- (fmid=0) between x1 and x2
 
-       -- Second term is total daytime photosynthesis (mm/m2/day) implied by
-       -- canopy conductance and current guess for lambda (xmid)
-       -- Eqn 18, Haxeltine & Prentice 1996
+         -- Second term is total daytime photosynthesis (mm/m2/day) implied by
+         -- canopy conductance and current guess for lambda (xmid)
+         -- Eqn 18, Haxeltine & Prentice 1996
 
-        let fmid = phot_result.adtmm / fpc - gcphot * (1 - xmid)
-        let rtbis = if (fmid < 0) then xmid else rtbis
-        in (b,dx,xmid,phot_result,fmid)
-
+          let fmid = phot_result.adtmm / fpc - gcphot * (1 - xmid)
+          let rtbis = if (fmid < 0) then xmid else rtbis
+          in (b,dx,xmid,rtbis,fmid,ps_env, ps_stress, pft, phot_result)
       -- bvoc
       let lambda = xmid
       in (pft, phot_result, lambda)
