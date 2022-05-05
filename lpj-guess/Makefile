@@ -24,6 +24,9 @@ setup-tests:
 build:
 	bash compile.sh
 
+b:
+	bash compile.sh
+
 archdependencies:
 	yay -S cmake netcdf
 
