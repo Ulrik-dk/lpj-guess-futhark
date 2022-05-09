@@ -1,5 +1,6 @@
--------------------------------------PART FROM .h--------------------------------------
---------------------------------------------------------------------------------------/
+-------------------------------------parameters.h--------------------------------------
+open import "../futhark-extras"
+
 -- Enums needed by some of the global instruction file parameters defined below
 
 --/ Vegetation 'mode', i.e. what each Individual object represents
@@ -9,45 +10,21 @@
 --  2. A cohort of individuals of a PFT that are roughly the same age
 --  3. An individual plant
 --/
-type vegmodetype = i8
-let NOVEGMODE : vegmodetype = 0
-let INDIVIDUAL : vegmodetype = 1
-let COHORT : vegmodetype = 2
-let POPULATION : vegmodetype = 3
+type vegmodetype = #NOVEGMODE | #INDIVIDUAL | #COHORT | #POPULATION
 
 --/ Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 --  NB. set_lc_change_array() must be modified when adding new land cover types
 --/
-type landcovertype = i64
-let URBAN : landcovertype = 0
-let CROPLAND : landcovertype = 1
-let PASTURE : landcovertype = 2
-let FOREST : landcovertype = 3
-let NATURAL : landcovertype = 4
-let PEATLAND : landcovertype = 5
-let BARREN : landcovertype = 6
-let NLANDCOVERTYPES : landcovertype = 7
+type landcovertype = #URBAN | #CROPLAND | #PASTURE | #FOREST | #NATURAL | #PEATLAND | #BARREN
+let NLANDCOVERTYPES : int = 7 -- the c++ code had this as part of the enumerator - hack!
 
 --/ Water uptake parameterisations
 -- \see water_uptake in canexch.cpp
-type wateruptaketype = i8
-let WR_WCONT : wateruptaketype = 0
-let WR_ROOTDIST : wateruptaketype = 1
-let WR_SMART : wateruptaketype = 2
-let WR_SPECIESSPECIFIC : wateruptaketype = 3
+type wateruptaketype = #WR_WCONT | #WR_ROOTDIST | #WR_SMART | #WR_SPECIESSPECIFIC
 
 --/bvoc: define monoterpene species used
-type monoterpenecompoundtype = i64
-let APIN : monoterpenecompoundtype = 0
-let BPIN : monoterpenecompoundtype = 1
-let LIMO : monoterpenecompoundtype = 2
-let MYRC : monoterpenecompoundtype = 3
-let SABI : monoterpenecompoundtype = 4
-let CAMP : monoterpenecompoundtype = 5
-let TRIC : monoterpenecompoundtype = 6
-let TBOC : monoterpenecompoundtype = 7
-let OTHR : monoterpenecompoundtype = 8
-let NMTCOMPOUNDTYPES : monoterpenecompoundtype = 9
+type monoterpenecompoundtype = #APIN | #BPIN | #LIMO | #MYRC | #SABI | #CAMP | #TRIC | #TBOC | #OTHR
+let NMTCOMPOUNDTYPES : int = 9 -- the c++ code had this as part of the enumerator - hack!
 
 --/ Fire model setting. Either use
 --	One of
@@ -56,10 +33,7 @@ let NMTCOMPOUNDTYPES : monoterpenecompoundtype = 9
 --	GLOBFIRM	fire parameterization following Thonicke et al. 2001
 --	NOFIRE		no fire model
 --/
-type firemodeltype = i8
-let BLAZE : firemodeltype = 0
-let GLOBFIRM : firemodeltype = 1
-let NOFIRE : firemodeltype = 2
+type firemodeltype = #BLAZE | #GLOBFIRM | #NOFIRE
 
 --/ Type of weathergenerator used
 --     One of:
@@ -68,28 +42,20 @@ let NOFIRE : firemodeltype = 2
 --      INTERP          use standard interpolation scheme
 --      NONE            Should be set if daily input is used (e.g. in cfinput)
 --/
-type weathergeneratortype = i8
-let GWGEN : weathergeneratortype = 0
-let INTERP : weathergeneratortype = 1
-let NONE : weathergeneratortype = 2
+type weathergeneratortype = #GWGEN | #INTERP | #NONE
 
 --/How to determine root distribution in soil layers
-type rootdisttype = i8
-let ROOTDIST_FIXED : rootdisttype = 0
-let ROOTDIST_JACKSON : rootdisttype = 1
+type rootdisttype = #ROOTDIST_FIXED | #ROOTDIST_JACKSON
 
 --- The global Paramlist object
 --- C---------------------------------------------------------------------------------------
 -- Global instruction file parameters
 
-type xtring = i8
-
--- TODO: GET ALL THESE PARAMETERS SOMEWHERE
 --- Title for this run
 let title : xtring = 1
 
 --- Vegetation mode (population, cohort or individual)
-let vegmode : vegmodetype = 1 --TODO
+let vegmode : vegmodetype = #POPULATION --TODO
 
 --- Default number of patches in each stand
 --- Should always be 1 in population mode,
@@ -97,19 +63,19 @@ let vegmode : vegmodetype = 1 --TODO
 --  Actual patch number for stand objects may differ and
 --  should always be queried by stand.npatch()
 
-let npatch : i64 = 1
+let npatch : int = 1
 
 --- Number of patches in each stand for secondary stands
-let npatch_secondarystand : i64 = 1
+let npatch_secondarystand : int = 1
 
 --- Whether to reduce equal percentage of all stands of a stand type at land cover change
-let reduce_all_stands : i64 = 1
+let reduce_all_stands : int = 1
 
 --- Minimum age of stands to reduce at land cover change
-let age_limit_reduce : i64 = 1
+let age_limit_reduce : int = 1
 
 --- Patch area (m2) (individual and cohort mode only)
-let patcharea : f64 = 1.0
+let patcharea : real = 1.0
 
 --- Whether background establishment enabled (individual, cohort mode)
 let ifbgestab : bool = true
@@ -124,16 +90,16 @@ let ifstochestab : bool = true
 let ifstochmort : bool = true
 
 --- Fire-model switch
-let firemodel : firemodeltype = BLAZE
+let firemodel : firemodeltype = #BLAZE
 
 --- Weather Generator switch
-let weathergenerator : weathergeneratortype = INTERP
+let weathergenerator : weathergeneratortype = #INTERP
 
 --- Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 let ifdisturb : bool = true
 
 --- Generic patch-destroying disturbance interval (individual, cohort mode)
-let  distinterval : f64 = 1.0
+let  distinterval : real = 1.0
 
 --- Whether SLA calculated from leaf longevity (alt: prescribed)
 let ifcalcsla : bool = true
@@ -142,16 +108,16 @@ let ifcalcsla : bool = true
 let ifcalccton : bool = true
 
 --- Establishment interval in cohort mode (years)
-let estinterval : i64 = 1
+let estinterval : int = 1
 
 --- Whether C debt (storage between years) permitted
 let ifcdebt : bool = true
 
 --- Water uptake parameterisation
-let wateruptake : wateruptaketype = 1
+let wateruptake : wateruptaketype = #WR_SMART
 
 --- Parameterisation of root distribution
-let rootdistribution : rootdisttype = 1
+let rootdistribution : rootdisttype = #ROOTDIST_FIXED
 
 --- whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 let ifcentury : bool = true
@@ -160,36 +126,36 @@ let ifcentury : bool = true
 let ifnlim : bool = true
 
 --- number of years to allow spinup without nitrogen limitation
-let freenyears : i64 = 1
+let freenyears : int = 1
 
 --- fraction of nitrogen relocated by plants from roots and leaves
-let  nrelocfrac : f64 = 1.0
+let  nrelocfrac : real = 1.0
 
 --- first term in nitrogen fixation eqn (Cleveland et al 1999)
-let  nfix_a : f64 = 1.0
+let  nfix_a : real = 1.0
 
 --- second term in nitrogen fixation eqn (Cleveland et al 1999)
-let  nfix_b : f64 = 1.0
+let  nfix_b : real = 1.0
 
 --- whether to use nitrification/denitrification in CENTURY SOM dynamics
 let ifntransform : bool = true
 --- Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
-let  frac_labile_carbon : f64 = 1.0
+let  frac_labile_carbon : real = 1.0
 
 --- Soil pH (used for calculating N-transformation), 3.5,8.5
-let  pH_soil : f64 = 1.0
+let  pH_soil : real = 1.0
 --- Maximum nitrification rate, 0.03,0.15
-let  f_nitri_max : f64 = 1.0
+let  f_nitri_max : real = 1.0
 --- Constant in denitrification, 0.001,0.1
-let  k_N : f64 = 1.0
+let  k_N : real = 1.0
 --- Constant in temperature function for denitrification, 0.005,0.05
-let  k_C : f64 = 1.0
+let  k_C : real = 1.0
 --- Maximum gaseus losses in nitrification
-let  f_nitri_gas_max : f64 = 1.0
+let  f_nitri_gas_max : real = 1.0
 --- Maximum fraction of NO3 converted to NO2
-let  f_denitri_max : f64 = 1.0
+let  f_denitri_max : real = 1.0
 --- Maximum fraction of NO2 converted to gaseus N
-let  f_denitri_gas_max : f64 = 1.0
+let  f_denitri_gas_max : real = 1.0
 
 
 ---------------------------------------------------------------------------------------
@@ -220,7 +186,7 @@ let ifintercropgrass : bool = true
 let ifcalcdynamic_phu : bool = true
 
 -- Whether to use gross land transfer: simulate gross lcc (1) read landcover transfer matrix input file (2) read stand type transfer matrix input file (3), or not (0)
-let gross_land_transfer : i64 = 1
+let gross_land_transfer : int = 1
 
 -- Whether gross land transfer input read for this gridcell
 let gross_input_present : bool = true
@@ -232,7 +198,7 @@ let ifprimary_lc_transfer : bool = true
 let ifprimary_to_secondary_transfer : bool = true
 
 -- Pooling level of land cover transitions 0: one big pool 1: land cover-level 2: stand type-level
-let transfer_level : i64 = 1
+let transfer_level : int = 1
 
 -- Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 let iftransfer_to_new_stand : bool = true
@@ -241,10 +207,10 @@ let iftransfer_to_new_stand : bool = true
 let ifdyn_phu_limit : bool = true
 
 -- Number of years to calculate dynamic phu if dynamic_phu_limit is true
-let nyear_dyn_phu : i64 = 1
+let nyear_dyn_phu : int = 1
 
 --- number of spinup years
-let nyear_spinup : i64 = 1
+let nyear_spinup : int = 1
 
 --- Whether to use sowingdates from input file
 let readsowingdates : bool = true
@@ -289,10 +255,10 @@ let restart : bool = true
 let save_state : bool = true
 
 --- Save/restart year
-let state_year : i64 = 1
+let state_year : int = 1
 
 --- The level of verbosity
-let verbosity : i64 = 1
+let verbosity : int = 1
 
 --- whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard step-function (0)
 let ifsmoothgreffmort : bool = true
@@ -322,7 +288,7 @@ let ifinundationstress : bool = true
 let ifcarbonfreeze : bool = true
 
 --- Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
-let wetland_runon : f64 = 1.0
+let wetland_runon : real = 1.0
 
 --- Whether methane calculations are included
 let ifmethane : bool = true

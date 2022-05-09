@@ -1,4 +1,4 @@
--------------------------------------PART FROM .h--------------------------------------
+-------------------------------------soil.h-------------------------------------------
 --------------------------------------------------------------------------------------/
 --/ \file soil.h
 --/ \brief Constants and parameters used in Arctic and wetland code, with references.
@@ -15,126 +15,127 @@
 
 -- DEBUGGING BOOLEANS
 
---let DEBUG_SOIL_WATER : f64 =  false
---let DEBUG_SOIL_TEMPERATURE : f64 =  false
---let DEBUG_METHANE : f64 =  false
+--let DEBUG_SOIL_WATER : real =  false
+--let DEBUG_SOIL_TEMPERATURE : real =  false
+--let DEBUG_METHANE : real =  false
 
+open import "../futhark-extras"
 
 -- CONSTANTS
 
 --/ number of total soil layers. Must be at least NSOILLAYER + NLAYERS_SNOW + 1
-let NLAYERS : i64 =  22
+let NLAYERS : int =  22
 
 --/ Number of soil layers for soil temperature/water calculations. Typically 15 10mm layers, making up the 150cm-deep soil column
-let NSOILLAYER : i64 =  15	-- rootdist in .ins file must have NSOILLAYER components
+let NSOILLAYER : int =  15	-- rootdist in .ins file must have NSOILLAYER components
 
 --/ Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column
-let NSOILLAYER_SIMPLE : i64 =  2
+let NSOILLAYER_SIMPLE : int =  2
 
 --/ number of depths at which we want the soil T output in outannual
-let SOILTEMPOUT : i64 =  NSOILLAYER
+let SOILTEMPOUT : int =  NSOILLAYER
 
 --/ index of the first soil layer
-let IDX_STD : i64 =  NLAYERS-NSOILLAYER
+let IDX_STD : int =  NLAYERS-NSOILLAYER
 
 --/ number of padding layers in the soil
-let PAD_LAYERS : i64 =  5
+let PAD_LAYERS : int =  5
 
 --/ number of total soil layers in the acrotelm
-let NACROTELM : i64 =  3
+let NACROTELM : int =  3
 
 --/ number of total soil layers in the catotelm
-let NCATOTELM : i64 =  12
+let NCATOTELM : int =  12
 
---/ Number of sublayers in the acrotelm, i.e. 1cm layers with this : f64 =  30
-let NSUBLAYERS_ACRO : i64 =  30
+--/ Number of sublayers in the acrotelm, i.e. 1cm layers with this : real =  30
+let NSUBLAYERS_ACRO : int =  30
 
 --/ Maximum number of layers - for soil temperature calculations
-let active_layersmax : i64 =  NLAYERS + PAD_LAYERS
+let active_layersmax : int =  NLAYERS + PAD_LAYERS
 
---/ Total depth [mm] of padding layers - set to 8000 when analyticalSolutionTest : f64 =  true
-let PAD_DEPTH : f64 =  48000
+--/ Total depth [mm] of padding layers - set to 8000 when analyticalSolutionTest : real =  true
+let PAD_DEPTH : real =  48000
 
 --/ Depth of each mineral soil layer [mm]
-let Dz_soil : f64 =  100.0
+let Dz_soil : real =  100.0
 
 --/ Depth of each acrotelm soil layer [mm]
-let Dz_acro : f64 =  100.0
+let Dz_acro : real =  100.0
 
 --/ Depth of each catotelm soil layer [mm]
-let Dz_cato : f64 =  100.0
+let Dz_cato : real =  100.0
 
 --/ Max height of standing water [mm]
-let maxh : f64 =  0.0
+let maxh : real =  0.0
 
 --/ Slope of soil profile
-let soil_slope : f64 =  -0.37
+let soil_slope : real =  -0.37
 
 --/ Maximum density of soil organic carbon [KgC/m3]
-let maxSOCdensity : f64 =  130.0 -- From Lawrence and Slater, 2008
+let maxSOCdensity : real =  130.0 -- From Lawrence and Slater, 2008
 
 -- SNOW PARAMETERS
 
 --/ snow density at start of the snow season [kg m-3] (Wania et al. (2009a) have 150, Best et al. (2012) have 50)
-let snowdens_start : f64 =  275.0
+let snowdens_start : real =  275.0
 
 --/ snow density at end of the snow season [kg m-3] (Wania et al. 2009a)
-let snowdens_end : f64 =  500.0
+let snowdens_end : real =  500.0
 
 --/ maximum number of snow layers allowed (<= 5)
-let NLAYERS_SNOW : f64 =  5
+let NLAYERS_SNOW : real =  5
 
 --/ ice density [kg m-3] - CLM value
-let ice_density : f64 =  917.0
+let ice_density : real =  917.0
 
 --/ water density [kg m-3]
-let water_density : f64 =  1000.0
+let water_density : real =  1000.0
 
 -- POROSITIES
 
 --/ Porosity of organic material
-let organic_porosity : f64 =  0.8 -- From Lawrence and Slater (2008) have 0.9, but 0.8 is consistent with organic soil code 8
+let organic_porosity : real =  0.8 -- From Lawrence and Slater (2008) have 0.9, but 0.8 is consistent with organic soil code 8
 
 --/ catotelm porosity
-let catotelm_por : f64 =  0.92
+let catotelm_por : real =  0.92
 
 --/ acrotelm porosity
-let acrotelm_por : f64 =  0.98
+let acrotelm_por : real =  0.98
 
 --/ Gas fraction in peat
-let Fgas : f64 =  0.00 -- Possible to reintroduce - was 0.08 in Wania et al (2010)
+let Fgas : real =  0.00 -- Possible to reintroduce - was 0.08 in Wania et al (2010)
 
 --/ Wilting point in peat
-let peat_wp : f64 =  0.066
+let peat_wp : real =  0.066
 
 --/ First year when phase change is allowed
-let FIRST_FREEZE_YEAR : f64 =  90
+let FIRST_FREEZE_YEAR : real =  90
 
 --/ time step [day]
-let Dt : f64 =  1
+let Dt : real =  1
 
 -- HEAT CAPACITIES
 
 --/ heat capacity of air [J m-3 K-1] - Bonan (2002)
-let Cp_air : f64 =  1200
+let Cp_air : real =  1200
 
 --/ heat capacity of water [J m-3 K-1] - Bonan (2002)
-let Cp_water : f64 =  4180000
+let Cp_water : real =  4180000
 
---/ heat capacity of ice [J m-3 K-1] : f64 =  2117.27 [J kg-1 K-1] * 917 [kg m-3 (ice density)] - CLM
-let Cp_ice : f64 =  1941537
+--/ heat capacity of ice [J m-3 K-1] : real =  2117.27 [J kg-1 K-1] * 917 [kg m-3 (ice density)] - CLM
+let Cp_ice : real =  1941537
 
 --/ heat capacity of organic matter [J m-3 K-1]
-let Cp_org : f64 =  2500000
+let Cp_org : real =  2500000
 
 --/ heat capacity of dry peat (J m-3 K-1) - Bonan (2002), 0% water
-let Cp_peat : f64 =  580000
+let Cp_peat : real =  580000
 
 --/ heat capacity of mineral soil [J m-3 K-1] - Bonan (2002)
-let Cp_min : f64 =  2380000
+let Cp_min : real =  2380000
 
 --/ heat capacity of moss [J/ m-3 K-1] Ekici et al. (2015)
-let Cp_moss : f64 =  2500000
+let Cp_moss : real =  2500000
 
 -- NOTE: using the Cp_org values for Cp_peat and Korg for Kpeat does not
 -- seem to influence the upper soil layer Ts, but increases the range
@@ -144,39 +145,39 @@ let Cp_moss : f64 =  2500000
 -- Values are from Hillel (1982) unless otherwise stated
 
 --/ thermal conductivity of air [W m-1 K-1]
-let Kair : f64 =  0.025
+let Kair : real =  0.025
 
 --/ thermal conductivity of water [W m-1 K-1]
-let Kwater : f64 =  0.57
+let Kwater : real =  0.57
 
 --/ thermal conductivity of ice [W m-1 K-1]
-let Kice : f64 =  2.2
+let Kice : real =  2.2
 
 --/ thermal conductivity of organic matter [W m-1 K-1]
-let Korg : f64 =  0.25
+let Korg : real =  0.25
 
 --/ thermal conductivity of dry peat [W m-1 K-1] - Bonan (2002)
-let Kpeat : f64 =  0.06
+let Kpeat : real =  0.06
 
 --/ thermal conductivity of mineral soil [W m-1 K-1] - Wania et al. (2009a)
-let Kmin : f64 =  2.0
+let Kmin : real =  2.0
 
 --/ thermal conductivity of moss [W m-1 K-1]
-let Kmoss : f64 =  0.25
+let Kmoss : real =  0.25
 
 --/ latent heat of fusion (Granberg et al. 1999) [J m-3]
-let Lheat : f64 =  3.34E8
+let Lheat : real =  3.34E8
 
 --/ A FILL-IN for layers above layer0.
-let MISSING_VALUE : f64 =  -9999.0
+let MISSING_VALUE : real =  -9999.0
 
 --/ The number of subdaily timestep loops to perform.
 -- Numerical instabilities can arise when there are thinner layers of snow and litter, so this should be > 1.
-let TIMESTEPS : f64 =  2
+let TIMESTEPS : real =  2
 
 --/ Thickness of the topmost air layer [m]
 -- Note - keep air thickness low when using cnstep_full
-let AIR_THICKNESS : f64 =  100.0
+let AIR_THICKNESS : real =  100.0
 
 
 ------------------------------------------------------------------------
@@ -189,119 +190,119 @@ let ICE_IMPEDANCE: bool =  false
 
 --/ min temp [deg C] for heterotrophic decomposition.
 -- Clein & Schimel (1995) use -4 degC
-let MIN_DECOMP_TEMP : f64 =  -8.0
+let MIN_DECOMP_TEMP : real =  -8.0
 
 --/ max CO2 [mimol/L] available to mosses in the acrotelm - see Wania et al (2009b)
 -- value taken from Smolders et al. 2001 which give an average CO2 conc. of 70 sites as 934 mimol L-1
-let PORE_WATER_CO2 : f64 =  934.0
+let PORE_WATER_CO2 : real =  934.0
 
 -- METHANE CONSTANTS
 
 --/ optimised moisture response under inundation (Wania et al. 2010, Table 5)
-let RMOIST : f64 =  0.4
+let RMOIST : real =  0.4
 
 --/ Frolking et al (2001, 2010), Ise et al. (2008)
-let RMOIST_ANAEROBIC : f64=0.025
+let RMOIST_ANAEROBIC : real=0.025
 
 --/ time step for gas diffusion calculations [day]
-let Dt_gas : f64 =  0.01
+let Dt_gas : real =  0.01
 
 --/ CH4:CO2 ratio for peatland soils (> PEATLAND_WETLAND_LATITUDE_LIMIT N) - See Wania et al (2010)
 -- Wania et al. (2010) optimal value: 0.1 (see Table 4).
 -- McGuire et al (2012), Tang et al (2015) and Zhang et al (2013) use 0.25, after optimisation
-let CH4toCO2_peat : f64 =  0.085
+let CH4toCO2_peat : real =  0.085
 
 --/ CH4:CO2 ratio for inundated soils (< PEATLAND_WETLAND_LATITUDE_LIMIT N) - See Spahni et al. (2011)
---let CH4toCO2_inundated : f64 =  0.024 -- SC1 value in Spahni et al. SC2 is 0.0415
-let CH4toCO2_inundated : f64 =  0.027 -- Updated from Spahni et al. (2011) to match global emissions
+--let CH4toCO2_inundated : real =  0.024 -- SC1 value in Spahni et al. SC2 is 0.0415
+let CH4toCO2_inundated : real =  0.027 -- Updated from Spahni et al. (2011) to match global emissions
 
 --/ density of water [kg m-3]
-let rho_H2O : f64 =  1000.0
+let rho_H2O : real =  1000.0
 
 --/ acceleration due to gravity [m s-2]
-let gravity : f64 =  9.81
+let gravity : real =  9.81
 
 --/ Molecular mass of CH4 [g mol-1]
-let mr_CH4 : f64 =  16.0
+let mr_CH4 : real =  16.0
 
 --/ Molecular mass of carbon [g mol-1]
-let mr_C : f64 =  12.0
+let mr_C : real =  12.0
 
 --/ molecular weight of water
-let mr_h2o : f64 =  18.0
+let mr_h2o : real =  18.0
 
 --/ universal gas constant [J mol-1 K-1]
-let R_gas : f64 =  8.314472
+let R_gas : real =  8.314472
 
 --/ standard atmospheric pressure [Pa]
-let atm_press : f64 =  101325.0
+let atm_press : real =  101325.0
 
 --/ coefficient for the calculation of the gas transport velocity, given in Riera et al. 1999
-let n_coeff : f64 =  -0.5
+let n_coeff : real =  -0.5
 
 --/ wind speed at 10m height [m s-1]
-let U10 : f64 =  0.0
+let U10 : real =  0.0
 
 --/  Henry's Law constants [L atm mol-1] at 298.15K. Wania et al. (2010), Table 2
-let henry_k_CO2 : f64 =  29.41
-let henry_k_CH4 : f64 =  714.29
-let henry_k_O2 : f64 =  769.23
+let henry_k_CO2 : real =  29.41
+let henry_k_CH4 : real =  714.29
+let henry_k_O2 : real =  769.23
 
 --/ Constants [K] for CO2, CH4 and O2 for calculation of Henry's coefficient cited by Sander (1999). Wania et al. (2010), Table 2
-let henry_C_CO2 : f64 =  2400.0
-let henry_C_CH4 : f64 =  1600.0
-let henry_C_O2 : f64 =  1500.0
+let henry_C_CO2 : real =  2400.0
+let henry_C_CH4 : real =  1600.0
+let henry_C_O2 : real =  1500.0
 
 --/ partial pressure of CH4 above water
-let pp_CH4 : f64 =  1.7 -- micro atm
+let pp_CH4 : real =  1.7 -- micro atm
 
 --/ partial pressure of O2 above water (value consistent with PO2 in canexch.h)
-let pp_O2 : f64 =  209000 -- micro atm
+let pp_O2 : real =  209000 -- micro atm
 
 --/ when ebullition occurs, the volumetric gas content (VGC) will drop to this level [unitless]
-let vgc_low : f64 =  0.145
+let vgc_low : real =  0.145
 
 --/	ebullition occurs, when the volumetric gas content (VGC) exceeds this level [unitless, m3/m3]
-let vgc_high : f64 =  0.15
+let vgc_high : real =  0.15
 
 --/ CH4 fraction of gas bubbles [unitless]
-let bubble_CH4_frac : f64 =  0.57
+let bubble_CH4_frac : real =  0.57
 
 --/ Fraction of oxygen used to oxidise CH4
 -- Wania et al. (2010) optimal value: 0.5 (see Table 5).
 -- McGuire et al (2012), Tang et al (2015) and Zhang et al (2013) use 0.9, after optimisation
-let oxid_frac : f64 =  0.5
+let oxid_frac : real =  0.5
 
 --/ Fraction of ANPP used to calculate number of tillers
-let ag_frac : f64 =  0.4
+let ag_frac : real =  0.4
 
 --/ Radius of an average tiller [m]
--- (tiller_radius : f64 =  0.004)  ! Schimel (1995) - Average over E. angustifolium (diam=7.9mm)
+-- (tiller_radius : real =  0.004)  ! Schimel (1995) - Average over E. angustifolium (diam=7.9mm)
 -- and C. aquatilis (diam=3.8mm)
 -- Wania et al. (2010) optimal value: 0.003mm (see Table 5).
 -- McGuire et al (2012), Tang et al (2015) and Zhang et al (2013) use 0.0035, after optimisation
-let tiller_radius : f64 =  0.0035
+let tiller_radius : real =  0.0035
 
 
 --/ Tiller porosity
--- (tiller_por : f64 =  0.6) ! Wetland plants book, eds. Cronk and Fennessy, p.90, values for 2 Erioph. spp.
-let tiller_por : f64 =  0.7 -- Wania et al. (2010) optimal value: 0.7 (see Table 5)
+-- (tiller_por : real =  0.6) ! Wetland plants book, eds. Cronk and Fennessy, p.90, values for 2 Erioph. spp.
+let tiller_por : real =  0.7 -- Wania et al. (2010) optimal value: 0.7 (see Table 5)
 
 --/ C content of biomass
-let c_content : f64 =  0.45
+let c_content : real =  0.45
 
 --/ atomic mass of carbon [g/mol]
-let atomiccmass : f64 =  12.0
+let atomiccmass : real =  12.0
 
 --/ Individual tiller weight [g C]
-let tiller_weight : f64 =  0.22
+let tiller_weight : real =  0.22
 
 --/ a threshold factor for a minimum water content in the layer [unitless]
-let water_min : f64 =  0.1
+let water_min : real =  0.1
 
 --/ Latitude (N). North of this and PEATLAND stands are treated as peatland as in Wania et al. (2009a, 2009b, 2010)
 -- But south of this, then the PEATLAND stands are irrigated to avoid water stress, and can be a source of methane
-let PEATLAND_WETLAND_LATITUDE_LIMIT : f64 =  40.0
+let PEATLAND_WETLAND_LATITUDE_LIMIT : real =  40.0
 
 -- INLINE FUNCTIONS
 
@@ -312,18 +313,18 @@ let PEATLAND_WETLAND_LATITUDE_LIMIT : f64 =  40.0
 --	double gam[active_layersmax]
 --	double bet
 --
---	bet : f64 =  b[0]
+--	bet : real =  b[0]
 --
---	u[0] : f64 =  r[0] / bet
+--	u[0] : real =  r[0] / bet
 --
---	for (int j : f64 =  1 j<n j++) {
---		gam[j] : f64 =  c[j - 1] / bet
---		bet : f64 =  b[j] - a[j] * gam[j]
+--	for (int j : real =  1 j<n j++) {
+--		gam[j] : real =  c[j - 1] / bet
+--		bet : real =  b[j] - a[j] * gam[j]
 --
---		u[j] : f64 =  (r[j] - a[j] * u[j - 1]) / bet
+--		u[j] : real =  (r[j] - a[j] * u[j - 1]) / bet
 --	}
 --
---	for (int j : f64 =  (n - 2) j >= 0 j--) {
+--	for (int j : real =  (n - 2) j >= 0 j--) {
 --		u[j] -= gam[j + 1] * u[j + 1]
 --	}
 --}

@@ -1,4 +1,5 @@
 open import "../framework/guessmath"
+open import "../futhark-extras"
 
 ---------------------------------------------------------------------------------------
 --- \file q10.h
@@ -19,10 +20,10 @@ open import "../framework/guessmath"
 -- to other modules.
 
 -- Constants required for Q10 lookup tables used by photosynthesis
-let Q10_MINTEMP : f64 = -70.0  -- minimum temperature ever (deg C)
-let Q10_MAXTEMP : f64 = 70.0  -- maximum temperature ever (deg C)
-let Q10_PRECISION : f64 = 0.01  -- rounding precision for temperature
-let Q10_NDATA : i64 = (i64.f64) ((Q10_MAXTEMP-Q10_MINTEMP)/Q10_PRECISION + 1.5)
+let Q10_MINTEMP : real = -70.0  -- minimum temperature ever (deg C)
+let Q10_MAXTEMP : real = 70.0  -- maximum temperature ever (deg C)
+let Q10_PRECISION : real = 0.01  -- rounding precision for temperature
+let Q10_NDATA : int = (intFromReal) ((Q10_MAXTEMP-Q10_MINTEMP)/Q10_PRECISION + 1.5)
   -- maximum number of values to store in each lookup table
 
 --- Q10 lookup table class
@@ -30,21 +31,21 @@ let Q10_NDATA : i64 = (i64.f64) ((Q10_MAXTEMP-Q10_MINTEMP)/Q10_PRECISION + 1.5)
 -- a 25-degree base value.
 type LookupQ10 = {
   --- The temperature-adjusted values
-  data : [Q10_NDATA]f64
+  data : [Q10_NDATA]real
 }
 --- Creates a lookup table
 -- \param q10    The Q10 to be used for the table
 -- \param base25 Base value for 25 degrees C
-let LookupQ10(q10 : f64, base25 : f64) =
-  map (\i -> base25 * pow(q10, (Q10_MINTEMP + (f64.i64 i)*Q10_PRECISION - 25.0) / 10.0)) (iota Q10_NDATA)
+let LookupQ10(q10 : real, base25 : real) =
+  map (\i -> base25 * pow(q10, (Q10_MINTEMP + (realFromInt i)*Q10_PRECISION - 25.0) / 10.0)) (iota Q10_NDATA)
 
 -- "Array element" operator
 -- \param temp  Temperature (deg C)
 -- \returns     Temperature-adjusted value based on Q10 and 25-degree base value
-let operator (temp: f64, table: [Q10_NDATA]f64) =
+let operator (temp: real, table: [Q10_NDATA]real) =
   -- Element number corresponding to a particular temperature
   let temp = if temp < Q10_MINTEMP then Q10_MINTEMP else if temp > Q10_MAXTEMP then Q10_MAXTEMP else temp
 
-  let i = (i64.f64) ((temp-Q10_MINTEMP)/Q10_PRECISION+0.5)
+  let i = (intFromReal) ((temp-Q10_MINTEMP)/Q10_PRECISION+0.5)
 
   in table[i]
