@@ -420,7 +420,8 @@ let assimilation_wstress
 
       let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
       let (_, _, xmid, _, _, _, _, pft, phot_result) =
-      loop (b, dx, xmid, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
+      loop (b, dx, _, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
+          = (b, dx, xmid, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
         while (abs(fmid) > EPS && b <= MAXTRIES) do
           let dx = dx * 0.5
           let xmid = rtbis + dx -- current guess for lambda
