@@ -1,0 +1,65 @@
+\begin{document}
+\author{Ulrik Elmelund\\ {\small{} Advisor: Cosmin Oancea}}
+\date{\today}
+\title{Translating LPJ-Guess from C++ to Futhark}
+
+\input{sections/background.tex}
+\input{sections/method.tex}
+\input{sections/conventions.tex}
+\input{sections/product.tex}
+\input{sections/testing.tex}
+\input{sections/discussion.tex}
+
+classify inputs to f:
+\begin{enumerate}
+  \item read-only
+  \item write-first - privatization
+  \item read-write
+\end{enumerate}
+
+what functions does it call
+does the function only
+
+What is LPJ guess overall.
+Why futhark.
+The architectuer of lpj guess.
+  preserve it
+Translation conventions
+
+Current body of translated code
+
+testing
+
+future work / recommendations
+
+Hvad skal der ske?
+
+Rapport
+  Begynd at dokumentere
+  Ryd lidt op i hver sektion
+  filer
+  funktioner/objekter
+
+Testing
+Videre oversættelse med testing og rapporting
+
+
+report
+  document functions and classes
+  input and output, classes and their field
+
+drop question to troel if you have questions
+
+check all functions for return values and correctness
+
+and generate futhark tests somehow?
+    print input and output data to console?
+    generate futhark entrypoint via c code?
+    need some general way applicable to any function, right?
+    build string, for every argument, then print, only once for each function name?
+
+Recursively
+
+\printbibliography
+
+\end{document}

@@ -1,0 +1,133 @@
+\section{Code Documentation}
+This section will go through the different futhark code files and document their general content, and go into detailed read-write analysis of the functions.
+\subsection{framework/guess.fut}
+This file contains several mostly photosynthesis-related enumerators and constants, followed by class definitions for PhotosynthesisStresses, PhotosynthesisResult, PhotosynthesisEnvironment, Pft and their member methods.
+\subsection{framework/guessmath.fut}
+Guessmath contains a number of simple functions and mathematical constants.
+\subsection{framework/parameters.fut}
+Parameters contains various enumerators and a number of parameters for the overall model.
+\subsection{modules/canexch.fut}
+This file contains a number of constants, and then a number of functions. Most of the heavy lifting is done while 'in' the functions of this file, as per the initial gprof measurements.
+
+\subsubsection{alphaa()}
+\begin{minted}{cpp}
+double alphaa(const Pft& pft)
+\end{minted}
+
+Receives a Pft by reference, checks the phenology and ifnlim fields, returns one of a number of constants. Does not modify the Pft.
+\subsubsection{vmax()}
+
+\begin{minted}{cpp}
+void vmax(double b,
+          double c1,
+          double c2,
+          double apar,
+          double tscal,
+          double daylength,
+          double temp,
+          double nactive,
+          bool ifnlimvmax,
+          double& vm,
+          double& vmaxnlim,
+          double& nactive_opt)
+\end{minted}
+
+All the reference-passed parameters are written before ever being read, and are thus candidates for privatization.
+
+\subsubsection{photosynthesis()}
+\begin{minted}{cpp}
+void photosynthesis(const PhotosynthesisEnvironment& ps_env,
+                    const PhotosynthesisStresses& ps_stresses,
+                    const Pft& pft,
+                    double lambda,
+                    double nactive,
+                    double vm,
+                    PhotosynthesisResult& ps_result)
+\end{minted}
+The fields of ps_result are always before having been read, and it is thus privatizable. The rest are all consts, and therefore are not modified.
+
+\begin{minted}{futhark}
+let photosynthesis(ps_env : PhotosynthesisEnvironment,
+                  ps_stresses : PhotosynthesisStresses,
+                  pft: Pft,
+                  lambda : real,
+                  nactive : real,
+                  vm : real)
+                  : PhotosynthesisResult =
+\end{minted}
+
+It calls the functions: negligible(), alphaa, readQ10() (see the relevant section), exp(), min(), vmax(), PhotosynthesisResult()
+
+In the input objects, the function reads the following fields:
+
+ps_env.temp
+ps_env.co2
+ps_env.fpar
+ps_env.par
+ps_env.daylength
+
+ps_stresses.ifnlimvmax
+ps_stresses.moss_ps_limit
+ps_stresses.graminoid_ps_limit
+ps_stresses.inund_stress
+
+pft.pstemp_max
+pft.pstemp_min
+pft.pathway
+pft.lifeform
+
+
+\subsubsection{assimilation_wstress()}
+\begin{minted}{cpp}
+void assimilation_wstress(const Pft& pft,
+      double co2,
+      double temp,
+      double par,
+      double daylength,
+      double fpar,
+      double fpc,
+      double gcbase,
+      double vmax,
+      PhotosynthesisResult& phot_result,
+      double& lambda,
+      double nactive,
+      bool ifnlimvmax,
+      double moss_wtp_limit,
+      double graminoid_wtp_limit,
+      double inund_stress)
+\end{minted}
+phot_result is always written before being read, and is thus privatizable. The same goes for lambda. Thus we get this signature:
+
+\begin{minted}{futhark}
+let assimilation_wstress
+    (pft: Pft,
+    co2: real,
+    temp: real,
+    par: real,
+    daylength: real,
+    fpar: real,
+    fpc: real,
+    gcbase: real,
+    vmax: real,
+    nactive: real,
+    ifnlimvmax: bool,
+    moss_wtp_limit: real,
+    graminoid_wtp_limit: real,
+    inund_stress: real)
+    : (Pft, PhotosynthesisResult, real) =
+\end{minted}
+
+The function calls negligible(), PhotosynthesisResult(), photosynthesis() and abs(). For testing purposes, it reads the following fields from the input object: pft.lambda_max,
+
+and it also reads, via the photosynthesis() function,
+
+pft.pstemp_max
+pft.pstemp_min
+pft.pathway
+pft.lifeform
+
+\subsection{modules/q10.fut}
+This file contains the definition and operator for a lookup table for some pre-calcuated values, and some relevant constants.
+
+\subsection{modules/soil.fut}
+This file contains a large number of constants.

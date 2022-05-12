@@ -1,0 +1,9 @@
+report.aux
+report.pdf
+report.log
+report.out
+report.toc
+report.bbl
+report.blg
+_minted-report/
+build/

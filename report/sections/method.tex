@@ -1,0 +1,9 @@
+\section{Method - Architecture and overall approach}
+\begin{enumerate}
+  \item Initially reuse the folder and file structure of the existing codebase.
+  \item Do a function by function and object by object translation, not necessarily line by line.
+  \item Focus on translating the functions in which most of the computational work is done first, and the dependencies of these.
+  \item Figure out a way of testing equivalence between these functions and the translation. Perhaps using generated tests?
+\end{enumerate}
+
+The declaration definition distinction does not exist in Futhark, wherefore the C++ distinction between header files and regular files becomes unnatural. The question arises, whether to conceptually fuse the two files when writing the corresponding futhark files, or whether to preserve the original structure. The decision was made to fuse them, but this is up for debate.

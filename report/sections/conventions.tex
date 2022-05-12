@@ -1,0 +1,33 @@
+\section{Conventions - concrete translation method}
+conventions driven by simplicity and nicity of futhark code
+dont know anything about performance
+
+\subsection*{Calling convention semantic differences}
+\begin{enumerate}
+  \item pay attention to side effects
+  \item when to create a new object, when to inplace update
+  \item Caller updates state with return values,
+  \item only return the values that are actually modified
+  \item dont return something that could be, but is not, modified
+\end{enumerate}
+
+\subsection*{Translation conventions}\cite{smallarraysbad} \cite{futhark}
+\begin{enumerate}
+  \item C++ classes translate into Futhark records and methods translate to functions receiving and returning the same records.
+  \item Futhark has no non-constant values, but names can be reused and will shadow.
+  \item Modules may be of interest, but do not seem to be necessary.
+  \item Global constants translate to global value declarations.
+  \item Enumerators translate to series of i8 constants, as there is no equivalent construct.
+  \item The .h .cpp distinction, with the principle of dependency inversion, causes some problems for doing a direct file-to-file translation. Eg: photosynthesis() is declared in canexch.h and defined in canexch.cpp, but it is called in canexch.h. Should canexch.h.fut then import canexch.cpp.fut, or the other way around? Or both, creating a circular dependency? Will it be necessary to use module types and copy the structure? The solution (now) is to have one large combination for each of these two files, and then have them segmented with large comments to denote what part is from the header file, and what from the other. Since the codebase already has behavior in the header files, and also in the regular cpp files, the convention has perhaps not been followed.
+\end{enumerate}
+
+\begin{enumerate}
+  \item Identify a C++ function to translate.
+  \item analyse function
+  \item define (document) minimal input and output, fields of objects etc
+  \item write specialised print out the read and written fields
+  \item create test
+  \item specify what global state that is touched by function, read or written
+  \item privatization oppportunites
+\end{enumerate}
+parameterize floats as reals
