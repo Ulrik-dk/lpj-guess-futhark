@@ -240,7 +240,7 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
     if (pft.pathway == #C3) then      -- C3 photosynthesis
       -- Calculate CO2 compensation point (partial pressure)
       -- Eqn 8, Haxeltine & Prentice 1996a
-      let gammastar : real = PO2 / 2.0 / operator(temp, lookup_tau)
+      let gammastar : real = PO2 / 2.0 / readQ10(temp, lookup_tau)
 
       -- Intercellular partial pressure of CO2 given stomatal opening (Pa)
       -- Eqn 7, Haxeltine & Prentice 1996a
@@ -266,7 +266,7 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
       let c1 : real = (pi_co2 - gammastar) / (pi_co2 + 2.0 * gammastar) * ALPHA_C3
 
       -- Calculation of C2_C3, Eqn 6, Haxeltine & Prentice 1996a
-      let c2 : real = (pi_co2 - gammastar) / (pi_co2 + operator(temp, lookup_kc) * (1.0 + PO2/operator(temp, lookup_ko)))
+      let c2 : real = (pi_co2 - gammastar) / (pi_co2 + readQ10(temp, lookup_kc) * (1.0 + PO2/readQ10(temp, lookup_ko)))
 
       let b : real = if ismoss pft then BC_moss else BC3
       -- see Wania et al. 2009b
@@ -419,9 +419,9 @@ let assimilation_wstress
       let fmid : real = EPS + 1.0
 
       let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
-      let (_,_,xmid,_,_,_, _, pft, phot_result) = loop (b,dx,xmid,rtbis,fmid,ps_env, ps_stress, pft, phot_result)
+      let (_, _, xmid, _, _, _, _, pft, phot_result) =
+      loop (b, dx, xmid, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
         while (abs(fmid) > EPS && b <= MAXTRIES) do
-          let b = b + 1
           let dx = dx * 0.5
           let xmid = rtbis + dx -- current guess for lambda
 
@@ -443,7 +443,7 @@ let assimilation_wstress
 
           let fmid = phot_result.adtmm / fpc - gcphot * (1 - xmid)
           let rtbis = if (fmid < 0) then xmid else rtbis
-          in (b,dx,xmid,rtbis,fmid,ps_env, ps_stress, pft, phot_result)
+          in (b + 1, dx, xmid, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
       -- bvoc
       let lambda = xmid
       in (pft, phot_result, lambda)

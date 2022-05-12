@@ -42,7 +42,7 @@ let LookupQ10(q10 : real, base25 : real) =
 -- "Array element" operator
 -- \param temp  Temperature (deg C)
 -- \returns     Temperature-adjusted value based on Q10 and 25-degree base value
-let operator (temp: real, table: [Q10_NDATA]real) =
+let readQ10 (temp: real, table: [Q10_NDATA]real) =
   -- Element number corresponding to a particular temperature
   let temp = if temp < Q10_MINTEMP then Q10_MINTEMP else if temp > Q10_MAXTEMP then Q10_MAXTEMP else temp
 
