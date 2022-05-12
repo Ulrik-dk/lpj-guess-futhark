@@ -56,8 +56,10 @@ let ALPHAA_CROP_NLIM : real = 0.9  -- Value for crops with N limitation
 -- Lambert-Beer extinction law (Prentice et al 1993 Monsi & Saeki 1953)
 let lambertbeer (lai : real) = exp(-0.5 * lai)
 
+
+
 -------------------------------------PART FROM .cpp------------------------------------
---------------------------------------------------------------------------------------/
+
 
 
 -- leaf nitrogen (kgN/kgC) not associated with photosynthesis
@@ -85,8 +87,16 @@ let alphaa(pft : Pft) =
 
 
 --- Non-water stressed rubisco capacity, with or without nitrogen limitation
-let vmax(b : real, c1 : real, c2 : real, apar : real, tscal : real,
-      daylength : real, temp : real, nactive : real, ifnlimvmax : bool, ps_result: PhotosynthesisResult) =
+let vmax(b : real,
+         c1 : real,
+         c2 : real,
+         apar : real,
+         tscal : real,
+         daylength : real,
+         temp : real,
+         nactive : real,
+         ifnlimvmax : bool)
+         : (real, real, real) =
 
   -- Calculation of non-water-stressed rubisco capacity assuming leaf nitrogen not
   -- limiting (Eqn 11, Haxeltine & Prentice 1996a)
@@ -114,18 +124,12 @@ let vmax(b : real, c1 : real, c2 : real, apar : real, tscal : real,
   -- Calculate optimal leaf nitrogen based on [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
   let nactive_opt : real = M * vm * CN * tfac
 
-  let (vm, vmaxnlim, nactive_opt) =
-    if (vm > vm_max && ifnlimvmax) then
+  in if (vm > vm_max && ifnlimvmax) then
       let vmaxnlim = vm_max / vm  -- Save vmax nitrogen limitation
       let vm = vm_max
       in (vm, vmaxnlim, nactive_opt)
     else
       (vm, 1.0, nactive_opt)
-  let ps_result = ps_result with vm = vm
-  let ps_result = ps_result with vmaxnlim = vmaxnlim
-               in ps_result with nactive_opt = nactive_opt
-
-
 
 --- Total daily gross photosynthesis
 --- Calculation of total daily gross photosynthesis and leaf-level net daytime
@@ -188,8 +192,8 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
                   pft: Pft,
                   lambda : real,
                   nactive : real,
-                  vm : real,
-                  ps_result : PhotosynthesisResult) =
+                  vm : real)
+                  : PhotosynthesisResult =
 
   -- NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
   -- the formulation of low-temperature inhibition coefficient tscal (tstress LPJF).
@@ -221,7 +225,7 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   let ifnlimvmax : bool = ps_stresses.ifnlimvmax
 
   -- No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
-  in if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !(boolFromReal vm)) then (ps_env, ps_stresses, pft, PhotosynthesisResult()) else
+  in if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !(boolFromReal vm)) then PhotosynthesisResult() else
 
   -- Scale fractional PAR absorption at plant projective area level (FPAR) to
   -- fractional absorption at leaf level (APAR)
@@ -282,7 +286,15 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
       in (b, c1, c2)
 
   -- Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
-  let ps_result = if (vm < 0) then vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, ps_result) else ps_result
+  let ps_result = PhotosynthesisResult()
+  let ps_result =
+    if (vm < 0) then
+      let (vm1, vmaxnlim, nactive_opt) = vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax)
+      let ps_result = ps_result with vm = vm1
+      let ps_result = ps_result with vmaxnlim = vmaxnlim
+      let ps_result = ps_result with nactive_opt = nactive_opt
+      in ps_result
+    else ps_result
 
   -- Calculation of daily leaf respiration
   -- Eqn 10, Haxeltine & Prentice 1996a
@@ -335,16 +347,26 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
 
   -- Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
   let ps_result = ps_result with adtmm = (adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3)
-  in (ps_env, ps_stresses, pft, ps_result)
+  in ps_result
 
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)
 
 let assimilation_wstress
-      (pft: Pft, co2: real, temp: real, par: real,
-      daylength: real, fpar: real, fpc: real, gcbase: real,
-      vmax: real, phot_result: PhotosynthesisResult,
-      nactive: real, ifnlimvmax: bool, moss_wtp_limit: real, graminoid_wtp_limit: real, inund_stress: real)
+      (pft: Pft,
+      co2: real,
+      temp: real,
+      par: real,
+      daylength: real,
+      fpar: real,
+      fpc: real,
+      gcbase: real,
+      vmax: real,
+      nactive: real,
+      ifnlimvmax: bool,
+      moss_wtp_limit: real,
+      graminoid_wtp_limit: real,
+      inund_stress: real)
       : (Pft, PhotosynthesisResult, real)
       =
 
@@ -398,10 +420,10 @@ let assimilation_wstress
 
     let ps_stress = {ifnlimvmax=ifnlimvmax, moss_ps_limit=moss_wtp_limit, graminoid_ps_limit=graminoid_wtp_limit, inund_stress=inund_stress}
 
-    let (_, ps_stress, pft, phot_result) = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result)
+    let phot_result = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax)
 
-    let f_lambda_max : real = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max) -- Return zero assimilation
-    in if (f_lambda_max <= 0)
+    let f_lambda_max : real = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max)
+    in if (f_lambda_max <= 0) -- Return zero assimilation
     then (pft, PhotosynthesisResult(), lambda) else
       let EPS : real = 0.1 -- minimum precision of solution in bisection method
 
@@ -420,7 +442,7 @@ let assimilation_wstress
 
       let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
       let (_, _, xmid, _, _, _, _, pft, phot_result) =
-      loop (b, dx, _, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
+      loop (b, dx, _, rtbis, fmid, ps_env, ps_stress, pft, _)
           = (b, dx, xmid, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
         while (abs(fmid) > EPS && b <= MAXTRIES) do
           let dx = dx * 0.5
@@ -430,9 +452,8 @@ let assimilation_wstress
           -- for total daytime photosynthesis according to Eqns 2 & 19,
           -- Haxeltine & Prentice (1996), and current guess for lambda
 
-          let (ps_env, ps_stress, pft, phot_result) = photosynthesis(ps_env, ps_stress, pft,
-                                                      xmid, nactive, vmax,
-                                                      phot_result)
+          let phot_result = photosynthesis(ps_env, ps_stress, pft,
+                                                      xmid, nactive, vmax)
 
          -- Evaluate fmid at the point lambda=xmid
          -- fmid will be an increasing function of xmid, with a solution
