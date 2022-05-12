@@ -187,6 +187,7 @@ let vmax(b : real,
 -- place new parameters insided the structs PhotosynthesisEnvironment and PhotosynthesisStresses,
 -- or in PhotosynthesisResult if it is a result.
 --/
+
 let photosynthesis(ps_env : PhotosynthesisEnvironment,
                   ps_stresses : PhotosynthesisStresses,
                   pft: Pft,
@@ -272,7 +273,7 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
       -- Calculation of C2_C3, Eqn 6, Haxeltine & Prentice 1996a
       let c2 : real = (pi_co2 - gammastar) / (pi_co2 + readQ10(temp, lookup_kc) * (1.0 + PO2/readQ10(temp, lookup_ko)))
 
-      let b : real = if ismoss pft then BC_moss else BC3
+      let b : real = if pft.lifeform == #MOSS then BC_moss else BC3
       -- see Wania et al. 2009b
       in (b, c1, c2)
 
@@ -331,9 +332,13 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
     let ps_result = ps_result with rd_g = (ps_result.rd_g * inund_stress)
 
     -- 2a) Moss dessication
-    let ps_result = if (ismoss pft) then ps_result with agd_g = (ps_result.agd_g * moss_ps_limit) else ps_result
-    -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
-    let ps_result = if (ismoss pft) then ps_result with rd_g = (ps_result.rd_g * moss_ps_limit) else ps_result
+    let ps_result =
+      if (pft.lifeform == #MOSS) then
+        -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
+        let ps_result = ps_result with agd_g = (ps_result.agd_g * moss_ps_limit)
+        let ps_result = ps_result with rd_g = (ps_result.rd_g * moss_ps_limit)
+        in ps_result
+      else ps_result
 
     -- 2b) Graminoid dessication (NB! all other PFTs have graminoid_ps_limit == 1)
     let ps_result = ps_result with agd_g = ps_result.agd_g * graminoid_ps_limit
@@ -351,24 +356,22 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
 
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)
-
 let assimilation_wstress
-      (pft: Pft,
-      co2: real,
-      temp: real,
-      par: real,
-      daylength: real,
-      fpar: real,
-      fpc: real,
-      gcbase: real,
-      vmax: real,
-      nactive: real,
-      ifnlimvmax: bool,
-      moss_wtp_limit: real,
-      graminoid_wtp_limit: real,
-      inund_stress: real)
-      : (Pft, PhotosynthesisResult, real)
-      =
+    (pft: Pft,
+    co2: real,
+    temp: real,
+    par: real,
+    daylength: real,
+    fpar: real,
+    fpc: real,
+    gcbase: real,
+    vmax: real,
+    nactive: real,
+    ifnlimvmax: bool,
+    moss_wtp_limit: real,
+    graminoid_wtp_limit: real,
+    inund_stress: real)
+    : (Pft, PhotosynthesisResult, real) =
 
     -- DESCRIPTION
     -- Calculation of net C-assimilation under water-stressed conditions

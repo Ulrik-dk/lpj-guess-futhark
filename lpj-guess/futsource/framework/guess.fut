@@ -997,7 +997,6 @@ let init_rootdist(this: Pft) : Pft =
     let rootdist[NSOILLAYER-1] = rootdist[NSOILLAYER-1] + 1.0 - tot
     in this with rootdist = rootdist
 
-let ismoss(this: Pft) : bool = this.lifeform == #MOSS
 let isgrass(this: Pft) : bool = this.lifeform == #GRASS
 let istree(this: Pft) : bool = this.lifeform == #TREE
-let iswetlandspecies(this: Pft) : bool = (ismoss(this) || this.has_aerenchyma)
+let iswetlandspecies(this: Pft) : bool = (this.lifeform == #MOSS || this.has_aerenchyma)
