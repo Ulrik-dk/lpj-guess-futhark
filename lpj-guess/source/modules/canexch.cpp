@@ -37,7 +37,7 @@
 #include "bvoc.h"
 #include "ncompete.h"
 #include <assert.h>
-
+#include "futharktestgenerator.h"
 
 // Anonymous namespace for variables with file scope
 namespace {
@@ -761,7 +761,68 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 
 	// Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
 	ps_result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
+
+	if (FIRST_TIME_HERE) {
+	  static std::ostringstream oss;
+	  init_oss(oss);
+
+	  string ps_env_fields_values[] =
+	    {"temp", to_string(ps_env.get_temp()),
+	      "co2", to_string(ps_env.get_co2()),
+	      "fpar", to_string(ps_env.get_fpar()),
+	      "par", to_string(ps_env.get_par()),
+	      "daylength", to_string(ps_env.get_daylength())};
+	  obj_with_fields(oss, "ps_env", "PhotosynthesisEnvironment", ps_env_fields_values, 5);
+
+
+	  string ps_stresses_fields_values[] =
+	    {"ifnlimvmax", to_string(ps_stresses.get_ifnlimvmax()), // bool.i32
+	      "moss_ps_limit", to_string(ps_stresses.get_moss_ps_limit()),
+	      "graminoid_ps_limit", to_string(ps_stresses.get_graminoid_ps_limit()),
+	      "inund_stress", to_string(ps_stresses.get_inund_stress())};
+	  obj_with_fields(oss, "ps_stresses", "PhotosynthesisStresses", ps_stresses_fields_values, 4);
+
+
+	  string pft_fields_values[] =
+	    {"pstemp_max", to_string(pft.pstemp_max),
+	      "pstemp_high", to_string(pft.pstemp_high),
+	      "pstemp_low", to_string(pft.pstemp_low),
+	      "pstemp_min", to_string(pft.pstemp_min),
+	      "lifeform", to_string(pft.lifeform)};
+	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 5);
+
+	  dec_real(oss, "lambda", lambda);
+	  dec_real(oss, "nactive", nactive);
+	  dec_real(oss, "vm", vm);
+
+	  finish_input(oss, "(ps_env, ps_stresses, pft, lambda, nactive, vm)");
+
+		string res_fields_values[] =
+	    {"agd_g", to_string(ps_result.agd_g),
+	      "adtmm", to_string(ps_result.adtmm),
+				"rd_g", to_string(ps_result.rd_g),
+				"vm", to_string(ps_result.vm),
+				"je", to_string(ps_result.je),
+				"nactive_opt", to_string(ps_result.nactive_opt),
+				"vmaxnlim", to_string(ps_result.vmaxnlim)};
+		gen_entry_point_tests(oss, "photosynthesis", res_fields_values, 7);
+
+		gen_test_file(oss, "photosynthesis");
+	}
 }
+
+
+/*
+		init_obj(oss, "ps_result", "PhotosynthesisResult");
+		inplace_update(oss, "ps_result", "", ps_result.agd_g);
+		inplace_update(oss, "ps_result", "", ps_result.adtmm);
+		inplace_update(oss, "ps_result", "", ps_result.rd_g);
+		inplace_update(oss, "ps_result", "", ps_result.vm);
+		inplace_update(oss, "ps_result", "", ps_result.je);
+		inplace_update(oss, "ps_result", "", ps_result.nactive_opt);
+		inplace_update(oss, "ps_result", "", ps_result.vmaxnlim);
+*/
+
 
 /// Calculate value for canopy conductance component associated with photosynthesis (mm/s)
 /** Eqn 21, Haxeltine & Prentice 1996

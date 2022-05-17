@@ -26,20 +26,36 @@ open import "../futhark-extras"
 -- GLOBAL ENUMERATED TYPE DEFINITIONS
 
 -- Life form class for PFTs (trees, grasses)
-type lifeformtype = #NOLIFEFORM | #TREE | #GRASS | #MOSS
+type lifeformtype = enum_type
+let NOLIFEFORM : lifeformtype = 0
+let TREE : lifeformtype = 1
+let GRASS : lifeformtype = 2
+let MOSS : lifeformtype = 3
 
 -- Phenology class for PFTs
-type phenologytype = #NOPHENOLOGY | #EVERGREEN | #RAINGREEN | #SUMMERGREEN | #CROPGREEN | #ANY
-
+type phenologytype = enum_type
+let NOPHENOLOGY : phenologytype = 0
+let EVERGREEN : phenologytype = 1
+let RAINGREEN : phenologytype = 2
+let SUMMERGREEN : phenologytype = 3
+let CROPGREEN : phenologytype = 4
+let ANY : phenologytype = 5
 -- Biochemical pathway for photosynthesis (C3 or C4)
-type pathwaytype = #NOPATHWAY | #C3 | #C4
-
+type pathwaytype = enum_type
+let NOPATHWAY : pathwaytype = 0
+let C3 : pathwaytype = 1
+let C4 : pathwaytype = 2
 -- Leaf physiognomy types for PFTs
-type leafphysiognomytype = #NOLEAFTYPE | #NEEDLELEAF | #BROADLEAF
-
+type leafphysiognomytype = enum_type
+let NOLEAFTYPE : leafphysiognomytype = 0
+let NEEDLELEAF : leafphysiognomytype = 1
+let BROADLEAF : leafphysiognomytype = 2
 -- The level of verbosity of LPJ-GUESS. Decides the amount of information that is written to the log-file.
-type verbositylevel = #ERROR | #WARNING | #INFO | #DEBUG_WARNING
-
+type verbositylevel = enum_type
+let ERROR : verbositylevel = 0
+let WARNING : verbositylevel = 1
+let INFO : verbositylevel = 2
+let DEBUG_WARNING : verbositylevel = 3
 -- Units for insolation driving data
 -- Insolation can be expressed as:
 --
@@ -53,45 +69,52 @@ type verbositylevel = #ERROR | #WARNING | #INFO | #DEBUG_WARNING
 --  this reason there are two enumerators for these insolation types (e.g. SWRAD
 --  and SWRAD_TS).
 --/
-type insoltype =
-  #NOINSOL -- No insolation type chosen
-  | #SUNSHINE -- Percentage sunshine
-  | #NETSWRAD -- Net shortwave radiation flux during daylight hours (W/m2)
-  | #SWRAD -- Total shortwave radiation flux during daylight hours (W/m2)
-  | #NETSWRAD_TS -- Net shortwave radiation flux during whole time step (W/m2)
-  | #SWRAD_TS -- Total shortwave radiation flux during whole time step (W/m2)
-
+type insoltype = enum_type
+let NOINSOL : insoltype = 0 -- No insolation type chosen
+let SUNSHINE : insoltype = 1 -- Percentage sunshine
+let NETSWRAD : insoltype = 2 -- Net shortwave radiation flux during daylight hours (W/m2)
+let SWRAD : insoltype = 3 -- Total shortwave radiation flux during daylight hours (W/m2)
+let NETSWRAD_TS : insoltype = 4 -- Net shortwave radiation flux during whole time step (W/m2)
+let SWRAD_TS : insoltype = 5 -- Total shortwave radiation flux during whole time step (W/m2)
 -- CENTURY pool names, NSOMPOOL number of SOM pools
-type pooltype =
-  #SURFSTRUCT
-  | #SOILSTRUCT
-  | #SOILMICRO
-  | #SURFHUMUS
-  | #SURFMICRO
-  | #SURFMETA
-  | #SURFFWD
-  | #SURFCWD
-  | #SOILMETA
-  | #SLOWSOM
-  | #PASSIVESOM
-  | #NSOMPOOL
+type pooltype = enum_type
+let SURFSTRUCT : pooltype = 0
+let SOILSTRUCT : pooltype = 1
+let SOILMICRO : pooltype = 2
+let SURFHUMUS : pooltype = 3
+let SURFMICRO : pooltype = 4
+let SURFMETA : pooltype = 5
+let SURFFWD : pooltype = 6
+let SURFCWD : pooltype = 7
+let SOILMETA : pooltype = 8
+let SLOWSOM : pooltype = 9
+let PASSIVESOM : pooltype = 10
+let NSOMPOOL : pooltype = 11
 
 
 -- Irrigation type for PFTs
-type hydrologytype = #RAINFED | #IRRIGATED
+type hydrologytype = enum_type
+let RAINFED : hydrologytype = 0
+let IRRIGATED : hydrologytype = 1
 
 -- Intercrop type for PFTs
-type intercroptype = #NOINTERCROP | #NATURALGRASS
+type intercroptype = enum_type
+let NOINTERCROP : intercroptype = 0
+let NATURALGRASS : intercroptype = 1
 
--- Seasonality type of gridcell
---  0:SEASONALITY_NO      No seasonality
---  1:SEASONALITY_PREC      Precipitation seasonality only
---  2:SEASONALITY_PRECTEMP    Both temperature and precipitation seasonality, but "weak" temperature seasonality (coldest month > 10degC)
---  3:SEASONALITY_TEMP      Temperature seasonality only
---  4:SEASONALITY_TEMPPREC    Both temperature and precipitation seasonality, but temperature most important (coldest month < 10degC)
---  5:    Temperature seasonality, always above 10 degrees (currently not used)
---let SEASONALITY_TEMPWARM : seasonality_type = 5 -- TODO: this one was in the original comment but not original source
-type TYPENAME = #SEASONALITY_NO | #SEASONALITY_PREC | #SEASONALITY_PRECTEMP | #SEASONALITY_TEMP | #SEASONALITY_TEMPPREC
+--  0:SEASONALITY_NO			No seasonality
+--  1:SEASONALITY_PREC			Precipitation seasonality only
+--  2:SEASONALITY_PRECTEMP		Both temperature and precipitation seasonality, but "weak" temperature seasonality (coldest month > 10degC)
+--  3:SEASONALITY_TEMP			Temperature seasonality only
+--  4:SEASONALITY_TEMPPREC		Both temperature and precipitation seasonality, but temperature most important (coldest month < 10degC)
+--  5:		Temperature seasonality, always above 10 degrees (currently not used)
+type seasonality_type = enum_type
+let SEASONALITY_NO : seasonality_type = 0
+let SEASONALITY_PREC : seasonality_type = 1
+let SEASONALITY_PRECTEMP : seasonality_type = 2
+let SEASONALITY_TEMP : seasonality_type = 3
+let SEASONALITY_TEMPPREC : seasonality_type = 4
+--let SEASONALITY_TEMPWARM : seasonality_type = 5 -- TODO: this one was in the original comment but not source
 
 -- Precipitation seasonality type of gridcell
 -- 0:DRY            (minprec_pet20<=0.5 && maxprec_pet20<=0.5)
@@ -101,7 +124,13 @@ type TYPENAME = #SEASONALITY_NO | #SEASONALITY_PREC | #SEASONALITY_PRECTEMP | #S
 --  4:INTERMEDIATE_WET      (minprec_pet20>0.5 && minprec_pet20<=1.0 && maxprec_pet20>1.0)
 --  5:WET            (minprec_pet20>1.0 && maxprec_pet20>1.0)
 --/
-type prec_seasonality_type = #DRY | #DRY_INTERMEDIATE | #DRY_WET | #INTERMEDIATE | #INTERMEDIATE_WET | #WET
+type prec_seasonality_type = enum_type
+let DRY : prec_seasonality_type = 0
+let DRY_INTERMEDIATE : prec_seasonality_type = 1
+let DRY_WET : prec_seasonality_type = 2
+let INTERMEDIATE : prec_seasonality_type = 3
+let INTERMEDIATE_WET : prec_seasonality_type = 4
+let WET : prec_seasonality_type = 5
 
 -- Temperature seasonality type of gridcell
 -- 0:COLD            (mtemp_max20<=10)
@@ -111,14 +140,23 @@ type prec_seasonality_type = #DRY | #DRY_INTERMEDIATE | #DRY_WET | #INTERMEDIATE
 -- 4:WARM_HOT          (mtemp_min20>10 && mtemp_max20>30)
 -- 5:HOT            (mtemp_min20>30)
 --/
-type temp_seasonality_type = #COLD | #COLD_WARM | #COLD_HOT | #WARM | #WARM_HOT | #HOT | #SIX | #SEVEN
-
+type temp_seasonality_type = enum_type
+let COLD : temp_seasonality_type = 0
+let COLD_WARM : temp_seasonality_type = 1
+let COLD_HOT : temp_seasonality_type = 2
+let WARM : temp_seasonality_type = 3
+let WARM_HOT : temp_seasonality_type = 4
+let HOT : temp_seasonality_type = 5
 -- Gas type (used in methane code)
-type gastype = #O2gas | #CO2gas | #CH4gas
-
+type gastype = enum_type
+let O2gas : gastype = 0
+let CO2gas : gastype = 1
+let CH4gas : gastype = 2
 -- Nitrogen preferance
-type n_pref_type = #NO | #NH4 | #NO3
-
+type n_pref_type = enum_type
+let NO : n_pref_type = 0
+let NH4 : n_pref_type = 1
+let NO3 : n_pref_type = 2
 ----------------------------------------------------------
 -- GLOBAL CONSTANTS
 
@@ -785,10 +823,10 @@ let Pft() : Pft =
     km_volume = nan,
 
     lambda_max = nan,
-    landcover = #URBAN,
+    landcover = URBAN,
     leaflong = nan,
-    leafphysiognomy = #NOLEAFTYPE,
-    lifeform = #NOLIFEFORM,
+    leafphysiognomy = NOLEAFTYPE,
+    lifeform = NOLIFEFORM,
 
     litterme = nan,
     longevity = nan,
@@ -801,10 +839,10 @@ let Pft() : Pft =
     nupscoeff = nan,
     nuptoroot = nan,
     parff_min = nan,
-    pathway = #C4,
+    pathway = C4,
 
     phengdd5ramp = nan,
-    phenology = #CROPGREEN,
+    phenology = CROPGREEN,
     phu_calc_lin = false,
     phu_calc_quad = false,
 
@@ -855,13 +893,13 @@ let Pft() : Pft =
 -- Calculates SLA given leaf longevity
 let initsla(this: Pft) : Pft =
   -- SLA has to be supplied in the insfile for crops with N limitation
-  if (!(this.phenology == #CROPGREEN && this.nlim)) then
+  if (!(this.phenology == CROPGREEN && this.nlim)) then
     -- Reich et al 1992, Table 1 (includes conversion x2.0 from m2/kg_dry_weight to
     -- m2/kgC)
     this with sla =
-    if (this.leafphysiognomy == #BROADLEAF) then
+    if (this.leafphysiognomy == BROADLEAF) then
       0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * this.leaflong))
-    else if (this.leafphysiognomy == #NEEDLELEAF) then
+    else if (this.leafphysiognomy == NEEDLELEAF) then
       0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * this.leaflong))
     else this.sla
   else this
@@ -870,21 +908,21 @@ let initsla(this: Pft) : Pft =
 -- Calculates minimum leaf C:N ratio given leaf longevity
 let init_cton_min(this: Pft) : Pft =
   -- cton_leaf_min has to be supplied in the insfile for crops with N limitation
-  if (!(this.phenology == #CROPGREEN && this.nlim)) then
+  if (!(this.phenology == CROPGREEN && this.nlim)) then
     -- Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
     -- kgN/kgC)
 
     this with cton_leaf_min =
-    if (this.leafphysiognomy == #BROADLEAF) then
+    if (this.leafphysiognomy == BROADLEAF) then
       500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * this.leaflong))
-    else if (this.leafphysiognomy == #NEEDLELEAF) then
+    else if (this.leafphysiognomy == NEEDLELEAF) then
       500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * this.leaflong))
     else this.cton_leaf_min
   else this
 
 let init_cton_limits(this: Pft) : Pft =
   -- Fraction between min and max C:N ratio White et al. 2000
-  let frac_mintomax = if (this.phenology == #CROPGREEN && this.nlim) then 5.0 else 2.78  -- Use value also without nlim ?
+  let frac_mintomax = if (this.phenology == CROPGREEN && this.nlim) then 5.0 else 2.78  -- Use value also without nlim ?
 
   -- Fraction between leaf and root C:N ratio
   let frac_leaftoroot = 1.16 -- Friend et al. 1997
@@ -918,7 +956,7 @@ let init_cton_limits(this: Pft) : Pft =
   let this = this with cton_sap_avr  = avg_cton(cton_sap_min, this.cton_sap_max)
 
   let this = this with respcoeff =
-  if (this.lifeform == #GRASS || this.lifeform == #MOSS) then
+  if (this.lifeform == GRASS || this.lifeform == MOSS) then
     this.respcoeff / 2.0 * this.cton_root / (this.cton_root_avr + cton_root_min)
   else
     this.respcoeff / this.cton_root / (this.cton_root_avr + cton_root_min) +
@@ -955,7 +993,7 @@ let initregen(this: Pft) : Pft =
   let REGENLAI_GRASS = 0.001
   let SAPLINGHW = 0.2
 
-  let this = if (this.lifeform == #TREE) then
+  let this = if (this.lifeform == TREE) then
 
     -- Tree sapling characteristics
 
@@ -968,7 +1006,7 @@ let initregen(this: Pft) : Pft =
 
     in this with regen_cmass_heart = SAPLINGHW * this.regen_cmass_sap
 
-  else if (this.lifeform == #GRASS || this.lifeform == #MOSS) then
+  else if (this.lifeform == GRASS || this.lifeform == MOSS) then
     -- Grass regeneration characteristics
     this with regen_cmass_leaf = REGENLAI_GRASS / this.sla
     else this
@@ -997,6 +1035,6 @@ let init_rootdist(this: Pft) : Pft =
     let rootdist[NSOILLAYER-1] = rootdist[NSOILLAYER-1] + 1.0 - tot
     in this with rootdist = rootdist
 
-let isgrass(this: Pft) : bool = this.lifeform == #GRASS
-let istree(this: Pft) : bool = this.lifeform == #TREE
-let iswetlandspecies(this: Pft) : bool = (this.lifeform == #MOSS || this.has_aerenchyma)
+let isgrass(this: Pft) : bool = this.lifeform == GRASS
+let istree(this: Pft) : bool = this.lifeform == TREE
+let iswetlandspecies(this: Pft) : bool = (this.lifeform == MOSS || this.has_aerenchyma)

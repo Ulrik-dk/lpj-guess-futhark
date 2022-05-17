@@ -10,21 +10,46 @@ open import "../futhark-extras"
 --  2. A cohort of individuals of a PFT that are roughly the same age
 --  3. An individual plant
 --/
-type vegmodetype = #NOVEGMODE | #INDIVIDUAL | #COHORT | #POPULATION
+
+type vegmodetype = enum_type
+let NOVEGMODE : vegmodetype = 0
+let INDIVIDUAL : vegmodetype = 1
+let COHORT : vegmodetype = 2
+let POPULATION : vegmodetype = 3
 
 --/ Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 --  NB. set_lc_change_array() must be modified when adding new land cover types
 --/
-type landcovertype = #URBAN | #CROPLAND | #PASTURE | #FOREST | #NATURAL | #PEATLAND | #BARREN
-let NLANDCOVERTYPES : int = 7 -- the c++ code had this as part of the enumerator - hack!
+type landcovertype = enum_type
+let URBAN : landcovertype = 0
+let CROPLAND : landcovertype = 1
+let PASTURE : landcovertype = 2
+let FOREST : landcovertype = 3
+let NATURAL : landcovertype = 4
+let PEATLAND : landcovertype = 5
+let BARREN : landcovertype = 6
+let NLANDCOVERTYPES : landcovertype = 7
 
 --/ Water uptake parameterisations
 -- \see water_uptake in canexch.cpp
-type wateruptaketype = #WR_WCONT | #WR_ROOTDIST | #WR_SMART | #WR_SPECIESSPECIFIC
+type wateruptaketype = enum_type
+let WR_WCONT : wateruptaketype = 0
+let WR_ROOTDIST : wateruptaketype = 1
+let WR_SMART : wateruptaketype = 2
+let WR_SPECIESSPECIFIC : wateruptaketype = 3
 
 --/bvoc: define monoterpene species used
-type monoterpenecompoundtype = #APIN | #BPIN | #LIMO | #MYRC | #SABI | #CAMP | #TRIC | #TBOC | #OTHR
-let NMTCOMPOUNDTYPES : int = 9 -- the c++ code had this as part of the enumerator - hack!
+type monoterpenecompoundtype = enum_type
+let APIN : monoterpenecompoundtype = 0
+let BPIN : monoterpenecompoundtype = 1
+let LIMO : monoterpenecompoundtype = 2
+let MYRC : monoterpenecompoundtype = 3
+let SABI : monoterpenecompoundtype = 4
+let CAMP : monoterpenecompoundtype = 5
+let TRIC : monoterpenecompoundtype = 6
+let TBOC : monoterpenecompoundtype = 7
+let OTHR : monoterpenecompoundtype = 8
+let NMTCOMPOUNDTYPES : monoterpenecompoundtype = 9
 
 --/ Fire model setting. Either use
 --	One of
@@ -33,8 +58,10 @@ let NMTCOMPOUNDTYPES : int = 9 -- the c++ code had this as part of the enumerato
 --	GLOBFIRM	fire parameterization following Thonicke et al. 2001
 --	NOFIRE		no fire model
 --/
-type firemodeltype = #BLAZE | #GLOBFIRM | #NOFIRE
-
+type firemodeltype = enum_type
+let BLAZE : firemodeltype = 0
+let GLOBFIRM : firemodeltype = 1
+let NOFIRE : firemodeltype = 2
 --/ Type of weathergenerator used
 --     One of:
 --      GWGEN           Global Weather GENerator (needed by BLAZE, due to
@@ -42,11 +69,14 @@ type firemodeltype = #BLAZE | #GLOBFIRM | #NOFIRE
 --      INTERP          use standard interpolation scheme
 --      NONE            Should be set if daily input is used (e.g. in cfinput)
 --/
-type weathergeneratortype = #GWGEN | #INTERP | #NONE
-
+type weathergeneratortype = enum_type
+let GWGEN : weathergeneratortype = 0
+let INTERP : weathergeneratortype = 1
+let NONE : weathergeneratortype = 2
 --/How to determine root distribution in soil layers
-type rootdisttype = #ROOTDIST_FIXED | #ROOTDIST_JACKSON
-
+type rootdisttype = enum_type
+let ROOTDIST_FIXED : rootdisttype = 0
+let ROOTDIST_JACKSON : rootdisttype = 1
 --- The global Paramlist object
 --- C---------------------------------------------------------------------------------------
 -- Global instruction file parameters
@@ -55,7 +85,7 @@ type rootdisttype = #ROOTDIST_FIXED | #ROOTDIST_JACKSON
 let title : xtring = 1
 
 --- Vegetation mode (population, cohort or individual)
-let vegmode : vegmodetype = #POPULATION --TODO
+let vegmode : vegmodetype = POPULATION --TODO
 
 --- Default number of patches in each stand
 --- Should always be 1 in population mode,
@@ -90,10 +120,10 @@ let ifstochestab : bool = true
 let ifstochmort : bool = true
 
 --- Fire-model switch
-let firemodel : firemodeltype = #BLAZE
+let firemodel : firemodeltype = BLAZE
 
 --- Weather Generator switch
-let weathergenerator : weathergeneratortype = #INTERP
+let weathergenerator : weathergeneratortype = INTERP
 
 --- Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 let ifdisturb : bool = true
@@ -114,10 +144,10 @@ let estinterval : int = 1
 let ifcdebt : bool = true
 
 --- Water uptake parameterisation
-let wateruptake : wateruptaketype = #WR_SMART
+let wateruptake : wateruptaketype = WR_SMART
 
 --- Parameterisation of root distribution
-let rootdistribution : rootdisttype = #ROOTDIST_FIXED
+let rootdistribution : rootdisttype = ROOTDIST_FIXED
 
 --- whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 let ifcentury : bool = true

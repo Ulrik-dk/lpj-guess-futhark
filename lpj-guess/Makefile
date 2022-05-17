@@ -5,6 +5,15 @@ all: build setup-tests run-tests r
 run-tests:
 	cd example;	bash lpjguess_run_cf.sh
 
+
+1: build
+
+2: run-tests
+
+FUTHARK_TEST_DIR = ./example/futhark_tests
+3:
+	$(foreach file,	$(wildcard	$(FUTHARK_TEST_DIR)/*.fut),	futhark test $(file);)
+
 check:
 	futhark check futsource/futhark-extras.fut
 
