@@ -39,6 +39,7 @@ void gen_test_file(std::ostringstream& oss,
   pathstream << test_dir << function << "_test.fut";
   std::ofstream file(pathstream.str()); //open in constructor
   file << oss.str();
+  cout << endl << "Printed testfile to: " << pathstream.str() << endl;
 }
 
 void dec_real(std::ostringstream& oss,
