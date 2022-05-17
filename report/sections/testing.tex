@@ -1,1 +1,9 @@
 \section{Testing}
+Very difficult to prove that something cant break, but if we can prove that each function will return the correct result on a normal execution path, and if there are multiple paths, we migth want to prove this for each path, then we have a lot to argue for, perhaps not perfection, but at least normal functionality.
+
+We only want to generate one test for each function (to begin with), and so we only need to run each function once to generate a test. Using a mutex enables us to only gather data from a single run, and then only generate one test file for the given function.
+
+Ensure that inputs and outputs are from the same run, ie. not taking inputs from one run, and outputs from another that diverged.
+Ensure that inputs are true inputs, and have not been written during the current run. That the inputs we use are really what they were at the start - if something is a const, this is trivially the case.
+
+If you want to be able to test multiple execution paths, collecting input and output at the end of these paths seems to be the most elegant approach, both to ensure correctness and for ease of implementation.

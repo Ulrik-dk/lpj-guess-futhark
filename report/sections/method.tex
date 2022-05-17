@@ -7,3 +7,56 @@
 \end{enumerate}
 
 The declaration definition distinction does not exist in Futhark, wherefore the C++ distinction between header files and regular files becomes unnatural. The question arises, whether to conceptually fuse the two files when writing the corresponding futhark files, or whether to preserve the original structure. The decision was made to fuse them, but this is up for debate.
+
+
+In-place updates:
+
+\begin{minted}{cpp}
+// 2a) Moss dessication
+if (pft.lifeform == MOSS) {
+  // Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
+  ps_result.agd_g *= moss_ps_limit;
+  ps_result.rd_g *= moss_ps_limit;
+}
+\end{minted}
+
+\begin{minted}{futhark}
+-- 2a) Moss dessication
+let ps_result =
+  if (pft.lifeform == #MOSS) then
+    -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
+    let ps_result = ps_result with agd_g = (ps_result.agd_g * moss_ps_limit)
+    in              ps_result with rd_g  = (ps_result.rd_g * moss_ps_limit)
+  else ps_result
+\end{minted}
+
+\begin{minted}{futhark}
+-- 2a) Moss dessication
+let ps_result =
+  if (pft.lifeform == #MOSS) then
+    -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
+    { agd_g = ps_result.agd_g * moss_ps_limit,
+      adtmm = ps_result.rd_g * moss_ps_limit,
+      je = ps_result.je,
+      rd_g = ps_result.rd_g,
+      vm = ps_result.vm,
+      nactive_opt = ps_result.nactive_opt,
+      vmaxnlim = ps_result.vmaxnlim,
+    }
+  else ps_result
+\end{minted}
+
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total
+ time   seconds   seconds    calls   s/call   s/call  name
+ 26.85     27.24    27.24 37518927     0.00     0.00  assimilation_wstress(Pft const&, double, double, double, double, double, double, double, double, PhotosynthesisResult&, double&, double, bool, double, double, double)
+ 12.17     39.59    12.35 130744474     0.00     0.00  photosynthesis(PhotosynthesisEnvironment const&, PhotosynthesisStresses const&, Pft const&, double, double, double, PhotosynthesisResult&)
+  9.31     49.04     9.45  8092050     0.00     0.00  cnstep(int, double*, double*, double, double, double*, double*, double*)
+  3.57     52.66     3.62  4046025     0.00     0.00  npp(Patch&, Climate&, Vegetation&, Day const&)
+  3.27     55.98     3.32  4046025     0.00     0.00  fpar(Patch&)
+  2.68     58.70     2.72  4046025     0.00     0.00  leaf_phenology(Patch&, Climate&)
+  2.55     61.29     2.59  4046025     0.00     0.00  Soil::hydrology_lpjf(Climate const&, double)
+  2.54     63.87     2.58 593102126     0.00     0.00  Stand::is_highlatitude_peatland_stand() const
+  2.34     66.24     2.37  4046040     0.00     0.00  decayrates_century(Soil&, double, double, bool)
+  2.34     68.61     2.37  4046025     0.00     0.00  ndemand(Patch&, Vegetation&)
