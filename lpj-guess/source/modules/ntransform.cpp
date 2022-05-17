@@ -57,12 +57,12 @@ void nh3_volatilization(Patch& patch, Soil& soil, Climate& climate, double& n_bu
 	// calculating soil pH value, aprec = daily mean precip, based on annual average
 	if (soil.soiltype.pH > 0.0) {
 		soil.pH = soil.soiltype.pH;
-	} 
+	}
 	else {
 		soil.pH = 3810 / (762 + (climate.aprec_lastyear)) + 3.5; // Dawson -77
 	}
 
-	if (soil.pH > 6.0) { 
+	if (soil.pH > 6.0) {
 		nh3_max = 0.001; // Maximum conversion ratio from NH4_mass to NH3 gas
 	}
 	else {
@@ -95,7 +95,7 @@ void nh3_volatilization(Patch& patch, Soil& soil, Climate& climate, double& n_bu
 }
 
 /// Soil N substrate partitioning
-/** Daily calculation of nitrogen substrate partition 
+/** Daily calculation of nitrogen substrate partition
  *  between aerobic and anaerobic soil fractions
  */
 void substrate_partition(Soil& soil){
@@ -127,7 +127,7 @@ void substrate_partition(Soil& soil){
 
 /// Soil N nitrification
 /** Daily calculation of nitrification, and nitrification
- *  induced trace gas emissions 
+ *  induced trace gas emissions
  */
 void nitrification(Patch& patch, Soil& soil) {
 
@@ -158,7 +158,7 @@ void nitrification(Patch& patch, Soil& soil) {
 	double wfps = soil.wfps(0);
 
 	// Pilegaard 2013
-	// only NO and N2O in nitrification 
+	// only NO and N2O in nitrification
 	double f_no = richards_curve(1.0, 0.5, 20.0, 0.375, wfps);
 
 	no_inc          = f_no * ngas_inc;
@@ -181,7 +181,7 @@ void nitrification(Patch& patch, Soil& soil) {
 
 /// Soil N denitrification
 /** Daily calculation of denitrification rate, and denitrification
- *  induced trace gas emissions 
+ *  induced trace gas emissions
  */
 void denitrification(Patch& patch,Soil& soil) {
 	double soil_T = soil.get_soil_temp_25();
@@ -230,7 +230,7 @@ void denitrification(Patch& patch,Soil& soil) {
 			n2_inc = 0.0;
 			no_inc = ngas_inc / (1 + f_n2o_no_w);
 			n2o_inc = ngas_inc - no_inc;
-		} 
+		}
 		else {
 			no_inc = 0.0;
 			n2o_inc = ngas_inc * f_n2o_n2_w * f_n2_n2o_T;
@@ -240,7 +240,7 @@ void denitrification(Patch& patch,Soil& soil) {
 		soil.NO_mass_w += no_inc;
 		soil.N2O_mass_w	+= n2o_inc;
 		soil.N2_mass += n2_inc;
-	} 
+	}
 	else {
 		gross_denitrif = 0.0;
 	}
@@ -249,7 +249,7 @@ void denitrification(Patch& patch,Soil& soil) {
 }
 
 /// Soil N gas emissions
-/** Daily calculation of soil N gas emissions. 
+/** Daily calculation of soil N gas emissions.
  */
 void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_check) {
 
@@ -298,7 +298,7 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_c
 	patch.fluxes.report_flux(Fluxes::NO_SOIL,     no_d_flux_inc + no_w_flux_inc);
 	patch.fluxes.report_flux(Fluxes::N2O_SOIL,    n2o_d_flux_inc + n2o_w_flux_inc);
 
-	patch.fluxes.report_flux(Fluxes::N2_SOIL,     n2_flux_inc); 
+	patch.fluxes.report_flux(Fluxes::N2_SOIL,     n2_flux_inc);
 	patch.fluxes.report_flux(Fluxes::NET_NITRIF,  net_nitrif);
 	patch.fluxes.report_flux(Fluxes::NET_DENITRIF,net_denitrif);
 
@@ -312,13 +312,13 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_c
 
 	// N budget check
 	// N lost through emissions and existing pool sizes
-	n_budget_check -= (no_d_flux_inc + no_w_flux_inc + n2o_d_flux_inc + n2o_w_flux_inc + n2_flux_inc + 
+	n_budget_check -= (no_d_flux_inc + no_w_flux_inc + n2o_d_flux_inc + n2o_w_flux_inc + n2_flux_inc +
 	                   soil.NH4_mass + soil.NO3_mass + soil.NO2_mass + soil.NO_mass + soil.N2O_mass + soil.N2_mass);
 }
 
 
 /// N transformation processes in soil
-/** Daily calculation of nitrification, denitrification, and trace gases emissions. 
+/** Daily calculation of nitrification, denitrification, and trace gases emissions.
  *  To be called each simulation day for each modelled area or patch, following update
  *  of soil organic matter dynamic submodel.
  */
@@ -360,7 +360,7 @@ void ntransform(Patch& patch, Climate& climate) {
 //
 // Xu-Ri & Prentice IC 2008 Terrestrial nitrogen cycle simulated with a
 //    dynamic global vegetation model. Global Change Biology 14,1745-1764.
-// Dawson, G. A. (1977). "Atmospheric Ammonia from Undisturbed Land." 
+// Dawson, G. A. (1977). "Atmospheric Ammonia from Undisturbed Land."
 //    Transactions-American Geophysical Union 58(6): 554-554.
 // Pilegaard K. 2013.  Processes regulating nitric oxide emissions from soils.
 // 	  Philosophical Transactions of the Royal Society of London B: Biological Sci-

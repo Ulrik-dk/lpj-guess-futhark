@@ -26,7 +26,7 @@ typedef std::pair<double, double> coord;
 */
 class SoilInput {
 public:
-	SoilInput() : 
+	SoilInput() :
 		searchradius_soil(0),
 		STEP(0.5) {
 		declare_parameter("searchradius_soil", &searchradius_soil, 0, 100,

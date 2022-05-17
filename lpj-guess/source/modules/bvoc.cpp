@@ -106,18 +106,18 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	// temprel   = water-stressed leaf temperature for the whole period (deg C)
 	// phot      = non-water-stressed photosynthesis
 
-  	int im; 
+  	int im;
 	
 	const double tcstor_s = 80;     // time constant for monoterpene storage under standard temp
 	const double tcstor_max = 365;  // maximum time constant for monoterpene storage (d)
 	const double tcstor_min = 2;    // minimum time constant for monoterpene storage (d)
 	const double q10_mstor = 1.9;   // Q10 value for monoterpene storage
 	const double f_tempmax = 2.3;   // maximum temperature scaling factor
-	const double epsT = 0.1;        // temperature sensitivity       
+	const double epsT = 0.1;        // temperature sensitivity
 
 	double rmonstor[NMTCOMPOUNDS];  // rate of monoterpene storage
 
-	if(adtmm>0){  
+	if(adtmm>0){
 	
 		double f_co2 = CO2/co2;                                     // CO2 scaling factor
 		double f_temp = min(f_tempmax, exp(epsT*(temp-Tstand)));    // temp scaling factor
@@ -281,10 +281,10 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 	indiv.report_flux(Fluxes::ISO, indiv.iso);
 
-	// Note that for european pfts only 2 groups (endocyclic (MT1) and rest (MT2) group are considered, 
+	// Note that for european pfts only 2 groups (endocyclic (MT1) and rest (MT2) group are considered,
 	// occupying the space of APIN & BPIN respectively).
 	// See scientific description for more infor.
-	indiv.report_flux(Fluxes::MT_APIN,indiv.mon[0]); 
+	indiv.report_flux(Fluxes::MT_APIN,indiv.mon[0]);
 	indiv.report_flux(Fluxes::MT_BPIN,indiv.mon[1]);
 	indiv.report_flux(Fluxes::MT_LIMO,indiv.mon[2]);
 	indiv.report_flux(Fluxes::MT_MYRC,indiv.mon[3]);

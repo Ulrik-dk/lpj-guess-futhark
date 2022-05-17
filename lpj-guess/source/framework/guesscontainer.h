@@ -14,7 +14,7 @@
 
 /// Container class for the main LPJ-GUESS classes which contain sub-objects
 /** This is supposed to be the base class for classes like Gridcell, Stand
- *  and Vegetation. 
+ *  and Vegetation.
  *
  *  It's meant to replace the ListArray class and its variants, although
  *  it will be introduced gradually.
@@ -23,12 +23,12 @@
  *
  *  - Polymorphic behaviour, in other words we want the container to be able
  *    to contain objects of different sub-classes. ListArray instantiates its
- *    objects itself, which means all objects are of the same type. 
+ *    objects itself, which means all objects are of the same type.
  *    With GuessContainer the objects are instantiated outside and added to
  *    the container.
  *
  *  - Support for nested/simultaneous iteration. In ListArray the container
- *    owns the one and only iterator, which means you can't have two 
+ *    owns the one and only iterator, which means you can't have two
  *    iterations happening over the same container at the same time.
  *    With GuessContainer, iteration works like for the standard STL containers.
  *
@@ -41,7 +41,7 @@
  *    from the container it is also deallocated, and when the container itself
  *    is destroyed all objects are deallocated.
  *
- *  - The pointers are more or less hidden. The iterators and operator[] 
+ *  - The pointers are more or less hidden. The iterators and operator[]
  *    returns references to objects instead of pointers. (We're trying to avoid
  *    pointers in most of the LPJ-GUESS code)
  *

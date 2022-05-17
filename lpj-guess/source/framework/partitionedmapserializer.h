@@ -75,16 +75,16 @@ public:
 	                         int my_rank,
 	                         ElementSerializer es,
 	                         KeySerializer ks)
-		: element_serializer(es), 
+		: element_serializer(es),
 		  key_serializer(ks),
-		  file(create_path(directory, my_rank).c_str(), 
+		  file(create_path(directory, my_rank).c_str(),
 		       std::ios::binary | std::ios::trunc) {
-		  
+		
 		if (file.fail()) {
 			throw PartitionedMapSerializerError(std::string("failed to open a file in ") + directory);
 		}
 	}
-	 
+	
 	~PartitionedMapSerializer() {
 		write_index();
 	}
@@ -117,24 +117,24 @@ private:
 			key_serializer(file, index[i].first);
 
 			// convert to a std::streamsize since that is guaranteed to be defined as a
-			// basic integral type which we can serialize by simply taking its binary 
+			// basic integral type which we can serialize by simply taking its binary
 			// representation
 			std::streamsize file_position = index[i].second;
-			file.write(reinterpret_cast<const char*>(&file_position), 
+			file.write(reinterpret_cast<const char*>(&file_position),
 			           sizeof(file_position));
 		}
 
 		// write out the number of elements after the index so it possible to
 		// find the start of the index
 		size_t number_of_elements = index.size();
-		file.write(reinterpret_cast<const char*>(&number_of_elements), 
+		file.write(reinterpret_cast<const char*>(&number_of_elements),
 		           sizeof(number_of_elements));
 
 		if (file.fail()) {
 			throw PartitionedMapSerializerError("failed to write out index");
 		}
 	}
-	 
+	
 	typedef std::pair<Key, std::streampos> IndexElement;
 	typedef std::vector<IndexElement> Index;
 
@@ -194,9 +194,9 @@ public:
 				stream->seekg(-std::streampos(sizeof(size_t)), std::ios::end);
 				size_t number_of_elements;
 				stream->read(reinterpret_cast<char*>(&number_of_elements), sizeof(size_t));
-					 
+					
 				// seek to start of index
-				std::streamsize index_size = 
+				std::streamsize index_size =
 					number_of_elements*(KeySize+sizeof(std::streamsize));
 				stream->seekg(-std::streampos(sizeof(size_t))-index_size, std::ios::cur);
 
@@ -245,8 +245,8 @@ public:
 			Index& index = files[i]->index;
 			std::auto_ptr<std::ifstream>& stream = files[i]->stream;
 			// find position of element in this file if it has it
-			typename Index::iterator itr = 
-				std::lower_bound(index.begin(), index.end(), std::make_pair(key,0), 
+			typename Index::iterator itr =
+				std::lower_bound(index.begin(), index.end(), std::make_pair(key,0),
 				                 IndexElementComparator());
 				
 			// if it had it, seek to that position and deserialize
@@ -264,7 +264,7 @@ public:
 	/** \param keys      The keys identifying the elements to read in
 	 *  \param elements  Vector of pointers to elements that should be deserialized.
 	 */
-	void deserialize_elements(const std::vector<Key>& keys, 
+	void deserialize_elements(const std::vector<Key>& keys,
 	                          const std::vector<Element*>& elements) {
 
 		// This function is a bit tricky since it should read in the elements
@@ -274,9 +274,9 @@ public:
 		// A vector to keep track of which elements have been deserialized,
 		// all set to false initially
 		std::vector<bool> found_elements(elements.size());
-		  
+		
 		// Create a mapping from keys to their position in the keys vector.
-		// This way, we can quickly find out where in the elements vector 
+		// This way, we can quickly find out where in the elements vector
 		// we can find the element to deserialize for that key.
 		std::map<Key, size_t> keys_map;
 		for (size_t k = 0; k < keys.size(); k++) {
@@ -311,7 +311,7 @@ public:
 				continue;
 			}
 
-			// sort the positions for this file, so that we will read the 
+			// sort the positions for this file, so that we will read the
 			// elements from this file in the order they are stored in the file
 			std::sort(positions.begin(), positions.end());
 
@@ -324,7 +324,7 @@ public:
 				if (stream->tellg() != positions[e].first) {
 					stream->seekg(positions[e].first, std::ios::beg);
 				}
-					 
+					
 				// deserialize this element
 				element_deserializer(*stream, *elements[positions[e].second]);
 				if (!stream->fail()) {
@@ -341,7 +341,7 @@ public:
 		}
 
 		// check if there are any elements not read in
-		if (std::find(found_elements.begin(), found_elements.end(), false) != 
+		if (std::find(found_elements.begin(), found_elements.end(), false) !=
 		    found_elements.end()) {
 			throw PartitionedMapSerializerError("failed to find some elements");
 		}

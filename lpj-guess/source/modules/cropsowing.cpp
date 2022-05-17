@@ -226,7 +226,7 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft) {
 	} else {
 
 		if (pft.sd_adjust) {	// will force sdate towards a certain day (71 for TeCo)
-			gridcellpft.sdatecalc_temp = (int)(pft.sd_adjust_par1 / pft.sd_adjust_par2 * (gridcellpft.last_springdate20 - climate.adjustlat) 
+			gridcellpft.sdatecalc_temp = (int)(pft.sd_adjust_par1 / pft.sd_adjust_par2 * (gridcellpft.last_springdate20 - climate.adjustlat)
 				+ pft.sd_adjust_par3 + climate.adjustlat);
 		}
 		else {

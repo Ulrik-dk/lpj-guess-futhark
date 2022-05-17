@@ -300,23 +300,23 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 // Compute relative humidity from specific humidity, temperature and pressure
 double calc_relative_humidity(double temp, double specific_humidity, double pressure) {
 
-	// qair  specific humidity, dimensionless (e.g. kg/kg) 
+	// qair  specific humidity, dimensionless (e.g. kg/kg)
 	// temp  temperature in degrees C
 	// press pressure in Pa
 	// rh    relative humidity in frac.
 	if ( pressure > 106000 || pressure < 10000 ) {
 		fail("Unit for pressure must be [Pa]: calc_relative_humidity(cfinput.cpp)");
-	} 
+	}
 	if ( temp  > 80. ) {
 		fail("Unit for temperature must be [deg C]: calc_relative_humidity(cfinput.cpp)");
-	} 
+	}
 	double pres_hPa = pressure / 100.; // convert to hPa
 
 	// saturation water-vapour pressure following August-Roche-Magnus Formula
 	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
 
 	// water-vapour pressure
-	// derived from approximation for s = rho_w/(rho_dryAir - rho_w)    
+	// derived from approximation for s = rho_w/(rho_dryAir - rho_w)
 	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
 	double rh   = min(max(e / es ,0.),1.) ;
 	return rh;		
@@ -642,7 +642,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
    }
 
    return true;
-   
+
 }
 
 bool CFInput::load_data_from_files(double& lon, double& lat){
@@ -937,7 +937,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 
 		double xmrhum[12];
 		std::vector<double> mrelhum;
-		if ( cf_relhum ){ 
+		if ( cf_relhum ){
 			get_yearly_data(mrelhum, spinup_relhum, cf_relhum, historic_timestep_relhum);
 			for ( int i=0; i<12; i++) {
 				xmrhum[i] = mrelhum[i];

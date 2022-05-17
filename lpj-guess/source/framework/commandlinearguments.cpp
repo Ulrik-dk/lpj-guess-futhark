@@ -23,7 +23,7 @@ std::string tolower(const char* str) {
 
 }
 
-CommandLineArguments::CommandLineArguments(int argc, char** argv) 
+CommandLineArguments::CommandLineArguments(int argc, char** argv)
 : help(false),
   parallel(false),
   input_module("cru_ncep") {
@@ -103,7 +103,7 @@ bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 }
 
 void CommandLineArguments::print_usage(const char* command_name) const {
-	fprintf(stderr, "\nUsage: %s [-parallel] [-input <module_name> [<GetClim-driver-file-path>] ] <instruction-script-filename> | -help\n", 
+	fprintf(stderr, "\nUsage: %s [-parallel] [-input <module_name> [<GetClim-driver-file-path>] ] <instruction-script-filename> | -help\n",
 			  command_name);
 	exit(EXIT_FAILURE);
 }

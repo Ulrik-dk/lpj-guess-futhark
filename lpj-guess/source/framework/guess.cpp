@@ -493,7 +493,7 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
-	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
+	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including
 	// fires in tropical peatlands, we disallow this for now.
 	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !managed &&
 		(stand.landcover != PASTURE || disturb_pasture);
@@ -712,7 +712,7 @@ double Stand::get_gridcell_fraction() const {
 }
 
 /// Initiation of stand variables when run_landcover==true
-/** 
+/**
   * Rules for which PFT:s are allowed to establish are set in the instruction file by the parameters landcover
   * (allows all active PFT:s with the same landcovertype), naturalveg (allows none, natural grass or all natural pft:s)
   * and intercrop ("naturalgrass" allows dedicated covercrop grass pft:s).
@@ -2679,7 +2679,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 
 	check_year_C(gridcell);
 
-	if (ifcentury) 
+	if (ifcentury)
 		check_year_N(gridcell);
 
 }

@@ -547,7 +547,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *  In sub-daily mode daylength should be 24 h, to obtain values in daily units.
  *
  *  INPUT PARAMETERS
- * 
+ *
  *  \param PhotosynthesisEnvironment struct containing the following public members:
  *   - co2        atmospheric ambient CO2 concentration (ppmv)
  *   - temp       mean air temperature today (deg C)
@@ -581,7 +581,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  * OUTPUT PARAMETERS
  *
  * \param ps_result      see documentation of PhotosynthesisResult struct
- * 
+ *
  *
  * IMPORTANT for users adding new call parameters to the list above:
  *
@@ -589,12 +589,12 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  * place new parameters insided the structs PhotosynthesisEnvironment and PhotosynthesisStresses,
  * or in PhotosynthesisResult if it is a result.
  */
-void photosynthesis(const PhotosynthesisEnvironment& ps_env, 
+void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 					const PhotosynthesisStresses& ps_stresses,
 					const Pft& pft,
-					double lambda, 
-					double nactive, 
-					double vm, 
+					double lambda,
+					double nactive,
+					double vm,
 					PhotosynthesisResult& ps_result) {
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
@@ -739,7 +739,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 		// 1) Inundation stress
 		// Reduce GPP if there is inundation stress
 		// (possibility of) inund stress (i.e. values < 1) only on PEATLAND stands and when ifinundationstress is true
-		ps_result.agd_g *= inund_stress; 
+		ps_result.agd_g *= inund_stress;
 		ps_result.rd_g *= inund_stress;
 
 		// 2a) Moss dessication
@@ -926,8 +926,8 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 				ps_stress.set(false, get_moss_wtp_limit(patch, spft.pft), get_graminoid_wtp_limit(patch, spft.pft), get_inund_stress(patch, ppft));
 
 				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-				photosynthesis(ps_env, ps_stress, spft.pft, 
-							   spft.pft.lambda_max, 1.0, -1, 
+				photosynthesis(ps_env, ps_stress, spft.pft,
+							   spft.pft.lambda_max, 1.0, -1,
 							   spft.photosynthesis);
 			}
 		}
@@ -1304,7 +1304,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 			// Individual photosynthesis
 			photosynthesis(ps_env, ps_stress, pft,
-						   pft.lambda_max, indiv.nactive / indiv.nextin, -1, 
+						   pft.lambda_max, indiv.nactive / indiv.nextin, -1,
 						   indiv.photosynthesis);
 
 			indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength);
@@ -1316,7 +1316,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					ps_env.set(pftco2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
 
 					photosynthesis(ps_env, ps_stress, pft,
-								   pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis.vm, 
+								   pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis.vm,
 								   ps_result);
 
 					indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
@@ -1392,11 +1392,11 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 
 			PhotosynthesisStresses ps_stress;
 			Patchpft& ppft = patch.pft[indiv.pft.id];
-			ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));  
+			ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
 
 			// No nitrogen limitation when calculating gp_leafon
 			photosynthesis(ps_env, ps_stress, pft,
-			               pft.lambda_max, 1.0, -1, 
+			               pft.lambda_max, 1.0, -1,
 			               leafon_photosynthesis);
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
@@ -1589,7 +1589,7 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	double wr=0.0;
 	int s;
 
-	double gawc[2] = { 0.0, 0.0 };				// AWC for each Gerten-type layer 
+	double gawc[2] = { 0.0, 0.0 };				// AWC for each Gerten-type layer
 	double grootdist[2] = { 0.0, 0.0 };			// rootdist for each Gerten-type layer
 	double gwcont[2] = { 0.0, 0.0 };			// wcont for each Gerten-type soil layer
 	double gfwuptake[2] = { 0.0, 0.0 };			// fwuptake for each Gerten-type soil layer
@@ -1691,7 +1691,7 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	for (int i=0;i<NSOILLAYER;i++) {
 		if (i < NSOILLAYER_UPPER)
 			fwuptake[i] = gfwuptake[0] / NSOILLAYER_UPPER;
-		else 
+		else
 			fwuptake[i] = gfwuptake[1] / NSOILLAYER_LOWER;
 	}
 
@@ -1731,7 +1731,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 
 
-	double awc0 = patch.soil.soiltype.gawc[0]; // available water holding capacity; see Gerten et al., 2004  
+	double awc0 = patch.soil.soiltype.gawc[0]; // available water holding capacity; see Gerten et al., 2004
 	double awc1 = patch.soil.soiltype.gawc[1]; // see Gerten et al., 2004
 	double grootdist[2] = { 0.0, 0.0 };
 
@@ -1793,13 +1793,13 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		bool irrigate_soil = false;
 
 		if (iftwolayersoil) {
-			if (wcont_0_opt > patch.soil.get_soil_water_upper()) 
+			if (wcont_0_opt > patch.soil.get_soil_water_upper())
 				irrigate_soil = true;
 		}
 		else {
 			for (int i = 0; i < NSOILLAYER_UPPER; i++) {
 				if (add_water[i])
-					irrigate_soil = true; // Allows irrigation if even one layer needs more water 
+					irrigate_soil = true; // Allows irrigation if even one layer needs more water
 			}
 		}
 
@@ -1937,7 +1937,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	}
 
 
-	if (iftwolayersoil) 
+	if (iftwolayersoil)
 		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
 	else
@@ -1982,14 +1982,14 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 			if (spft.irrigated && pft.id == patch.stand.pftid) {
 				wr = irrigated_water_uptake(patch, pft, day);
-			} 
+			}
 			else {
 				double wcont_local[NSOILLAYER];
 				for (int i = 0; i<NSOILLAYER; i++) {
 					wcont_local[i] = patch.soil.get_layer_soil_water(i);
 				}
 
-			if (iftwolayersoil) 
+			if (iftwolayersoil)
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
 							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
@@ -2199,7 +2199,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	ps_env.set(co2, temp, par, fpar, daylength);
 
 	PhotosynthesisStresses ps_stress;
-	ps_stress.set(ifnlimvmax, moss_wtp_limit, graminoid_wtp_limit, inund_stress);  
+	ps_stress.set(ifnlimvmax, moss_wtp_limit, graminoid_wtp_limit, inund_stress);
 
 	photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result);
 	double f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max);
@@ -2238,8 +2238,8 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(ps_env, ps_stress, pft, 
-					   xmid, nactive, vmax, 
+		photosynthesis(ps_env, ps_stress, pft,
+					   xmid, nactive, vmax,
 					   phot_result);
 
 		// Evaluate fmid at the point lambda=xmid
@@ -2563,7 +2563,7 @@ void leaf_senescence(Vegetation& vegetation) {
 		// No senescence during the initial growing period
 		if (indiv.patchpft().cropphen->fphu < 0.05) {
 			indiv.daily_cmass_leafloss = 0.0;
-		} 
+		}
 		else {
 			indiv.daily_cmass_leafloss = max(0.0, r);
 		}
@@ -2594,7 +2594,7 @@ void forest_floor_conditions(Patch& patch) {
 		}
 		Pft& pft = spft.pft;
 
-		// peatland limits on photosynthesis 
+		// peatland limits on photosynthesis
 		double pftco2 = get_co2(patch, patch.stand.get_gridcell().climate, pft);
 		double inund_stress = get_inund_stress(patch, ppft);
 		double graminoid_wtp_limit = get_graminoid_wtp_limit(patch, pft);
@@ -2614,7 +2614,7 @@ void forest_floor_conditions(Patch& patch) {
 
 				assimilation_wstress(pft, pftco2, climate.temp, climate.par,
 					climate.daylength, patch.fpar_grass * ppft.phen, 1., ppft.gcbase_day,
-					spft.photosynthesis.vm, phot, lambda, 1.0, false, 
+					spft.photosynthesis.vm, phot, lambda, 1.0, false,
 					moss_wtp_limit, graminoid_wtp_limit, inund_stress);
 				assim = phot.net_assimilation();
 			}
@@ -2798,11 +2798,11 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Sprugel, DG, Ryan MG, Renee Brooks, J, Vogt, KA & Martin, TA (1996) Respiration
 //   from the organ level to the stand. In: Smith, WK & Hinckley, TM (eds),
 //   Physiological Ecology of Coniferous Forests.
-// Wania, R., Ross, I., & Prentice, I.C. (2009a) Integrating peatlands and permafrost 
-//   into a dynamic global vegetation model: I. Evaluation and sensitivity of physical 
+// Wania, R., Ross, I., & Prentice, I.C. (2009a) Integrating peatlands and permafrost
+//   into a dynamic global vegetation model: I. Evaluation and sensitivity of physical
 //   land surface processes. Global Biogeochemical Cycles, 23, GB3014, doi:10.1029/2008GB003412
-// Wania, R., Ross, I., & Prentice, I.C. (2009b) Integrating peatlands and permafrost 
-//   into a dynamic global vegetation model: II. Evaluation and sensitivity of vegetation 
+// Wania, R., Ross, I., & Prentice, I.C. (2009b) Integrating peatlands and permafrost
+//   into a dynamic global vegetation model: II. Evaluation and sensitivity of vegetation
 //   and carbon cycle processes. Global Biogeochemical Cycles, 23, GB015, doi:10.1029/2008GB003413
 // Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
 //   land surface model: 1. Model description, site-scale evaluation, and sensitivity

@@ -181,7 +181,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	// add seed carbon
 	double cmass_extra = cmass_seed;
 
-	// add seed nitrogen, with the assumption that the seedling is initiated with 50% in roots and 50% in the leaves. 
+	// add seed nitrogen, with the assumption that the seedling is initiated with 50% in roots and 50% in the leaves.
 	indiv.nmass_leaf += nmass_seed / 2.0;
 	indiv.nmass_root += nmass_seed / 2.0;
 
@@ -205,7 +205,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 	}
 
-	// Retranslocation from the fast C pool to the grains towards the end of the grainfilling period. 
+	// Retranslocation from the fast C pool to the grains towards the end of the grainfilling period.
 	// NB, only works for cereals (grasses), needs to be adjusted to work for herb and tuber crops.
 	if (cropindiv.grs_cmass_agpool > 0.0 && patchpft.cropphen->f_alloc_horg > 0.95) {
 		cmass_extra += 0.1 * cropindiv.grs_cmass_agpool;
@@ -238,7 +238,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			if(indiv.daily_nmass_leafloss > indiv.nmass_leaf) {
 				indiv.daily_nmass_leafloss = 0.0;
 			}
-		} 
+		}
 		else {
 			indiv.daily_nmass_leafloss = 0.0;
 		}
@@ -532,7 +532,7 @@ void growth_crop_daily(Patch& patch) {
 						cmass_seed = 0.1 * CMASS_SEED;
 						nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
 					}
-				} 
+				}
 				else {
 					// add seed carbon on sowing date
 					if(date.day == ppftcrop.sdate) {
@@ -768,7 +768,7 @@ void growth_daily(Patch& patch) {
  *  If grass pft not present or found in other stands, pft laimax is used.
  */
 void allometry_crop(Individual& indiv) {
- 
+
 	// crop grass compatible with natural grass
 	if(indiv.pft.phenology == ANY) {
 
@@ -884,7 +884,7 @@ void allometry_crop(Individual& indiv) {
 			}
 		}
 		if(indiv.lai_indiv < 0.0)
-			fail("lai_indiv negative for %s in stand %d year %d in growth: %f\n", 
+			fail("lai_indiv negative for %s in stand %d year %d in growth: %f\n",
 				(char*)indiv.pft.name, indiv.vegetation.patch.stand.id, date.year, indiv.lai_indiv);
 
 		// FPC (Eqn 10)
@@ -959,4 +959,4 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 // S. Olin, G. Schurgers, M. Lindeskog, D. W�rlind, B. Smith, P. Bodin, J. Holm�r, and A. Arneth. 2015
 //   Biogeosciences 12, 2489-2515. Modelling the response of yields and tissue C:N to changes in
 //   atmospheric CO2 and N management in the main wheat regions of western Europe
-   
+

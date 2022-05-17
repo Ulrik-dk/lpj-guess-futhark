@@ -1,15 +1,15 @@
-set(headers 
-  canexch.h 
-  driver.h 
-  growth.h 
-  soilwater.h 
-  somdynam.h 
-  vegdynam.h 
-  landcover.h 
-  bvoc.h 
+set(headers
+  canexch.h
+  driver.h
+  growth.h
+  soilwater.h
+  somdynam.h
+  vegdynam.h
+  landcover.h
+  bvoc.h
   blaze.h
   simfire.h
-  q10.h 
+  q10.h
   globalco2file.h
   ncompete.h
   commonoutput.h
@@ -28,15 +28,15 @@ set(headers
   ntransform.h
   )
 
-set(source  
-  canexch.cpp 
-  driver.cpp 
-  growth.cpp 
-  demoinput.cpp 
-  soilwater.cpp 
-  somdynam.cpp 
-  landcover.cpp 
-  vegdynam.cpp 
+set(source
+  canexch.cpp
+  driver.cpp
+  growth.cpp
+  demoinput.cpp
+  soilwater.cpp
+  somdynam.cpp
+  landcover.cpp
+  vegdynam.cpp
   bvoc.cpp
   blaze.cpp
   simfire.cpp

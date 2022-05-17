@@ -199,7 +199,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 										int first_year = max(stand.first_year, stand.clone_year);
 
 										// Don't reduce stands younger than the age limit, unless this is the last stand in the loop or the initial stand has been killed
-										if(date.year - first_year < age_limit_reduce && count_st != gcst.nstands && !reduce_all_stands && !restart_loop) 
+										if(date.year - first_year < age_limit_reduce && count_st != gcst.nstands && !reduce_all_stands && !restart_loop)
 											continue;
 							
 										// convert equal percentage of areas from all stands
@@ -903,7 +903,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				StandType& st_receptor = stlist[to];
 				Gridcellst& gcst_receptor = gridcell.st[to];
 
-				if(recip_transfer_remain[st_donor.landcover][st_receptor.landcover]  > INPUT_RESOLUTION * 0.1 
+				if(recip_transfer_remain[st_donor.landcover][st_receptor.landcover]  > INPUT_RESOLUTION * 0.1
 					&& recip_receptor_remain[to] > INPUT_RESOLUTION * 0.1 && recip_donor_remain[from] > INPUT_RESOLUTION * 0.1) {
 
 					double donor_effective = min(recip_donor_remain[from], recip_transfer_remain[st_donor.landcover][st_receptor.landcover]);
@@ -1356,7 +1356,7 @@ void stand_dynamics(Gridcell& gridcell) {
 			if((gcst.frac_old == 0.0 || stand_sum == 0.0) && gcst.gross_frac_increase > 0.0) {
 				int npatch;
 				if(date.year == 0)
-					// with npatch=0, number of patches will be chosen in the stand constructor  
+					// with npatch=0, number of patches will be chosen in the stand constructor
 					npatch = 0;
 				else
 					npatch = npatch_secondarystand;
@@ -1788,7 +1788,7 @@ void simulate_gross_st_transfer(Gridcell& gridcell, double* st_frac_transfer) {
 }
 
 /// Called after update of st fraction and transfer values
-bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double lc_change_array[][NLANDCOVERTYPES], 
+bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double lc_change_array[][NLANDCOVERTYPES],
 		double* st_change_array, bool check_lc_st_transfer = false) {
 
 	bool error = false;
@@ -2223,7 +2223,7 @@ bool lc_changed(Gridcell& gridcell, double* st_frac_transfer, double* primary_st
 				fail("Transferred landcover fractions not balanced !\n");
 			}
 			else {
-				// allow program to continue, but inactivate landcover change mass transfer 
+				// allow program to continue, but inactivate landcover change mass transfer
 				LCchangeCtransfer = false;
 				dprintf("Transferred landcover fractions not balanced !\nLandcover change fluxes not calculated.\n");
 			}
@@ -2238,21 +2238,21 @@ bool lc_changed(Gridcell& gridcell, double* st_frac_transfer, double* primary_st
 /** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands and harvested matter to fluxes
  *  and (in the case of wood) to long-lived pools.
  *
- *  Land cover fraction files need to be read together with gross land transition files. Net and gross land cover change is 
+ *  Land cover fraction files need to be read together with gross land transition files. Net and gross land cover change is
  *  expected to be compatible, although rounding errors are handled by the input code.
  *
- *  If instruction file parameter iftransfer_to_new_stand is true, new stands may be created for separate land transfers  
+ *  If instruction file parameter iftransfer_to_new_stand is true, new stands may be created for separate land transfers
  *  in transfer_to_new_stand(), according to rules in copy_stand_type().
  *
- *  Otherwise, new transferred areas are pooled according to instruction file parameter transfer_level (0: one big pool; 1: land cover-level; 
+ *  Otherwise, new transferred areas are pooled according to instruction file parameter transfer_level (0: one big pool; 1: land cover-level;
  *  2: stand type-level) and rules in the gridcell arrays pool_from_all_landcovers[to] and pool_to_all_landcovers[from], set
  *  in the Gridcell constructor.
- *  New stands may then be created in stand_dynamics() from the pooled land if the gridcell array expand_to_new_stand[lc] value for the 
+ *  New stands may then be created in stand_dynamics() from the pooled land if the gridcell array expand_to_new_stand[lc] value for the
  *  receiving land cover, set in the Gridcell constructor, is true (natural and forest).
  *  If not, soil and litter carbon and nitrogen as well as water is pooled with the receiving stands (cropland, pasture).
  *
- *  Transferred land with living plant mass after land cover change should be put in new stands, using the stand cloning mode in 
- *  transfer_to_new_stand(). Stands with living plant mass should not be pooled with newly transferred land, unconditionally so 
+ *  Transferred land with living plant mass after land cover change should be put in new stands, using the stand cloning mode in
+ *  transfer_to_new_stand(). Stands with living plant mass should not be pooled with newly transferred land, unconditionally so
  *  if they contain trees (pasture can be expanded without too much problems). New stands should instead be created, either in stand_dynamics()
  *  or transfer_to_new_stand() as described above.
  */
@@ -2313,7 +2313,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	// Get new landcover and stand type area fractions from input files, read transition arrays.
 	if(!all_fracs_const) {
-		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
+		// this call returns 0, causing this function to return, if no significant landcover changes this year,
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
 		if(lc_changed(gridcell, st_frac_transfer, primary_st_frac_transfer, LCchangeCtransfer, input_module)) {
 			no_changes = false;
@@ -2786,7 +2786,7 @@ void landcover_change_transfer::allocate() {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
+//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013.
 //   Implications of accounting for land use in simulations of ecosystem carbon cycling

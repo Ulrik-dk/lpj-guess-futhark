@@ -90,7 +90,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
-			// Determine nitrogen fertilisation amount 
+			// Determine nitrogen fertilisation amount
 			if(run_landcover)
 				nfert(patch);
 
@@ -114,7 +114,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			growth_daily(patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch, gridcell.climate);
-			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
+			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present)
 			methane_dynamics(patch);
 			// BLAZE fire model
 			blaze_driver(patch,gridcell.climate);
@@ -217,7 +217,7 @@ int framework(const CommandLineArguments& args) {
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
-		// Read landcover and cft fraction data from 
+		// Read landcover and cft fraction data from
 		// data files for the spinup period and create stands
 		landcover_init(gridcell, input_module.get());
 

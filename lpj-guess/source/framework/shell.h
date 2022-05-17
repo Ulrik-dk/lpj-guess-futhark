@@ -14,7 +14,7 @@
 
 /// A printf-style function for sending messages from LPJ-GUESS to the user.
 /**
- *  The text is typically sent to the screen and/or a log file. To maintain 
+ *  The text is typically sent to the screen and/or a log file. To maintain
  *  portability of the modular code, please use this function for general
  *  output instead of the standard C++ printf function.
  */
@@ -27,9 +27,9 @@ void fail(xtring format,...);
 
 /// Adds data point (x,y) to series 'series_name' of line graph 'window_name'.
 /**
- * If the series and/or line graph do not yet exist, they are created. 
- * Functional only when the framework is built as a DLL and linked to the 
- * LPJ-GUESS Windows Shell (the function may still be called in other 
+ * If the series and/or line graph do not yet exist, they are created.
+ * Functional only when the framework is built as a DLL and linked to the
+ * LPJ-GUESS Windows Shell (the function may still be called in other
  * implementations, but will have no effect).
  */
 void plot(xtring window_name,xtring series_name,double x,double y);
@@ -37,15 +37,15 @@ void plot(xtring window_name,xtring series_name,double x,double y);
 
 /// 'Frac_orgets' series and data for line graph 'window_name'.
 /**
- * Functional only when the framework is built as a DLL and linked to the 
+ * Functional only when the framework is built as a DLL and linked to the
  * LPJ-GUESS Windows Shell.
  */
 void resetwindow(xtring window_name);
 
 
 /// 'Frac_orgets' series and data for all currently-defined line graphs.
-/** 
- * Functional only when the framework is built as a DLL and linked to the 
+/**
+ * Functional only when the framework is built as a DLL and linked to the
  * LPJ-GUESS Windows Shell.
  */
 void clear_all_graphs();
@@ -102,9 +102,9 @@ public:
 	virtual void log_message(const char* message) = 0;
 
 	/// Adds data point (x,y) to series 'series_name' of line graph 'window_name'.
-	virtual void plot(const char* window_name, 
-	                  const char* series_name, 
-	                  double x, 
+	virtual void plot(const char* window_name,
+	                  const char* series_name,
+	                  double x,
 	                  double y) = 0;
 
 	/// 'Frac_orgets' series and data for line graph 'window_name'.
@@ -150,9 +150,9 @@ public:
 
 	void log_message(const char* message);
 
-	void plot(const char* window_name, 
-	          const char* series_name, 
-	          double x, 
+	void plot(const char* window_name,
+	          const char* series_name,
+	          double x,
 	          double y);
 
 	void resetwindow(const char* window_name);
@@ -181,7 +181,7 @@ private:
 /**
  *  Should be called at program start up, before the model starts running.
  *
- *  If LPJ-GUESS is running as a stand-alone program, this is called from 
+ *  If LPJ-GUESS is running as a stand-alone program, this is called from
  *  main().
  */
 void set_shell(Shell* s);

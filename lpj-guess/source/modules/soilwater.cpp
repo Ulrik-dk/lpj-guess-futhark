@@ -7,8 +7,8 @@
 ///
 /// Includes baseflow runoff
 ///
-/// Updates include initial_infiltration, irrigation and calls to new hydrology scheme that takes into 
-/// account soil water content in a greater number of layers. The Boolean iftwolayersoil (set in .ins file) 
+/// Updates include initial_infiltration, irrigation and calls to new hydrology scheme that takes into
+/// account soil water content in a greater number of layers. The Boolean iftwolayersoil (set in .ins file)
 /// determines if the original (Gerten et al) scheme is used or the newer scheme.
 ///
 /// \author Ben Smith
@@ -66,7 +66,7 @@ void snow(double prec, double temp, Soil& soil) {
 
 	if (temp < TSNOW) {						// snowing today
 		melt = -min(prec, SNOWPACK_MAX-soil.snowpack);
-	} 
+	}
 	else {								// raining today
 		// New snow melt formulation
 		// Dieter Gerten 021121
@@ -86,7 +86,7 @@ void snow(double prec, double temp, Soil& soil) {
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
 void snow_ninput(double prec, double snowpack_after, double rain_melt,
-	           double dNH4dep, double dNO3dep, double dnfert, 
+	           double dNH4dep, double dNO3dep, double dnfert,
 			   double& snowpack_NH4_mass, double& snowpack_NO3_mass,
 			   double& NH4_input, double& NO3_input) {
 
@@ -137,9 +137,9 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	Gridcell& gridcell = climate.gridcell;
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil);
-	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, 
+	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt,
 		        gridcell.dNH4dep, gridcell.dNO3dep, patch.dnfert,
-				soil.snowpack_NH4_mass, soil.snowpack_NO3_mass, 
+				soil.snowpack_NH4_mass, soil.snowpack_NO3_mass,
 				soil.NH4_input, soil.NO3_input);
 	soil.percolate = soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
@@ -148,7 +148,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	if (date.day == 0) {
 		patch.awetland_water_added = 0.0;
 	}
- 
+
 	patch.wetland_water_added_today = 0.0;
 
 	if (soil.percolate) {
@@ -168,7 +168,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				soil.rain_melt = 0.0;
 			}
 
-			// Now adjust wcont and wcont_evap 
+			// Now adjust wcont and wcont_evap
 			for (int s = 0; s<NSOILLAYER_UPPER; s++) {
 
 				// Update wcont for the first NSOILLAYER_UPPER layers
@@ -233,7 +233,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				} // for loop (ly)
 
 
-				// Impedance - this is the fraction of water that can infiltrate initially 
+				// Impedance - this is the fraction of water that can infiltrate initially
 				// ice_fraction = 0 (e.g. summer, no phase change etc.) = 1
 				// ice_fraction = 1 (e.g. winter, daturated soil to field capacity, all soil water frozen) = 0.000000
 				// CLM4.5 - see Swenson et al (2012) Eqn. (8)
@@ -260,7 +260,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				else {
 					// Because ALL the water can infiltrate
 					water_in = water_for_infiltration; // was: soil.rain_melt; before water_for_infiltration
-													   //soil.rain_melt = 0.0; 
+													   //soil.rain_melt = 0.0;
 					soil.rain_melt -= water_for_infiltration; // i.e. 0.0 when there is no ice
 				}
 
@@ -272,14 +272,14 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 						double water_input_ly = water_in * (potential_layer[ly] / total_potential);
 
 						// Add water to the layer, and update wcont and Frac_water for this layer:
-						soil.add_layer_soil_water(ly, water_input_ly); 
+						soil.add_layer_soil_water(ly, water_input_ly);
 					}
 				}
 				else {
 					soil.rain_melt = rain_melt_orig;
 				}
 
-			} 
+			}
 			else if (!patch.stand.is_true_wetland_stand()) {
 
 				// NEITHER PEATLAND NOR WETLAND SOILS
@@ -320,7 +320,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				} // for loop (ly)
 
 
-				// Impedance - this is the fraction of water that can infiltrate initially 
+				// Impedance - this is the fraction of water that can infiltrate initially
 				// ice_fraction = 0 (e.g. summer, no phase change etc.) = 1
 				// ice_fraction = 1 (e.g. winter, daturated soil to field capacity, all soil water frozen) = 0.000000
 				// CLM4.5 - see Swenson et al (2012) Eqn. (8)
@@ -353,7 +353,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				if (water_for_infiltration >= total_potential) {
 					water_in = total_potential;
 					soil.rain_melt -= total_potential;
-				} 
+				}
 				else {
 					// Because ALL the water can infiltrate
 					water_in = water_for_infiltration; // was: soil.rain_melt; before water_for_infiltration
@@ -370,14 +370,14 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 						// Add water to the layer, and update wcont and Frac_water for this layer:
 						soil.add_layer_soil_water(ly, water_input_ly);
 					}
-				} 
+				}
 				else {
 					soil.rain_melt = rain_melt_orig;
 				}
 
 			} // PEATLAND or not
 
-			soil.update_soil_water(); // update wcont_evap, whc[], Frac_water etc. based on wcont (as the first layer's water content has changed) 
+			soil.update_soil_water(); // update wcont_evap, whc[], Frac_water etc. based on wcont (as the first layer's water content has changed)
 		}
 
 		if (patch.stand.is_true_wetland_stand()) {
@@ -479,7 +479,7 @@ void irrigation(Patch& patch) {
 
 
 /// Performs daily accounting of soil water
-/** 
+/**
  * Call this function each simulation day for each modelled area or patch, following
  * calculation of vegetation production and evapotranspiration and before soil organic
  * matter and litter dynamics
@@ -492,7 +492,7 @@ void soilwater(Patch& patch, Climate& climate) {
 	// Performs daily accounting of soil water
 
 	// update the daily snow depth
-	// by converting from mm water to snow depth 
+	// by converting from mm water to snow depth
 	Soil& soil = patch.soil;
 
 	// Calculate snowdepth (could use all snow layers when they have variable density)
@@ -515,10 +515,10 @@ void soilwater(Patch& patch, Climate& climate) {
 	
 	double bare_ground = max(1.0 - fpc_phen_total, 0.0);
 
-	// HYDROLOGY FOR HIGH-LATITUDE PEATLAND 
+	// HYDROLOGY FOR HIGH-LATITUDE PEATLAND
 
 	if (patch.stand.is_highlatitude_peatland_stand()) {
-        
+
 		soil.hydrology_peat(climate, bare_ground);
 
 		// Update inundation stress variables for this patch
@@ -527,35 +527,35 @@ void soilwater(Patch& patch, Climate& climate) {
 			double wtpp = patch.soil.wtp[date.day]; // [-300,100] mm
 			double wtpm = patch.pft[p].pft.wtp_max; // mm
 
-			if (date.day == 0) 
+			if (date.day == 0)
 				patch.pft[p].inund_count = 0; // Reset on Jan 1
 
 			bool wania_graminoid_inundation = false; // Follows Wania et al. (2009b) if true
 
-			if (wania_graminoid_inundation) { 
+			if (wania_graminoid_inundation) {
 
 				// Following Wania et al. (2009b)
 
-				if (date.dayofmonth == 0) 
+				if (date.dayofmonth == 0)
 					patch.pft[p].inund_count = 0; // Reset on the 1st day of every month too
 
 				if (wtpp > wtpm) {
 					patch.pft[p].inund_count++; // Days this month with stress
 				}
-			} 
+			}
 			else {
 
-				// New inundation algorithm that doesn't depend on months 
+				// New inundation algorithm that doesn't depend on months
 
 				// Inundation restrictions only applied when phen > 0
 				if (patch.pft[p].phen > 0.0) {
 					if (wtpp > wtpm) {
 						patch.pft[p].inund_count++; // days
-					} 
-					else {
-						patch.pft[p].inund_count--; 
 					}
-				} 
+					else {
+						patch.pft[p].inund_count--;
+					}
+				}
 				else {
 					patch.pft[p].inund_count = 0;
 				}
@@ -566,7 +566,7 @@ void soilwater(Patch& patch, Climate& climate) {
 				patch.pft[p].inund_count = max(min(patch.pft[p].inund_count,patch.pft[p].pft.inund_duration + inundation_delay),0);
 			}
 
-			// Inundation stress is updated daily, between 0 (full stress) to 1 (no stress), and used in 
+			// Inundation stress is updated daily, between 0 (full stress) to 1 (no stress), and used in
 			// photosynthesis to reduce daily GPP.
 			
 			double pft_inund_dur = (double)patch.pft[p].pft.inund_duration;
@@ -577,21 +577,21 @@ void soilwater(Patch& patch, Climate& climate) {
 			}
 			else {
 				if (pft_inund_dur <= 0) { // constant from from .ins file
-					// FULL stress, so NO photosynthesis and this PFT will not survive on peatlands 
+					// FULL stress, so NO photosynthesis and this PFT will not survive on peatlands
 					patch.pft[p].inund_stress = 0.0;
 				}
 				else {
 					if (pft_inund_count <= 0.0)
 						patch.pft[p].inund_stress = 1.0; // i.e. no stress
 					else
-						patch.pft[p].inund_stress = 1.0 - min(1.0, pft_inund_count / pft_inund_dur); // partial stress, 0 (full) to 1 (none) 
+						patch.pft[p].inund_stress = 1.0 - min(1.0, pft_inund_count / pft_inund_dur); // partial stress, 0 (full) to 1 (none)
 				}
 			}
 		} // pft loop
-	} 
+	}
 	else {	
 		
-		// HYDROLOGY FOR MINERAL SOILS 
+		// HYDROLOGY FOR MINERAL SOILS
 		if (iftwolayersoil)
 			soil.hydrology_lpjf_twolayer(climate, bare_ground);
 		else
@@ -613,12 +613,12 @@ void soilwater(Patch& patch, Climate& climate) {
 // Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008),
 //   Agricultural green and blue water consumption and its influence on the global
 //   water system, Water Resour. Res., 44, W09405, doi:10.1029/2007WR006331
-// Swenson, S. C., D. M. Lawrence, and H. Lee (2012), Improved simulation of the terrestrial 
-//   hydrological cycle in permafrost regions by the Community Land Model, 
+// Swenson, S. C., D. M. Lawrence, and H. Lee (2012), Improved simulation of the terrestrial
+//   hydrological cycle in permafrost regions by the Community Land Model,
 //   J.Adv.Model.Earth Syst., 4, M08002, doi:10.1029 / 2012MS000165
-// Wania, R., Ross, I., & Prentice, I.C. (2009a) Integrating peatlands and permafrost 
-//   into a dynamic global vegetation model: I. Evaluation and sensitivity of physical 
+// Wania, R., Ross, I., & Prentice, I.C. (2009a) Integrating peatlands and permafrost
+//   into a dynamic global vegetation model: I. Evaluation and sensitivity of physical
 //   land surface processes. Global Biogeochemical Cycles, 23, GB3014, doi:10.1029/2008GB003412
-// Wania, R., Ross, I., & Prentice, I.C. (2009b) Integrating peatlands and permafrost 
-//   into a dynamic global vegetation model: II. Evaluation and sensitivity of vegetation 
+// Wania, R., Ross, I., & Prentice, I.C. (2009b) Integrating peatlands and permafrost
+//   into a dynamic global vegetation model: II. Evaluation and sensitivity of vegetation
 //   and carbon cycle processes. Global Biogeochemical Cycles, 23, GB015, doi:10.1029/2008GB003413

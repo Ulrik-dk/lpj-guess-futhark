@@ -1709,7 +1709,7 @@ void TimeDataD::Close() {
 
 	for(int i=0;i<MAXRECORDS;i++) {
 		if(&header_arr[i]) {
-			delete[] header_arr[i]; 
+			delete[] header_arr[i];
 			header_arr[i] = NULL;
 		}
 	}
@@ -1848,7 +1848,7 @@ void TimeDataDmem::Close() {
 	}
 	for(int i=0;i<MAXRECORDS;i++) {
 		if(header_arr[i]) {
-			delete[] header_arr[i]; 
+			delete[] header_arr[i];
 			header_arr[i] = NULL;
 		}
 	}

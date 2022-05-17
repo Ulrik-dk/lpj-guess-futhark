@@ -1,9 +1,9 @@
 ////////////////////////////////////////////////////////////////////////
 /// \file soilmethane.h
 /// \brief Declarations used in methane code
-/// The class Soil and its member functions and variables are declared in guess.h, 
+/// The class Soil and its member functions and variables are declared in guess.h,
 /// while its member functions are implemented in soil.cpp and in soilmethane.cpp.
-/// 
+///
 /// \author Paul Miller
 /// $Date: 2019-04-04 13:44:06 +0200 (Thu, 04 Apr 2019) $
 ///

@@ -53,7 +53,7 @@ public:
 
 	/// "Array element" operator
 	/** \param temp  Temperature (deg C)
-	 *  \returns     Temperature-adjusted value based on Q10 and 25-degree base value 
+	 *  \returns     Temperature-adjusted value based on Q10 and 25-degree base value
 	 */
 	double& operator[](double& temp) {
 		// Element number corresponding to a particular temperature

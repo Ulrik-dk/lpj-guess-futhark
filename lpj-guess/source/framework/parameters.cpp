@@ -70,7 +70,7 @@ bool ifrainonwetdaysonly;
 bool ifbvoc;
 
 // Arctic and wetland options
-bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
+bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
@@ -1123,7 +1123,7 @@ void plib_callback(int callback) {
 	case CB_MTHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
-		else 
+		else
 		{
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
@@ -1154,7 +1154,7 @@ void plib_callback(int callback) {
 	case CB_STHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management.hydrology = IRRIGATED;
-		else 
+		else
 		{
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
@@ -1469,7 +1469,7 @@ void plib_callback(int callback) {
 				if(st.management.is_managed())
 					st.rotation.ncrops = 1;
 			}
-			if(st.landcover == CROPLAND && 
+			if(st.landcover == CROPLAND &&
 				(st.rotation.ncrops == 0 ||
 				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !st.get_management(0).fallow ||
 				st.rotation.ncrops >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||

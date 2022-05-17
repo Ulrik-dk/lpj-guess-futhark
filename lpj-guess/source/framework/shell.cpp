@@ -123,19 +123,19 @@ void CommandLineShell::log_message(const char* message) {
 	fflush(logfile);
 }
 
-void CommandLineShell::plot(const char* window_name, 
-                            const char* series_name, 
-                            double x, 
+void CommandLineShell::plot(const char* window_name,
+                            const char* series_name,
+                            double x,
                             double y) {
-	// Can't do anything here	 
+	// Can't do anything here	
 }
 
 void CommandLineShell::open3d() {
-	// Can't do anything here	 
+	// Can't do anything here	
 }
 
 void CommandLineShell::plot3d() {
-	// Can't do anything here	 
+	// Can't do anything here	
 }
 
 void CommandLineShell::resetwindow(const char* window_name) {
@@ -160,8 +160,8 @@ void CommandLineShell::plot3d_fileclose() {
 	// Can't do anything here
 }
 
-FILE* CommandLineShell::plot3d_getfilehandle() { 
+FILE* CommandLineShell::plot3d_getfilehandle() {
 	// Can't do anything here
 
-	return 0; 
+	return 0;
 }

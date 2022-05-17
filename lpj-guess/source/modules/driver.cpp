@@ -264,7 +264,7 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals,
  *  \param dNH4dep     Output, total NH4 deposition for each day
  *  \param dNO3dep     Output, total NO3 deposition for each day
  */
-void distribute_ndep_single_month(double NH4dry,double NO3dry, 
+void distribute_ndep_single_month(double NH4dry,double NO3dry,
                                   double NH4wet,double NO3wet,
                                   int time_steps,
                                   const double* dprec,
@@ -309,7 +309,7 @@ void distribute_ndep_single_month(double NH4dry,double NO3dry,
  */
 void distribute_ndep(const double* mNH4dry,const double* mNO3dry,
                      const double* mNH4wet,const double* mNO3wet,
-					 const double* dprec, 
+					 const double* dprec,
 					 double* dNH4dep,double* dNO3dep) {
 
 	Date date;
@@ -447,7 +447,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// On first day of the simulation ...
 	if (iftwolayersoil && date.day == 0 && date.year == 0) {
-		// Override some of the wetland Booleans when using the two layer soil. These have no effect in any case, as 
+		// Override some of the wetland Booleans when using the two layer soil. These have no effect in any case, as
 		// run_peatland must be false
 		ifinundationstress = false;
 		wetland_runon = 0.0;
@@ -529,7 +529,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		}
 	}
 	
-	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) || 
+	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
 		 (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
@@ -744,12 +744,12 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// Calculate analytic soil temperatures at 25cm depth and update dtemp_31 (trend in daily air temperatures for the last 31 days)
 	// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soil::soil_temp_multilayer below.
-	// The soil temperature at 25cm depth calculated here is used in the rest of the model (e.g. in respiration) if iftwolayersoil is true (determined in 
+	// The soil temperature at 25cm depth calculated here is used in the rest of the model (e.g. in respiration) if iftwolayersoil is true (determined in
 	// Soil::get_soil_temp_25() below).
 	soil.soil_temp_analytic(patch.get_climate(), 0.25);
 
-	// Calculate the soil temperature in each 10cm soil layer, the padding layers, and the snowpack. This function is called 
-	// even if iftwolayersoil is true, though the calculations are much simpler. 
+	// Calculate the soil temperature in each 10cm soil layer, the padding layers, and the snowpack. This function is called
+	// even if iftwolayersoil is true, though the calculations are much simpler.
 	bool validTemp = soil.soil_temp_multilayer(patch.get_climate().temp);
 	if (!validTemp) fail("Error in Soil::soil_temp_multilayer");
 
@@ -823,7 +823,7 @@ void respiration_temperature_response(double temp,double& gtemp) {
 
 	if (temp >= -40.0) {
 		gtemp = exp(308.56 * (1.0 / 56.02 - 1.0 / (temp + 46.02)));
-	} 
+	}
 	else {
 		gtemp = 0.0;
 	}

@@ -20,11 +20,11 @@ InputModuleRegistry& InputModuleRegistry::get_instance() {
 	return instance;
 }
 
-void InputModuleRegistry::register_input_module(const char* name, 
+void InputModuleRegistry::register_input_module(const char* name,
                                                 InputModuleCreator imc) {
 	modules.insert(make_pair(std::string(name), imc));
 }
-            
+
 InputModule* InputModuleRegistry::create_input_module(const char* name) const {
 	std::map<std::string, InputModuleCreator>::const_iterator itr = modules.find(name);
 	

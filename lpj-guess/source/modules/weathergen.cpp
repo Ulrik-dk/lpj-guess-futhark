@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 /// \file weathergen.cpp
-/// \brief Global Weather GENerator 
+/// \brief Global Weather GENerator
 ///
 /// \author Lars Nieradzik
 /// $Date: 2017-11-24 15:04:09 +0200 (Fri, 24 Nov 2017) $
@@ -21,7 +21,7 @@
 //   (5) definitions of all functions. Functions that are to be accessible to other
 //       modules or to the calling framework should be declared in the module header
 //       file.
-// 
+//
 // PORTING MODULES BETWEEN FRAMEWORKS:
 // Modules should be structured so as to be fully portable between models (frameworks).
 // When porting between frameworks, the only change required should normally be in the
@@ -48,17 +48,17 @@ const float R_EPSILON  = std::numeric_limits<float>::min() ;
 
 // Parameters used witin GWGEN
 // Freezing temperature of freshwater (K)
-const double TFREEZE = 273.15;      
+const double TFREEZE = 273.15;
 
 // -----------------------------------------------------------------------------
 // ------------------- Defaults for the namelist parameters --------------------
 // -----------------------------------------------------------------------------
 
-// This parameter can be used to tune between fast and fine: 
+// This parameter can be used to tune between fast and fine:
 // min maxcount=20; max maxcount = 10000000
 const int MAXITER = 20;
 
-const int QSIZ  = 10 ; 
+const int QSIZ  = 10 ;
 const int CMUL  = 69609;
 const int COFFS =   123;
 
@@ -110,10 +110,10 @@ public:
 	double dmcldf_mn; // mean cloud fraction (fraction)
 	double dmwind_mn; // wind speed
 	// Standard deviations of corresponding variable above
-	double dmtmax_sd; 
-	double dmtmin_sd; 
-	double dmcldf_sd; 
-	double dmwind_sd; 
+	double dmtmax_sd;
+	double dmtmin_sd;
+	double dmcldf_sd;
+	double dmwind_sd;
 
 	// the following parameters are computed by the cloud_params subroutine
 	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
@@ -122,31 +122,31 @@ public:
 } metvars;
 
 // Threshold for transition from gamma to gp distribution
-double thresh = 5.0; 
+double thresh = 5.0;
 
 // Interpret the thresh as percentile
-bool thresh_pctl = false; 
+bool thresh_pctl = false;
 
 // Coefficient to estimate the gamma scale parameter via
 // g_scale = g_scale_coeff * mean_monthly_precip / number_of_wet_days
 // following Geng et al., 1986.
 // coefficient to esimate the gamma scale parameter
 double g_scale_coeff = 1.268022;
- 
+
 // Shape parameter for the Generalized Pareto distribution
-double gp_shape = 1.5; 
+double gp_shape = 1.5;
 
 // A matrix used for cross correlation following Richardson_1984 equation (4)
-double  A[4][4] = { 
+double  A[4][4] = {
 	{0.913437,  0.032532,  -0.020658, 0.000573},
 	{0.488761,  0.137304,  -0.07251, -0.046058},
-	{-0.00199, -0.04573,    0.591761, 0.026439}, 
+	{-0.00199, -0.04573,    0.591761, 0.026439},
 	{0.010905, -0.044171,  -0.018568, 0.666672}};
 // B matrix used for cross correlation following Richardson_1984 equation (4)
-double B[4][4] = { 
-	{0.361854, 0.0,      0.0,      0.0}, 
-	{0.11441,  0.802987, 0.0,      0.0}, 
-	{0.144862,-0.060622, 0.782791, 0.0}, 
+double B[4][4] = {
+	{0.361854, 0.0,      0.0,      0.0},
+	{0.11441,  0.802987, 0.0,      0.0},
+	{0.144862,-0.060622, 0.782791, 0.0},
 	{0.080593,-0.015829, 0.066186, 0.736713}};
 
 // Transition probability correlations
@@ -167,20 +167,20 @@ double tmin_d2 = 1.020964; // slope of best line fit of tmin on dry days (see `m
 double tmin_sd_breaks[3] = { -40., 0.0, 25. };  // breaks of tmin sd correlation
 
 // Polynomial coefficients for correlating tmin sd on wet days
-double tmin_sd_w[6][4]  = { 
+double tmin_sd_w[6][4]  = {
 	// < -40       -40 - 0     0 - 25	> 25
-	{9.72715668, 3.05498827, 3.21874237, 0.55707042}, 
-	{0.1010504, -0.21158825,-0.04507634, 0.02443123}, 
-	{0.0,        0.01374948, 0.02094482, 0.0}, 
-	{0.0,        0.00140538,-0.00264577, 0.0}, 
+	{9.72715668, 3.05498827, 3.21874237, 0.55707042},
+	{0.1010504, -0.21158825,-0.04507634, 0.02443123},
+	{0.0,        0.01374948, 0.02094482, 0.0},
+	{0.0,        0.00140538,-0.00264577, 0.0},
 	{0.0,        3.686e-05,   9.818e-05, 0.0},
 	{0.0,        3.2e-07,     -1.13e-06, 0.0}} ;
 
 // Polynomial coefficients for correlating tmin sd on dry days
 double tmin_sd_d[6][4] = {
 	//  < -40       -40 - 0     0 - 25        > 25
-	{10.89900605, 3.56755661,  3.79411755, -4.61943457}, 
-	{0.12709893, -0.11544588,  0.03298697,  0.22605603}, 
+	{10.89900605, 3.56755661,  3.79411755, -4.61943457},
+	{0.12709893, -0.11544588,  0.03298697,  0.22605603},
 	{0.0,         0.02824401, -0.01504554,  0.0},
 	{0.0,         0.00195612,  0.00190346,  0.0},
 	{0.0,         4.314e-05,  -0.00011362,  0.0},
@@ -196,22 +196,22 @@ double tmax_sd_breaks[3] = { -30., 0.0, 35. };  // polynomial coefficients for t
 // Polynomial coefficients for correlating tmax sd on wet days
 double tmax_sd_w[6][4] = {
 	//   < -30       -30 - 0     0 - 35        > 35
-	{6.67200351,  3.86010858,  3.79193207,  5.55292835}, 
-	{0.03643908, -0.21861197, -0.03126021, -0.09734715}, 
+	{6.67200351,  3.86010858,  3.79193207,  5.55292835},
+	{0.03643908, -0.21861197, -0.03126021, -0.09734715},
 	{0.0,         0.00388465,  0.01611473,  0.0},
 	{0.0,         0.00146174, -0.00120298,  0.0},
 	{0.0,         6.059e-05,   2.912e-05,   0.0},
-	{0.0,         7.4e-07,    -2.4e-07,     0.0}}; 
+	{0.0,         7.4e-07,    -2.4e-07,     0.0}};
 
 // Polynomial coefficients for correlating tmax sd on dry days
 double tmax_sd_d[6][4] = {
 	//   < -30       -30 - 0     0 - 35	> 35
-	{7.37455165,  4.61701866,  4.74550991,  3.25541815}, 
-	{0.01535526, -0.33872824, -0.07609816, -0.02178605}, 
-	{0.0,        -0.0187566,   0.01893058,  0.0}, 
-	{0.0,        -0.0003185,  -0.00134943,  0.0}, 
-	{0.0,         3.5e-06,     3.209e-05,   0.0}, 
-	{0.0,         1.1e-07,    -2.5e-07,     0.0}};  
+	{7.37455165,  4.61701866,  4.74550991,  3.25541815},
+	{0.01535526, -0.33872824, -0.07609816, -0.02178605},
+	{0.0,        -0.0187566,   0.01893058,  0.0},
+	{0.0,        -0.0003185,  -0.00134943,  0.0},
+	{0.0,         3.5e-06,     3.209e-05,   0.0},
+	{0.0,         1.1e-07,    -2.5e-07,     0.0}};
 
 // Cloud regression results
 double cldf_w    = -0.738271; // parameter for cloud fit on wet days (see `meansd`)
@@ -234,7 +234,7 @@ double wind_sd_d[6] = { 0.0, 1.08596114, -0.24073323, 0.02216454, 0.0, 0.0};
 // Wind bias correction (Note: Default is no correction)
 // min and max range for bias correction (1st and 99th percentile)
 double wind_bias_min =-2.3263478740;
-double wind_bias_max = 2.3263478740; 
+double wind_bias_max = 2.3263478740;
 
 // Parameters for the exponential intercept correction
 double wind_intercept_bias_a = 1.1582245720322826;  // slope in the exponent
@@ -242,7 +242,7 @@ double wind_intercept_bias_b =-1.3358916953022832;  // intercept in the exponent
 
 // Parameters of the slope - unorm best fit line
 // Coefficients for the bias correction of wind speed
-double wind_bias_coeffs[6] = {0.995353879899162,   0.8507947091050573, 0.027799823700343333, 
+double wind_bias_coeffs[6] = {0.995353879899162,   0.8507947091050573, 0.027799823700343333,
 			      -0.06710144300871658, 0.0, 0.0};
 double wind_intercept_bias_coeffs[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
 
@@ -257,18 +257,18 @@ double tmin_bias_coeffs[6] = {0., 0., 0., 0., 0., 0.}; // coefficients for the b
 
 // min. and max range for bias correction (1st and 99th percentile)
 double tmin_bias_min =-2.3263478740;
-double tmin_bias_max = 2.3263478740; 
+double tmin_bias_max = 2.3263478740;
 
 // Matrix multiplication
 void matrixmult(double AA[4][4], double B[4], double CC[4]) {
-	// 
+	//
 	int xy = 4;
-	for(int j=0;j<xy;j++){ 
+	for(int j=0;j<xy;j++){
 		double res = 0.;
-		for(int i=0;i<xy;i++){ 
-			res += AA[i][j] * B[i]; 
-		} 
-		CC[j] = res; 
+		for(int i=0;i<xy;i++){
+			res += AA[i][j] * B[i];
+		}
+		CC[j] = res;
 	}
 }
 
@@ -291,13 +291,13 @@ void get_seed_by_location(double lat, double lon, WeatherGenState& state) {
 
 	state.xs = geohash(lat,lon);
 
-	for (int i=0; i<QSIZ; i++) { 
+	for (int i=0; i<QSIZ; i++) {
 		
 	 	state.xcng = state.xcng * CMUL + COFFS;
 	
-	 	state.xs = state.xs^(state.xs<<13); 
-	 	state.xs = state.xs^(state.xs>>17); 
-	 	state.xs = state.xs^(state.xs>>5); 
+	 	state.xs = state.xs^(state.xs<<13);
+	 	state.xs = state.xs^(state.xs>>17);
+	 	state.xs = state.xs^(state.xs>>5);
 	 	state.q[i] = state.xcng + state.xs;
 	 }
 }
@@ -324,11 +324,11 @@ int refill(WeatherGenState& state) {
 
 /* Generates a uniformly distributed random 4 byte integer with the range (-huge(i4),+huge(i4))
  * based on the 32-bit super KISS random number generator by George Marsaglia, published online
- * and translated to Fortran 90 by user "mecej4" and Marsaglia, 
+ * and translated to Fortran 90 by user "mecej4" and Marsaglia,
  * http://forums.silverfrost.com/viewtopic.php?t=1480
  * Further modifications to pass the complete state of the generator as an argument by J.O. Kaplan, 2011
- * 
- * Do not use this function outside of this weathergen.cpp module. 
+ *
+ * Do not use this function outside of this weathergen.cpp module.
  * Instead use the standard random number generator of LPJ-GUESS.
  */
 int ranu(WeatherGenState& state) {
@@ -343,9 +343,9 @@ int ranu(WeatherGenState& state) {
 	}
 	state.xcng = state.xcng * CMUL + COFFS;
 
-	state.xs = state.xs^(state.xs<<13); 
-	state.xs = state.xs^(state.xs>>17); 
-	state.xs = state.xs^(state.xs>> 5); 
+	state.xs = state.xs^(state.xs<<13);
+	state.xs = state.xs^(state.xs>>17);
+	state.xs = state.xs^(state.xs>> 5);
 
 	ranu = state.xcng + state.xs + supr;
 	
@@ -353,7 +353,7 @@ int ranu(WeatherGenState& state) {
 }
 
 // Generate a random number in the range (0,1)
-/* Do not use this function outside of this weathergen.cpp module. 
+/* Do not use this function outside of this weathergen.cpp module.
  * Instead use the standard random number generator of LPJ-GUESS.
  */
 double ranur(WeatherGenState& state) {
@@ -383,7 +383,7 @@ void calc_cloud_params(MetVariables& metvars) {
 	metvars.cldf_d4   = - 1.0/cldf_d;
 	metvars.cldf_sd_d = cldf_sd_d * cldf_sd_d;
 
-} 
+}
 
 void temp_sd(MetVariables& metvars) {
 
@@ -422,7 +422,7 @@ void temp_sd(MetVariables& metvars) {
 
 	metvars.dmtmin_sd = dmtmin_sd;
 	metvars.dmtmax_sd = dmtmax_sd;	
-} 
+}
 
 /* Adjust the monthly means of temperature, cloud and wind corresponding to the wet/dry state
  *
@@ -462,7 +462,7 @@ void temp_sd(MetVariables& metvars) {
 void meansd(MetVariables& metvars) {
 	
 	// calculate mean and SD for a wet day
-	if (metvars.pday[0]) {  
+	if (metvars.pday[0]) {
 
 		metvars.dmtmin_mn = tmin_w1 + tmin_w2 * metvars.tmn;
 		metvars.dmtmax_mn = tmax_w1 + tmax_w2 * metvars.tmx;
@@ -491,7 +491,7 @@ void meansd(MetVariables& metvars) {
 	}
 	temp_sd(metvars);
 
-} 
+}
 
 /* Sampler for the normal distribution centered at 0 with std. dev. of unity,
  * based on Marsaglia polar method
@@ -528,7 +528,7 @@ double ran_normal(WeatherGenState& state) {
 			if (s < 1.)
 				b=1;
 		} while (b==0);
- 
+
 		a = sqrt(-2. * log(s) / s);
 
 		vals[0] = v[0] * a;
@@ -564,7 +564,7 @@ double ran_gamma(WeatherGenState& state,bool first, double shape, double scale) 
 	double u;
 	double v;
 	double x;
-	double ret; 
+	double ret;
 	if (shape <= 0.) {
 		printf("shape parameter value must be positive \n");
 		exit(-1);
@@ -608,7 +608,7 @@ double ran_gp(WeatherGenState& state,double shape,double scale, double loc) {
 
 	u = ranur(state); // generate uniform variable u in the range (0,1)
 
-	if (shape == 0.0) { 
+	if (shape == 0.0) {
 		rangp = loc - scale * log(u);
 	}
 	else {
@@ -701,15 +701,15 @@ double ran_gamma_gp(WeatherGenState& state,bool first,double shape,double scale,
  * Input
  *  x : the argument of the Gamma function (> 0.0)
  */
-double gamma_log( double x ) { 
+double gamma_log( double x ) {
 
-	double c[7] = { 
-		-1.910444077728E-03, 
-		8.4171387781295E-04, 
-		-5.952379913043012E-04, 
-		7.93650793500350248E-04, 
-		-2.777777777777681622553E-03, 
-		8.333333333333333331554247E-02, 
+	double c[7] = {
+		-1.910444077728E-03,
+		8.4171387781295E-04,
+		-5.952379913043012E-04,
+		7.93650793500350248E-04,
+		-2.777777777777681622553E-03,
+		8.333333333333333331554247E-02,
 		5.7083835261E-03 };
 	double corr;
 	const double D1 = -5.772156649015328605195174E-01;
@@ -717,14 +717,14 @@ double gamma_log( double x ) {
 	const double D4 =  1.791759469228055000094023E+00;
 
 	const double FRTBIG = 1.42E+09;
-	const double P1[8] = { 
-		4.945235359296727046734888E+00, 
-		2.018112620856775083915565E+02, 
-		2.290838373831346393026739E+03, 
-		1.131967205903380828685045E+04, 
-		2.855724635671635335736389E+04, 
-		3.848496228443793359990269E+04, 
-		2.637748787624195437963534E+04, 
+	const double P1[8] = {
+		4.945235359296727046734888E+00,
+		2.018112620856775083915565E+02,
+		2.290838373831346393026739E+03,
+		1.131967205903380828685045E+04,
+		2.855724635671635335736389E+04,
+		3.848496228443793359990269E+04,
+		2.637748787624195437963534E+04,
 		7.225813979700288197698961E+03 };
 	const double P2[8] = {
 		4.974607845568932035012064E+00,
@@ -799,7 +799,7 @@ double gamma_log( double x ) {
 			corr = 0.0E+00;
 			xm1 = ( x - 0.5E+00 ) - 0.5E+00;
 		}
- 
+
 		if ( x <= 0.5E+00 || PNT68 <= x ) {
 
 			xden = 1.0E+00;
@@ -833,7 +833,7 @@ double gamma_log( double x ) {
 			xden = xden * xm2 + Q2[i];
 		}
 		res = xm2 * ( D2 + xm2 * ( xnum / xden ) );
-	}       
+	}
 	else if ( x <= 12.0E+00 ) {
 
 		xm4 = x - 4.0E+00;
@@ -892,7 +892,7 @@ double r8poly_value_horner ( int m, double *c, double x ) {
 	
 	double value;
 
-	value = c[m]; 
+	value = c[m];
 	for(int i=m-1; i>=0; i--) {
 		value = value * x + c[i];
 	}
@@ -939,7 +939,7 @@ void normal_01_cdf_inv (double p,double x) {
 		3.3430575583588128105E+04,
 		2.5090809287301226727E+03 };
 	double b[8] = {
-		1.0E+00, 
+		1.0E+00,
 		4.2313330701600911252E+01,
 		6.8718700749205790830E+02,
 		5.3941960214247511077E+03,
@@ -959,7 +959,7 @@ void normal_01_cdf_inv (double p,double x) {
 	const double CONST1 = 0.180625E+00;
 	const double CONST2 = 1.6E+00;
 	double d[8] = {
-		1.0E+00, 
+		1.0E+00,
 		2.05319162663775882187E+00,
 		1.67638483018380384940E+00,
 		6.89767334985100004550E-01,
@@ -977,7 +977,7 @@ void normal_01_cdf_inv (double p,double x) {
 		2.71155556874348757815E-05,
 		2.01033439929228813265E-07 };
 	double f[8] = {
-		1.0E+00, 
+		1.0E+00,
 		5.99832206555887937690E-01,
 		1.36929880922735805310E-01,
 		1.48753612908506148525E-02,
@@ -1030,7 +1030,7 @@ void normal_01_cdf_inv (double p,double x) {
 				x = r8poly_value_horner ( 7, e, r ) / r8poly_value_horner ( 7, f, r );
 			}
 		}
- 
+
 		if ( q < 0.0E+00 ) {
 			x = -x;
 		}
@@ -1095,11 +1095,11 @@ void normal_01_cdf ( double x, double cdf ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = exp ( - y ) * B0 / ( fabs ( x ) - B1 
-					 + B2 / ( fabs ( x ) + B3 
-					 + B4 / ( fabs ( x ) - B5 
-					 + B6 / ( fabs ( x ) + B7 
-					 - B8 / ( fabs ( x ) + B9 
+		q = exp ( - y ) * B0 / ( fabs ( x ) - B1
+					 + B2 / ( fabs ( x ) + B3
+					 + B4 / ( fabs ( x ) - B5
+					 + B6 / ( fabs ( x ) + B7
+					 - B8 / ( fabs ( x ) + B9
 					 + B10 /( fabs ( x ) + B11 ) ) ) ) ) );
 	}
 
@@ -1167,15 +1167,15 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 	p1 = log(p);
 
 	if (nu < (-1.24) * p1) {
-		// For small chi-squared 
+		// For small chi-squared
 		//    log(alpha) + g = log(alpha) + log(gamma(alpha)) =
 		//       = log(alpha*gamma(alpha)) = lgamma(alpha+1) suffers from
 		//    catastrophic cancellation when alpha << 1
-		if (alpha < 0.5) 
+		if (alpha < 0.5)
 			lgam1pa = gamma_log(alpha + 1.0);
 		else
 			lgam1pa = log(alpha) + g;
-	    
+	
 		ch = exp((lgam1pa + p1)/alpha + log(2.0));
 	}
 	else if (nu > 0.32) { //  using Wilson and Hilferty estimate
@@ -1268,11 +1268,11 @@ double gamma_inc ( double p, double x ) {
 
 	//  Use a normal approximation if PLIMIT < P.
 	if ( PLIMIT < p ) {
-		pn1 = 3.0E+00 * sqrt ( p ) * ( pow(( x / p ), ( 1.0E+00 / 3.0E+00 )) 
+		pn1 = 3.0E+00 * sqrt ( p ) * ( pow(( x / p ), ( 1.0E+00 / 3.0E+00 ))
 					       + 1.0E+00 / ( 9.0E+00 * p ) - 1.0E+00 );
 		normal_01_cdf ( pn1, cdf );
 		return cdf;
-	} 
+	}
 
 	//  Is X extremely large compared to P?
 	if ( XBIG < x ) {
@@ -1300,7 +1300,7 @@ double gamma_inc ( double p, double x ) {
 
 		if ( EXP_ARG_MIN <= arg ) {
 			gamma_inc = exp ( arg );
-		} 
+		}
 		else {
 			gamma_inc = 0.0E+00;
 		}
@@ -1356,13 +1356,13 @@ double gamma_inc ( double p, double x ) {
 				pn3 = pn3 / L_OVERFLOW;
 				pn4 = pn4 / L_OVERFLOW;
 			}
-		} 
+		}
 	}
 	return gamma_inc;
 }
 
 /* Evaluate the Gamma CDF.
- * 
+ *
  *  Licensing:
  *    This code is distributed under the GNU LGPL license.
  *  Modified:
@@ -1463,14 +1463,14 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 		s4 = (252.0 + a * (672.0 + 1182.0 * a) + c * (294.0 +a * ( 889.0 + 1740.0 * a))) / 5040.0;
 		s5 = (84.0 + 2264.0 * a + c*(1175.0 + 606.0 * a)) / 2520.0;
 
-		ch = ch +  t * (1.0 + 0.5 * t * s1 - b * c * ( 
+		ch = ch +  t * (1.0 + 0.5 * t * s1 - b * c * (
 			s1 - b * (s2 - b * (s3 - b * (s4 - b * (s5 - b * s6))))));
 
 		if (fabs(q - ch) < EPS2 * ch)
 			break;
 
 		if (fabs(q - ch) > 0.1 * ch) {
-			if (ch < q) 
+			if (ch < q)
 				ch = 0.9 * q;
 			else
 				ch = 1.1 * q;
@@ -1480,7 +1480,7 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 	gamma_cdf_inv = 0.5  * scale * ch;
 	return gamma_cdf_inv;
 }
- 
+
 /* Evaluate Gamma(X) for a real argument.
  *
  * This routine calculates the gamma function for a real argument X.
@@ -1519,11 +1519,11 @@ double r8_gamma ( double x ) {
 	
 	double c[7] = {
 		-1.910444077728E-03,
-		8.4171387781295E-04, 
-		-5.952379913043012E-04, 
-		7.93650793500350248E-04, 
-		-2.777777777777681622553E-03, 
-		8.333333333333333331554247E-02, 
+		8.4171387781295E-04,
+		-5.952379913043012E-04,
+		7.93650793500350248E-04,
+		-2.777777777777681622553E-03,
+		8.333333333333333331554247E-02,
 		5.7083835261E-03 };
 	const double L_EPS = 2.22E-16;
 	double fact;
@@ -1720,7 +1720,7 @@ double gamma_pdf ( double x, double a, double b, double c ) {
 	}
 	return pdf;
 }
-									     
+									
 /* Iterative, mean preserving method to smoothly interpolate mean data to pseudo-sub-timestep values
  * From Rymes, M.D. and D.R. Myers, 2001. Solar Energy (71) 4, 225-231
  * Input
@@ -1755,7 +1755,7 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 	int j = 0;
 	int a = 0;
 	int b = 0;
-	for ( a=lm; a<=rm; a++) {  
+	for ( a=lm; a<=rm; a++) {
 		j=i;
 		for ( b=0; b<dmonth[a]; b++) {
 			r[i] = m[a];
@@ -1784,11 +1784,11 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 			ck /= (double)ni;       // !Eqn. 4
 
 			// Apply the correction to all timestep values in the super-timestep		
-			for(int l=0; l<dmonth[k]; l++) { 
+			for(int l=0; l<dmonth[k]; l++) {
 				r[j] += ck;
 				j++;
 			}
-			// Correction for circular conditions when using climatology 
+			// Correction for circular conditions when using climatology
 			// (do not use for transient simulations)
 			bc[0] = r[ni-1];
 			bc[1] = r[0];
@@ -1825,7 +1825,7 @@ void init_weathergen(MetVariables& metvars, WeatherGenState& rndst) {
 	rndst.have  = false;
 	
 	for (int i=0;i<2;i++) {
-		rndst.gamma_vals[i] = 0.; 
+		rndst.gamma_vals[i] = 0.;
 	}
 }
 
@@ -1927,7 +1927,7 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 	else if (u <= -v) {
 		hh = 0.0; // polar night
 	}
-	else { 
+	else {
 		hh = acos(-u / v); // Eqn 11
 	}
 
@@ -1946,7 +1946,7 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 			w     = rad / (2. *(u * hh + v * sinehh) * K);
 			cldfr = 1.-((w/((1.0 - BETA) * qo) -C)/D);
 			cldfr = max(0.,min(1.,cldfr));
-		} 
+		}
 		else {
 			cldfr = 0.;
 		}
@@ -1961,19 +1961,19 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 	int i = 0;
 
 	// Monthly total precipitation amount (mm)
-	double pre = metvars.mprec; 
+	double pre = metvars.mprec;
 	// Number of days in month with precipitation (fraction)
-	double wetd= metvars.mwetd;  
-	// Fraction of days in month with precipitation (fraction) 
+	double wetd= metvars.mwetd;
+	// Fraction of days in month with precipitation (fraction)
 	double wetf= metvars.mwetf;
 	// Minumum temperture (C)
-	double tmn = metvars.dtmin; 
+	double tmn = metvars.dtmin;
 	// Maximum temperture (C)
-	double tmx = metvars.dtmax;  
+	double tmx = metvars.dtmax;
 	// Cloud fraction (0=clear sky, 1=overcast) (fraction)
-	double cld = metvars.dcldf;  
+	double cld = metvars.dcldf;
 	// Wind (m/s)
-	double wnd = metvars.dwind;  
+	double wnd = metvars.dwind;
 
 	double prec;
 	double tmin;
@@ -2005,23 +2005,23 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 	if (wetf > 0. && pre > 0.) {
 		
 		// Calculate transitional probabilities for dry to wet and wet to wet days
-		// relationships from Geng & Auburn, 1986, Weather simulation models 
+		// relationships from Geng & Auburn, 1986, Weather simulation models
 		// based on summaries of long-term data
 		
 		// If yesterday was raining, use p11
-		if (metvars.pday[0]) { 
+		if (metvars.pday[0]) {
 			pwet = p11_1 + p11_2 * wetf;
 		}
 		// If yesterday was not raining but the day before yesterday was raining, use p101
-		else if (metvars.pday[1]) { 
+		else if (metvars.pday[1]) {
 			pwet = p101_1 + p101_2 * wetf;
 		}
 		// Both yesterday and the day before were dry, use p001
-		else {  
+		else {
 			pwet = p001_1 + p001_2 * wetf;
 		}
 
-		// Determine the precipitation state of the current day 
+		// Determine the precipitation state of the current day
 		// using the Markov chain approach
 		u = ranur(rndst);
 		
@@ -2064,7 +2064,7 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 				if (prec > 0. && prec <= 1.05 * pre) {
 					break;
 				}
-				if (i == 1000) { 
+				if (i == 1000) {
 					printf("Could not find good precipitation with %f mm and %f wet days...",pre,wetd);
 					exit(-1);
 				}
@@ -2112,24 +2112,24 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 	// wind bias correction
 	slopecorr = 0.;
 	if (wind_slope_bias_L > 0.0) {
-		slopecorr = wind_slope_bias_L / ( 1 + exp( - wind_slope_bias_k * 
+		slopecorr = wind_slope_bias_L / ( 1 + exp( - wind_slope_bias_k *
 							   ( metvars.resid[3]) - wind_slope_bias_x0));
 	}
 	else {
 		for (i=0; i<6; i++) {
-			slopecorr += wind_bias_coeffs[i] * 
+			slopecorr += wind_bias_coeffs[i] *
 				(pow(max(wind_bias_min, min(wind_bias_max, metvars.resid[3])), i));
 		}
 	}
 
 	intercept_corr = 0.;
 	if (fabs(wind_intercept_bias_a + 9999.) > 1e-7) {
-		intercept_corr = exp(wind_intercept_bias_b + 
+		intercept_corr = exp(wind_intercept_bias_b +
 				 wind_intercept_bias_a * max(wind_bias_min, min(wind_bias_max, metvars.resid[3])));
-	} 
+	}
 	else {
 		for (i=0; i<6; i++) {
-			intercept_corr += wind_intercept_bias_coeffs[i] * 
+			intercept_corr += wind_intercept_bias_coeffs[i] *
 				(pow(max(wind_bias_min, min(wind_bias_max, metvars.resid[3])),i));
 		}
 	}
@@ -2138,7 +2138,7 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 
 	// tmin bias correction
 	for (int i=0; i<6; i++) {
-		tmin_bias += tmin_bias_coeffs[i] * 
+		tmin_bias += tmin_bias_coeffs[i] *
 				 (pow(max(tmin_bias_min, min(tmin_bias_max, metvars.resid[0])),i));
 	}
 	tmin = tmin - roundoff(tmin_bias, 1);
@@ -2178,7 +2178,7 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
  * while ensuring conservation and relative distribution (in terms of <=,>=)
  * like cloud-fraction or relative humidity ([0,1]).
  */
-void redist_restricted_vals(double *inval, int ll, double scalval, double *limit, double *wght) {   
+void redist_restricted_vals(double *inval, int ll, double scalval, double *limit, double *wght) {
 	
 	int cnt       = 0;
 	double rest   = 0.;
@@ -2194,12 +2194,12 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 
 	bool go = true;
 	while ( go ) {
-		double remsum = 0.; 
-		double gonsum = 0.; 
+		double remsum = 0.;
+		double gonsum = 0.;
 		for (int i=0; i<ll; i++) {
 			if ( flag[i] )
 				remsum += inval[i] * wght[i] / (double)ll;
-			else 
+			else
 				gonsum += inval[i] * wght[i] / (double)ll;
 		}
 		corfac  = remsum / ( scalval - gonsum );
@@ -2251,14 +2251,14 @@ double correlation(int len, double *xarr, double *yarr) {
 	osum = xsum2 = xmean = ysum2 = ymean = 0.;
 
 	for (int i=0; i<len; i++) {
-		xmean += xarr[i]; 
+		xmean += xarr[i];
 		ymean += yarr[i];
 	}
 	xmean /= (double) len;
 	ymean /= (double) len;
 
 	for (int i=0; i<len; i++) {
-		osum  += (xarr[i]-xmean)*(yarr[i]-ymean); 
+		osum  += (xarr[i]-xmean)*(yarr[i]-ymean);
 		xsum2 += (xarr[i]-xmean)*(xarr[i]-xmean);
 		ysum2 += (yarr[i]-ymean)*(yarr[i]-ymean);
 	}
@@ -2269,12 +2269,12 @@ double correlation(int len, double *xarr, double *yarr) {
 /* The driver routine of GWGEN.
  * Computes one year's daily met data from monthly averages.
  */
-void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, double* in_mwetd, 
-		   double* in_msol, double* in_mdtr, double* in_mwind, double* in_mrhum, 
+void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, double* in_mwetd,
+		   double* in_msol, double* in_mdtr, double* in_mwind, double* in_mrhum,
 		   double* out_dtemp, double* out_dprec, double* out_dsol,double* out_ddtr,
 		   double* out_dwind, double* out_drhum) {
 
-	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+	bool is_first_day = ( date.day == 0 && ( date.year == 0 ||
 		( restart && date.year == state_year ) ) );
 
 	WeatherGenState& rndst = gridcell.climate.weathergenstate;
@@ -2287,9 +2287,9 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 	double in_mtmax[12];
 	double in_mcldf[12];
 
-	int doy = 1;  
+	int doy = 1;
 	for (int m=0; m<12; m++) {
-		// Use mid-of-month length-of-day 
+		// Use mid-of-month length-of-day
 		int ndaymon = date.ndaymonth[m];
 		in_mtmin[m] = in_mtemp[m] - 0.5 * in_mdtr[m];
 		in_mtmax[m] = in_mtemp[m] + 0.5 * in_mdtr[m];
@@ -2300,7 +2300,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			doy++;
 		}
 		in_mcldf[m] /= (double)ndaymon;
-		// Have a min cldf of 1% to introduce a monthly variability 
+		// Have a min cldf of 1% to introduce a monthly variability
 		// to fit lower sol vals with rainfall
 		in_mcldf[m] = max(0.01,in_mcldf[m]);
 	}
@@ -2310,9 +2310,9 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 	int accumday = 0;
 
 	for (int mon=0;mon<12;mon++) {
- 
+
 		const int NDAYMONTH = 31;
-		int ndaymon = date.ndaymonth[mon]; 
+		int ndaymon = date.ndaymonth[mon];
 		//
 		double mtmin_curr [NDAYMONTH];
 		double mtmax_curr [NDAYMONTH];
@@ -2336,7 +2336,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		
 		// Break-off parameters
 		int pdaydiff    = 0;
-		double precdiff = 0.; 
+		double precdiff = 0.;
 		double tmindiff = 0.;
 
 		int i_count = 1;
@@ -2364,7 +2364,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		}
 
 		// At beginning of month:
-		if ( mon > 0 )  
+		if ( mon > 0 )
 			accumday += date.ndaymonth[mon-1];
 
 		// Dummy weighting array
@@ -2373,7 +2373,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			dum[day] = 1.;
 		
 		// Index for annual arrays
-		int lm = max(mon-1,0); 
+		int lm = max(mon-1,0);
 		int rm = min(11,mon+1);
 
 		// Index for rmsmooth
@@ -2382,13 +2382,13 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		if ( mon == 0 ) {
 			ilm = 1;
 		}
-		else if ( mon == 11 ) { 
+		else if ( mon == 11 ) {
 			irm = 1;
 		}
 
 		double bcond[2];
 		double tmvals[3];
-		int cmdays[3] = 
+		int cmdays[3] =
 			{date.ndaymonth[lm],date.ndaymonth[mon],date.ndaymonth[rm]};
 
 		// Smooth tmin
@@ -2417,7 +2417,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		
 		// Ensure positivity for cloud-cover
 		for (int day=0;day<ndaymon;day++) {
-			mcloud_curr[day] = max(0.01,mcloud_curr[day]); 
+			mcloud_curr[day] = max(0.01,mcloud_curr[day]);
 		}
 
 		// Smooth wind
@@ -2430,7 +2430,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 
 		// Ensure positivity for wind
 		for (int day=0;day<ndaymon;day++) {
-			mwind_curr[day] = max(0.1,mwind_curr[day]); 
+			mwind_curr[day] = max(0.1,mwind_curr[day]);
 		}
 		
 		// Reset residuals at beginning of month if desired
@@ -2444,7 +2444,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		}
 		
 		// Set quality threshold for preciptation amount
-		double prec_t = max(2.,0.5 * in_mprec[mon]);  
+		double prec_t = max(2.,0.5 * in_mprec[mon]);
 		
 		metvars.mprec = in_mprec[mon];
 
@@ -2461,11 +2461,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		
 		double metric_sav = 99999.;
 		
-		double chk_dtemp = 0.; 
-		double chk_ddtr  = 0.; 
-		double chk_dprec = 0.; 
-		double chk_dsol  = 0.; 
-		double chk_dwind = 0.; 
+		double chk_dtemp = 0.;
+		double chk_ddtr  = 0.;
+		double chk_dprec = 0.;
+		double chk_dsol  = 0.;
+		double chk_dwind = 0.;
 		double chk_drhum = 0.;
 
 		// Set breakoff-threshold for raindays according to
@@ -2514,11 +2514,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				dwind[day]= metvars.dwind;
 				
 				if ( metvars.dprec > 0. ) {
-					mwetd_sim++; 
+					mwetd_sim++;
 					mprec_sim += metvars.dprec;
 				}
 				tmin_acc += metvars.dtmin;
-			} 
+			}
 			// Break off criterium
 			tmindiff = fabs(in_mtmin[mon] - tmin_acc / (double)ndaymon);
 			
@@ -2553,7 +2553,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 
 				double metric = abs(pdaydiff)*20/((double)pday_thresh + 1.0)  + fabs(precdiff) ;
 				
-				// Save state if better w.r.t. metric 
+				// Save state if better w.r.t. metric
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {
 						dprec_sav[day]= dprec[day];
@@ -2570,7 +2570,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					}
 				}
 
-				// After max amount of iterations is reached, use 
+				// After max amount of iterations is reached, use
 				// best set of data so far.
 				if (i_count==MAXITER) {
 					for (int day=0; day<ndaymon; day++) {
@@ -2646,7 +2646,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			// Correct wind by factor
 			dwind[day] /= windcor;
 
-			// Correct precip by factor 
+			// Correct precip by factor
 			if ( preccor > 0. ) {
 				dprec[day] /= preccor;
 			} else {
@@ -2656,7 +2656,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			// Correct cldfr by factor
 			cldwght[day] /= tot_cldwght;
 
-			// Compute relative humidity. 
+			// Compute relative humidity.
 			// Use daylight avg temp following Running et al. 1987.
 			double tdavg = 0.606*dtmax[day] + 0.394*dtmin[day];
 			tdavg        = -1.14 + 1.12*tdavg;
@@ -2677,7 +2677,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				solcor += dsol[day];
 			}
 			solcor /= (in_msol[mon]*(double)ndaymon);
-			for (int day=0;day<ndaymon;day++) 
+			for (int day=0;day<ndaymon;day++)
 				dsol[day] /= solcor;
 		}
 		
@@ -2686,11 +2686,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		}
 
 		// Compute solar radiation from cloud-fraction
-		chk_dtemp = 0.; 
-		chk_ddtr  = 0.; 
-		chk_dprec = 0.; 
-		chk_dsol  = 0.; 
-		chk_dwind = 0.; 
+		chk_dtemp = 0.;
+		chk_ddtr  = 0.;
+		chk_dprec = 0.;
+		chk_dsol  = 0.;
+		chk_dwind = 0.;
 		chk_drhum = 0.;
 		for (int day=0; day<ndaymon;day++) {
 			out_dtemp[day+accumday] =(dtmax[day] + dtmin[day]) / 2.;
@@ -2700,11 +2700,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			out_dwind[day+accumday] = dwind[day];
 			out_drhum[day+accumday] = drhum[day];
 
-			chk_dtemp += out_dtemp[day+accumday]/(double)ndaymon; 
-			chk_ddtr  += out_ddtr [day+accumday]/(double)ndaymon; 
-			chk_dprec += out_dprec[day+accumday]; 
-			chk_dsol  += out_dsol [day+accumday]/(double)ndaymon; 
-			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
+			chk_dtemp += out_dtemp[day+accumday]/(double)ndaymon;
+			chk_ddtr  += out_ddtr [day+accumday]/(double)ndaymon;
+			chk_dprec += out_dprec[day+accumday];
+			chk_dsol  += out_dsol [day+accumday]/(double)ndaymon;
+			chk_dwind += out_dwind[day+accumday]/(double)ndaymon;
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon;
 		}
 

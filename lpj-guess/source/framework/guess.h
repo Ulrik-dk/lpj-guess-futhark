@@ -134,7 +134,7 @@ typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WE
 typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_type;
 
 /// Gas type (used in methane code)
-/** 
+/**
   */
 typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
@@ -454,7 +454,7 @@ public:
 	}
 
 	/// Step n days from a date.
-	/** Current implementation does not consider leap days, and the same 
+	/** Current implementation does not consider leap days, and the same
 	  * apply for the current use of the function through-out the model.
       */
 	static int stepfromdate(int day, int step) {
@@ -616,8 +616,8 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 /// Class containing serializable variables for Weathergenerator GWGen
-/** 
-Variables for the build-in random-generator and to keep track of whether past days 
+/**
+Variables for the build-in random-generator and to keep track of whether past days
 were rain days
 */
 class WeatherGenState : public Serializable {
@@ -630,7 +630,7 @@ public:
 	/// Random state variable xcng
 	int xcng;
 	/// Random state variable xs
-	unsigned int xs; 
+	unsigned int xs;
 	/// Random state variable indx
 	int indx;
 	/// Random state variable have
@@ -682,7 +682,7 @@ private:
 	double daylength;
 
 public:
-	/// set 
+	/// set
     void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
 		co2 = co2_env;
 		temp = temp_env;
@@ -814,7 +814,7 @@ public:
 	double relhum;
 
 	/// min and max daily temperature (deg C)
-	double tmin, tmax; 
+	double tmin, tmax;
 
 	/// day length today (h)
 	double daylength;
@@ -908,13 +908,13 @@ public:
 	double cur_rainfall;
 	/// Accumulated last rainfall (mm)
 	double last_rainfall;
-	/// Days since last rainfall 
+	/// Days since last rainfall
 	double days_since_last_rainfall;
 	/// Keetch-Byram-Drought-Index
 	double kbdi;
 	/// McArthur forest fire index (FFDI)
 	double mcarthur_forest_fire_index;	
-	/// To keep track of running months daily FFDI 
+	/// To keep track of running months daily FFDI
 	double months_ffdi[30];	
 
 	// Saved parameters used by function daylengthinsoleet
@@ -1149,7 +1149,7 @@ public:
 		MANUREC,
 		/// Flux to vegetation associated with manure addition (kgN/m2)
 		MANUREN,
-		/// Flux to vegetation associated with N addition (kgN/m2) 
+		/// Flux to vegetation associated with N addition (kgN/m2)
 		NFERT,
 		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
@@ -1302,13 +1302,13 @@ public:
 	xtring planting_system;
 	/// type of harvest system ("", "CLEARCUT", "CONTINUOUS")
 	xtring harvest_system;
-	/// name of crop pft 
+	/// name of crop pft
 	xtring pftname;
 	/// identifier of pft selection
 	xtring selection;
 	/// Rotation period in years
 	double nyears;
-	/// hydrology (RAINFED,IRRIGATED) 
+	/// hydrology (RAINFED,IRRIGATED)
 	hydrologytype hydrology;
 	/// irrigation efficiency
 //	double firr;
@@ -1787,7 +1787,7 @@ public:
 	/// Inundation stress is felt when the water table (mm) is above wtp_max
 	double wtp_max;
 	/// Whether this PFT has aerenchyma through which O2 and CH4 can be transported (Wania et al. 2010 - Sec 2.6)
-	bool has_aerenchyma; 
+	bool has_aerenchyma;
 
 	/// Sapling/regeneration characteristics (used only in population mode)
 	/** For trees, on sapling individual basis (kgC); for grasses, on stand area basis,
@@ -2054,7 +2054,7 @@ public:
 
 		if (lifeform == GRASS || lifeform == MOSS) {
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
-		} 
+		}
 		else {
 			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
 			             cton_sap  / (cton_sap_avr  + cton_sap_min);
@@ -2076,7 +2076,7 @@ public:
 		double rootdist_lower = 0.0;
 
 		for (int sl = 0; sl < NSOILLAYER; sl++) {
-			if (sl < NSOILLAYER_UPPER) 
+			if (sl < NSOILLAYER_UPPER)
 				rootdist_upper += rootdist[sl];
 			else
 				rootdist_lower += rootdist[sl];
@@ -2120,7 +2120,7 @@ public:
 
 			regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
 	}
-    
+
     // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
     void init_rootdist() {
 
@@ -2138,7 +2138,7 @@ public:
         // Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
         rootdist[NSOILLAYER-1] += 1.0 - tot;
     }
-    
+
 	bool ismoss() const {
 
 		if (lifeform == MOSS)
@@ -3104,7 +3104,7 @@ private:
  *  there is one for each grid cell. A reference to the Soiltype object holding the
  *  static parameters for this soil is included as a member variable.
  *
- *  NB: The class Soil and its member functions and variables are declared in guess.h, 
+ *  NB: The class Soil and its member functions and variables are declared in guess.h,
  *      while its member functions are implemented in soil.cpp and in soilmethane.cpp.
  */
 class Soil : public Serializable {
@@ -3125,7 +3125,7 @@ public:
 	Patch& patch;
 	/// reference to Soiltype object holding static parameters for this soil
 	Soiltype& soiltype;
-	/// the average wcont over the growing season, for each of the upper soil layers. Used in drought limited establishment. 
+	/// the average wcont over the growing season, for each of the upper soil layers. Used in drought limited establishment.
 	double awcont_upper;
 	/// daily water content in upper soil layer for each day of year
 	double dwcontupper[Date::MAX_YEAR_LENGTH];
@@ -3190,7 +3190,7 @@ public:
 	
 
 	// Temperature variables:
-    
+
 	/// temperature in each layer today (after call to cnstep) [deg C]
 	double T[NLAYERS];
 	/// Recorded T each day of the year, at each level [deg C]
@@ -3206,7 +3206,7 @@ public:
 	
 
 	// Padding - The values initialised in first call to calctemp method
-    
+
 	/// temperature in padding layers [deg C]
 	double pad_temp[PAD_LAYERS];
 	/// thickness of padding layers [mm]
@@ -3215,7 +3215,7 @@ public:
 
 	// Ice and water variables for the soil layers, where Frac stands for Fraction
 	
-	/// (Frac)tion of ice in each layer: amount of ice / total volume of soil layer. Not associated with AWC. 
+	/// (Frac)tion of ice in each layer: amount of ice / total volume of soil layer. Not associated with AWC.
 	double Frac_ice[NLAYERS];
 	
 	/// ice fraction in each layer YESTERDAY
@@ -3227,7 +3227,7 @@ public:
 
 	// Layer composition and properties:
 	// Soil layer information:
-    
+
 	/// Thickness of soil layers [mm]
 	double Dz[NLAYERS];
 	/// porosity of each soil layer
@@ -3264,7 +3264,7 @@ public:
 
 
 	// Daily storage:
-    
+
 	/// Depth in mm of the maximum depth of thaw this year
 	double maxthawdepththisyear;
 	/// daily thaw depth. The depth to the first soil layer with a temperature greater than 0 degrees C [mm]
@@ -3283,21 +3283,21 @@ public:
 
 
 	// Snow:
-    
+
 	/// days of continuous snow cover
 	int snow_days;
 	/// previous days of continuous snow cover
 	int	snow_days_prev;
-	/// daily snow depth [mm] 
+	/// daily snow depth [mm]
 	double dsnowdepth;
 	/// Monthly snow depth (average) [mm]
 	double msnowdepth[12];
-	/// Previous December's snowdepth [mm] - used in establishment - from Wolf et al. (2008) 
+	/// Previous December's snowdepth [mm] - used in establishment - from Wolf et al. (2008)
 	double dec_snowdepth;
-  
+
 
 	// Daily photosynthetic limits:
-    
+
 	/// Daily limit on moss photosynthetic activity due to dessication [0,1], but really [0.3,1]
 	double dmoss_wtp_limit;
 	/// Daily limit on graminoid photosynthetic activity as WTP drops.
@@ -3309,7 +3309,7 @@ public:
 	
 
 	// Peatland hydrology variables:
-    
+
 	/// daily water table position [mm]
 	double wtp[Date::MAX_YEAR_LENGTH];
 	/// monthly average water table position [mm]
@@ -3341,7 +3341,7 @@ public:
 
 
 	// Indices
-    
+
 	/// index for first active layer of soil
 	int IDX;
 	/// index for snow layers
@@ -3352,7 +3352,7 @@ public:
 	int MIDX;
 	
 	// Hydrology variables:
-    
+
 	/// records the first time hydrology routine is called
 	bool firstHydrologyCalc;
 	
@@ -3371,7 +3371,7 @@ public:
 	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
 	double dcflux_soil;
 	
-	/// CH4 and CO2 stores in the soil layers - updated daily 
+	/// CH4 and CO2 stores in the soil layers - updated daily
 	double ch4_store;
 	double co2_store;
 
@@ -3417,7 +3417,7 @@ public:
 	
 
 	// Gas diffusion variables:
-    
+
 	/// gas transport velocity of O2 [m d-1]
 	double k_O2;
 	/// gas transport velocity of CO2 [m d-1]
@@ -3602,10 +3602,10 @@ public:
 	/// Get soil silt fraction
 	double get_siltfrac();
 
-	/// Return CH4 content (g CH4-C / m2) 
+	/// Return CH4 content (g CH4-C / m2)
 	double get_ch4_content();
 
-	/// Return CO2 content (gC / m2) 
+	/// Return CO2 content (gC / m2)
 	double get_co2_content();
 
 	/// Water filled pore space of layer ([0-1])
@@ -3626,7 +3626,7 @@ private:
 	static const bool ifallowphasechanges = true;
 	static const bool snowdensityconstant = false;
 
-	// Private helper methods. Contain daily functionality moved from calctemp. 
+	// Private helper methods. Contain daily functionality moved from calctemp.
 	// All definitions in soil.cpp and methane.cpp
 
 	// Soil temperature and hydrology methods
@@ -3923,7 +3923,7 @@ public:
 	cropphen_struct *cropphen;
 
 	// INUNDATION STRESS TERMS:
-    
+
 	/// Number of days a month that the water table is above this PFT's wtp_max (updated on the first day of the month)
 	int inund_count;
 	/// [0,1] - a measure of the inundation stress. Daily photosynthesis is reduced by this factor.
@@ -4841,15 +4841,15 @@ private:
 //   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-
 //   structured plant populations. Oikos 61: 102-105.
-// Gerten, D., Schaphoff, S., Haberlandt, W., Lucht, W. & Sitch, S. 2004. 
-//   Terrestrial vegetation and water balance—hydrological evaluation of a dynamic 
+// Gerten, D., Schaphoff, S., Haberlandt, W., Lucht, W. & Sitch, S. 2004.
+//   Terrestrial vegetation and water balance—hydrological evaluation of a dynamic
 //   global vegetation model. Journal of Hydrology 286: 249-270.
 // Haxeltine A & Prentice IC 1996 BIOME3: an equilibrium terrestrial biosphere
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
 // Jackson, R.B., Canadell, J., Ehleringer, J.R., Mooney, H.A., Sala O.E. & Schulze, E.D. 1996
-//   A global analysis of root distributions for terrestrial biomes. 
+//   A global analysis of root distributions for terrestrial biomes.
 //   Oecologia, Volume 108: 389–411
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323

@@ -17,7 +17,7 @@
 // Functors used by PartidionedMap(De)serializer to read/write coordinates
 // and grid cells.
 //
-// Pretty much all of Guess(De)serializer is implemented by 
+// Pretty much all of Guess(De)serializer is implemented by
 // PartitionedMap(De)serializer. These functors supply the domain specific
 // knowledge about how and what we're serializing (coordinates and gridcells,
 // of which PartitionedMap(De)serializer knows nothing).
@@ -59,7 +59,7 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Functions for dealing with the meta data file
-// 
+//
 
 namespace {
 
@@ -153,7 +153,7 @@ void verify_meta_data(const char* directory, int& num_processes) {
 		buffer[length] = '\0';
 
 		if (xtring(buffer) != pftlist[i].name) {
-			fail("PFT list changed, expected %s, got %s", 
+			fail("PFT list changed, expected %s, got %s",
 			     (char*)pftlist[i].name,
 			     buffer);
 		}
@@ -169,7 +169,7 @@ void verify_meta_data(const char* directory, int& num_processes) {
 // Contains members of GuessSerializer which we don't want in the header
 struct GuessSerializer::Impl {
 
-	Impl(const char* directory, int my_rank) 
+	Impl(const char* directory, int my_rank)
 		: pms(directory, my_rank, GridcellSerializer(), CoordSerializer()) {
 	}
 

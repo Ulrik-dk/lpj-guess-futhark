@@ -29,21 +29,21 @@ GlobalCO2File::GlobalCO2File()
 void GlobalCO2File::load_file(const char* path) {
 	 // Reads in atmospheric CO2 concentrations for historical period
 	 // from ascii text file with records in format: <year> <co2-value>
-	 
-	 
+	
+	
 	 // Have we already loaded a file?
 	 if (first_year != BAD_YEAR) {
 		  // Go back to initial state
 		  first_year = BAD_YEAR;
 		  co2.clear();
 	 }
-	 
+	
 	 int calender_year;
 	 double next_co2;
-	 
+	
 	 FILE* in = fopen(path, "rt");
 	 if (!in) {
-		  fail("GlobalCO2File::load_file: could not open CO2 file %s for input", 
+		  fail("GlobalCO2File::load_file: could not open CO2 file %s for input",
 				 path);
 	 }
 
@@ -62,7 +62,7 @@ void GlobalCO2File::load_file(const char* path) {
 	 if (first_year == BAD_YEAR) {
 		  fail("GlobalCO2File::load_file: failed to load from file %s", path);
 	 }
-	 
+	
 	 fclose(in);
 }
 

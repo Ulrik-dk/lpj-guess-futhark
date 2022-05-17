@@ -67,7 +67,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 	
-		if (indiv.id!=-1 && indiv.alive) { 
+		if (indiv.id!=-1 && indiv.alive) {
 	
 			if (indiv.pft.lifeform==GRASS) {
 				fgrass += indiv.fpar_leafon;
@@ -100,15 +100,15 @@ int update_fire_biome(Patch& patch, double lat) {
 	fbrlt  /= ftot;
 	fshrb  /= (1.00001-fgrass);
 
-	// Save current 
-	int idx = date.year % N_YEAR_BIOMEAVG;  
+	// Save current
+	int idx = date.year % N_YEAR_BIOMEAVG;
 	patch.avg_ftot  [idx] = ftot   ;
 	patch.avg_fgrass[idx] = fgrass ;
 	patch.avg_fndlt [idx] = fndlt  ;
 	patch.avg_fbrlt [idx] = fbrlt  ;
 	patch.avg_fshrb [idx] = fshrb  ;
 	
-	// Generate running avereage 
+	// Generate running avereage
 	ftot   = 0.;
 	fgrass = 0.;
 	fndlt  = 0.;
@@ -127,33 +127,33 @@ int update_fire_biome(Patch& patch, double lat) {
 	fbrlt  /=  (double)N_YEAR_BIOMEAVG;
 	fshrb  /=  (double)N_YEAR_BIOMEAVG;
 
-	// Set Fire-Biome 
+	// Set Fire-Biome
 	if (ftot < 0.1 && fabs(lat) < 50.0) {
 		biome = SF_BARREN;
-	} 
+	}
 	else if (ftot < 0.1   && fabs(lat) >= 50.0) {
 		biome = SF_TUNDRA;
-	} 
+	}
 	else if (patch.stand.landcover == CROPLAND) {
 		biome = SF_CROP;
-	} 
+	}
 	else if (fshrb >= 0.8 && fabs(lat) < 50.0) {
 		biome = SF_SHRUBS;
-	} 
+	}
 	else if (fshrb >= 0.8 && fabs(lat) >= 50.0) {
 		biome = SF_TUNDRA;
-	} 
+	}
 	else if (fgrass >= 0.4) {
 		biome = SF_SAVANNA;
-	} 
+	}
 	else if (fndlt >= 0.6) {
 		biome = SF_NEEDLELEAF;
-	} 
+	}
 	else if (fbrlt >= 0.6) {
 		biome = SF_BROADLEAF;
 	}
 	else {
-		biome = SF_MIXED_FOREST;  
+		biome = SF_MIXED_FOREST;
 	}
 
 	return biome;
@@ -272,7 +272,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	int cyear = date.get_calendar_year();
 
 	// Find start and end year index of pop interpolation
-	int idx = 0 ;    
+	int idx = 0 ;
 	while (POPTIME[idx] < cyear) {
 		idx++;
 	}
@@ -284,7 +284,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	}
 	else if ( cyear >= POPTIME[NPOPENTRIES-1] ) {
 		// linearly extrapolate latest growth/decline
-		popd = gridcell.hyde31_pop_density[NPOPENTRIES-1] + 
+		popd = gridcell.hyde31_pop_density[NPOPENTRIES-1] +
 			(gridcell.hyde31_pop_density[NPOPENTRIES-1]-gridcell.hyde31_pop_density[NPOPENTRIES-2]) /
 			(double)(POPTIME[NPOPENTRIES-1] - POPTIME[NPOPENTRIES-2]) * (double)(cyear-POPTIME[NPOPENTRIES-1]);
 	}
@@ -293,7 +293,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 		// Interpolate between two entries
 		double interpf = (double)(cyear-POPTIME[idx-1]) /
 			(double)( POPTIME[idx]-POPTIME[idx-1] );
-		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
+		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] +
 			interpf * gridcell.hyde31_pop_density[idx];
 	}
 
@@ -310,22 +310,22 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	Climate& climate = gridcell.climate;
 	
 	// Absolute upper boundary for the accumulative nesterov index
-	const double MAXIMUM_NESTEROV = 1000000; 
+	const double MAXIMUM_NESTEROV = 1000000;
 
 	// Initialise on start of spinup or after restart
-	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+	bool is_first_day = ( date.day == 0 && ( date.year == 0 ||
 			       ( restart && date.year == state_year ) ) );
 
 	if ( is_first_day ) {
-		// Read monthly climatology and Hyde population-data from file 
+		// Read monthly climatology and Hyde population-data from file
 		getsimfiredata(gridcell);
 	}
 
 	if (date.day == 0 ) {
 		
-		// Initialise averaging array 
+		// Initialise averaging array
 		if ( date.year == 0 ) {
-			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) { 
+			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) {
 				gridcell.recent_max_fapar[i] = 0.5;
 			}
 			gridcell.ann_max_fapar = 0.5;
@@ -335,10 +335,10 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 				gridcell.monthly_max_nesterov[i] = 0.;
 			}
 			gridcell.cur_nesterov = 0.;
-		} 
+		}
 		else {
 			double avg = 0.;
-			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) { 
+			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) {
 				avg += gridcell.recent_max_fapar[i];
 			}
 			gridcell.ann_max_fapar = avg / (double) AVG_INTERVAL_FAPAR;
@@ -362,10 +362,10 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		gridcell.recent_max_fapar[a] = gridcell.cur_max_fapar;
 	}
 
-	// Update running Maximum Nesterov index array at beginning of month  
+	// Update running Maximum Nesterov index array at beginning of month
 	if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
-		for ( int i=0; i < 12; i++) 
+		for ( int i=0; i < 12; i++)
 			if ( gridcell.monthly_max_nesterov[i] > mnest ) {
 				mnest = gridcell.monthly_max_nesterov[i];
 			}
@@ -429,11 +429,11 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 // Calculate burned area in ha following Knorr 2014.
 double simfire_burned_area(Gridcell& gridcell) {
 
-	// Globally trained parameters 
-	const double A[8] = { 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  }; 
-	const double B = 0.905;  
-	const double C = 0.860; 
-	const double E = -0.0168; 
+	// Globally trained parameters
+	const double A[8] = { 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  };
+	const double B = 0.905;
+	const double C = 0.860;
+	const double E = -0.0168;
 	const double SCALAR = 1.0e-5;
 
 	// Return if improper biome-type
@@ -466,5 +466,5 @@ double simfire_burned_area(Gridcell& gridcell) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
-// Knorr, W. et al., Impact of human population density on fire frequency at the 
+// Knorr, W. et al., Impact of human population density on fire frequency at the
 //   global scale, BIOGEOSCIENCES, 11, 4, 2014, DOI: 10.5194/bg-11-1085-2014

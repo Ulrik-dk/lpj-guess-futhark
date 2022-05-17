@@ -34,9 +34,9 @@ public:
 	 */
 	virtual void init() = 0;
 
-	/// Obtains coordinates and soil static parameters for the next grid cell to simulate 
+	/// Obtains coordinates and soil static parameters for the next grid cell to simulate
 	/** The function should return false if no grid cells remain to be simulated,
-	 *  otherwise true. 
+	 *  otherwise true.
 	 *
 	 *  If the model is to be driven by quasi-daily values of the climate variables
 	 *  derived from monthly means, this function may be the appropriate place to
@@ -64,16 +64,16 @@ public:
 	 *  gridcell.climate.prec=dprec[date.day];
 	 *  gridcell.climate.insol=dsun[date.day];
 	 *
-	 *  Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
+	 *  Diurnal temperature range (dtr) added for calculation of leaf temperatures in
 	 *  BVOC:
-	 *  gridcell.climate.dtr=ddtr[date.day]; 
+	 *  gridcell.climate.dtr=ddtr[date.day];
 	 *
-	 *  If model is run in diurnal mode, which requires appropriate climate forcing data, 
+	 *  If model is run in diurnal mode, which requires appropriate climate forcing data,
 	 *  additional members of the climate must be initialised: temps, insols. Both of the
 	 *  variables must be of type std::vector. The length of these vectors should be equal
-	 *  to value of date.subdaily which also needs to be set either in getclimate or 
-	 *  getgridcell functions. date.subdaily is a number of sub-daily period in a single 
-	 *  day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
+	 *  to value of date.subdaily which also needs to be set either in getclimate or
+	 *  getgridcell functions. date.subdaily is a number of sub-daily period in a single
+	 *  day. Irrespective of the BVOC settings, climate.dtr variable is not required in
 	 *  diurnal mode.
 	 */
 	virtual bool getclimate(Gridcell& gridcell) = 0;

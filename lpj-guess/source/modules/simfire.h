@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file simfire.h
-/// \brief SIMFIRE - SIMple FIRE module to compute burnt area  
+/// \brief SIMFIRE - SIMple FIRE module to compute burnt area
 ///
 /// \author Lars Nieradzik
 /// $Date: 2015-08-25 09:19:28 +0200 (Tue, 25 Aug 2015) $
@@ -34,6 +34,6 @@ void getsimfiredata(Gridcell& gridcell);
 void simfire_accounting_gridcell(Gridcell& gridcell);
 
 /// Calculate burned area in ha following Knorr 2014.
-double simfire_burned_area(Gridcell& gridcell); 
+double simfire_burned_area(Gridcell& gridcell);
 
 #endif // LPJ_GUESS_SIMFIRE_H

@@ -12,9 +12,9 @@
 class CommandLineArguments;
 
 /// The 'mission control' of the model
-/** 
+/**
  *  Responsible for maintaining the primary model data structures and containing
- *  all explicit loops through space (grid cells/stands) and time (days and 
+ *  all explicit loops through space (grid cells/stands) and time (days and
  *  years).
  *
  *  \param args The command line arguments, sent in from main

@@ -26,8 +26,8 @@ void ncompete(std::vector<NCompetingIndividual>& individuals, double nmass_avail
 	}
 
 	bool full_uptake = true;			// If an individual could get more than its demand, then
-										// that indiv gets fnuptake = 1 and everything has to be 
-										// redone for all indiv with fnuptake < 1 as more nitrogen 
+										// that indiv gets fnuptake = 1 and everything has to be
+										// redone for all indiv with fnuptake < 1 as more nitrogen
 										// could be taken up per unit strength (starts with true to
 										// get into while loop)
 
@@ -36,7 +36,7 @@ void ncompete(std::vector<NCompetingIndividual>& individuals, double nmass_avail
 
 		double ratio_uptake;				// Nitrogen per uptake strength
 
-		// decide how much nitrogen that will be taken up by each uptake strength 
+		// decide how much nitrogen that will be taken up by each uptake strength
 		if (total_ups > 0.0) {
 			ratio_uptake = nsupply / total_ups;
 		}

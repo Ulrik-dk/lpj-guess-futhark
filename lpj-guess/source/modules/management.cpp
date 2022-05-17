@@ -227,7 +227,7 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)
  *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2)
  */
-void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig, 
+void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig,
 		double res_outtake_coarse_root, bool lc_change) {
 
 	Harvest_CN indiv_cp;
@@ -296,7 +296,7 @@ double cut_fraction(Patch& patch) {
 	double cut_fraction = 0.0;
 
 	if(harvest_system == "CLEARCUT") {
-		// First attempt to calculate optimum rotation age for clearcut 
+		// First attempt to calculate optimum rotation age for clearcut
 		if(patch.cmass_wood() / patch.age > patch.get_cmass_wood_inc_5() && patch.age > 20)
 			cut_fraction = 1.0;
 	}

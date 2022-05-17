@@ -49,8 +49,8 @@ public:
 	void deserialize_gridcell(Gridcell& gridcell);
 
 	/// Reads in multiple grid cells from the state file
-	/** If many grid cells should be deserialized at once, this one is better 
-	 *  than many calls to deserialize_gridcell since this one will avoid 
+	/** If many grid cells should be deserialized at once, this one is better
+	 *  than many calls to deserialize_gridcell since this one will avoid
 	 *  unnecessary file seeks.
 	 */
 	void deserialize_gridcells(const std::vector<Gridcell*>& gridcells);

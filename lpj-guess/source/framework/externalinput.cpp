@@ -70,7 +70,7 @@ void LandcoverInput::init() {
 		fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if iftwolayersoil = 1");
 	}
 
-	// Must used fixed root distribution when using the two layer soil 
+	// Must used fixed root distribution when using the two layer soil
 	if (iftwolayersoil && rootdistribution == ROOTDIST_JACKSON) {
 		fail("LandcoverInput::init(): rootdistribution must be fixed, not jackson, if iftwolayersoil = 1");
 	}
@@ -163,7 +163,7 @@ void LandcoverInput::init() {
 			}			
 		}
 
-		if(CFTdata.GetFormat()==InData::LOCAL_YEARLY || InData::GLOBAL_YEARLY) 
+		if(CFTdata.GetFormat()==InData::LOCAL_YEARLY || InData::GLOBAL_YEARLY)
 			all_fracs_const=false;				// Set all_fracs_const to false if yearly data
 	}
 
@@ -252,7 +252,7 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 	bool LUerror = false;
 
 
-	// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
+	// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and
 	// transferred to gridcell.landcoverfrac each year in getlandcover()
 
 	if (!lcfrac_fixed) {
@@ -289,7 +289,7 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 
 		if(run[lc] && !frac_fixed[lc]) {
 			
-			// Stand type fraction data: read from stand type fraction file; dynamic, so data for all years are loaded to st_data object and 
+			// Stand type fraction data: read from stand type fraction file; dynamic, so data for all years are loaded to st_data object and
 			// transferred to gridcell.landcover.frac[] each year in getlandcover()			
 
 			if(!st_data[lc].Load(c)) {
@@ -406,12 +406,12 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 							
 						if(lcfrac == NOTFOUND) {	// land cover not found in input file
 							lcfrac = 0.0;
-						} 
+						}
 						else if(lcfrac < 0.0 ) {	// discard unreasonable values
 							if(printyear)
 								dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 							lcfrac = 0.0;
-						} 
+						}
 						else if(lcfrac > 1.01) {	// discard unreasonable values
 							if(printyear)
 								dprintf("WARNING ! %d landcover %d fraction size %f out of limits, set to 1.0\n", date.get_calendar_year(), i, lcfrac);
@@ -449,7 +449,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			lc.frac[NATURAL] = 0.0;
 		}
 
-		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
+		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed.
 		if(!negligible(sum_active - 1.0, -14))	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
 
 			if(date.year == 0)
@@ -604,7 +604,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					stlist.nextobj();
 				}
 
-				if((ratio < 0.99 || ratio > 1.01) && printyear) {	// warn if sum is significantly different from 1.0 
+				if((ratio < 0.99 || ratio > 1.01) && printyear) {	// warn if sum is significantly different from 1.0
 					dprintf("WARNING ! %s fraction sum is %5.3f for input year %d\n", lcnames[lc], sum, year);
 					dprintf("Rescaling %s  fractions year %d !\n", lcnames[lc], date.get_calendar_year());
 				}
@@ -629,7 +629,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		if(fabs(gcst.frac_old - gcst.frac) < INPUT_RESOLUTION * 0.1 && !(!gcst.frac_old && gcst.frac > INPUT_RESOLUTION) && !(gcst.frac < INPUT_RESOLUTION))
 			gcst.frac = gcst.frac_old;
 		if(gcst.frac < INPUT_RESOLUTION)
-			gcst.frac = 0.0; 
+			gcst.frac = 0.0;
 		gcst.frac_change = gcst.frac - gcst.frac_old ;
 		stlist.nextobj();
 	}
@@ -794,10 +794,10 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 	int year = date.get_calendar_year() - 1;
 
-	// Assume that transitions in file are correct at end of year, therefore want to get 
+	// Assume that transitions in file are correct at end of year, therefore want to get
 	// "last year's" transitions, as landcover_dynamics is called at the beginning of the year.
-	// Transfers from primary (v) and secondary (s) land preferentially reduces the oldest and the 
-	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
+	// Transfers from primary (v) and secondary (s) land preferentially reduces the oldest and the
+	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result
 	// in killing of vegetation and creating a new NATURAL stand.
 
 	const bool use_barren_transfers = true;
@@ -929,7 +929,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 
 				for(int third=0; third<NLANDCOVERTYPES; third++) {
 
-					if(lc_frac_transfer[first][second] >= twoway_overshoot 
+					if(lc_frac_transfer[first][second] >= twoway_overshoot
 						&& lc_frac_transfer[third][second] >= twoway_overshoot
 						&& lc_frac_transfer[third][first] >= twoway_overshoot
 						&& first != second && first != third) {
@@ -1221,7 +1221,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 							if(print_adjustment_info)
 								dprintf("Trying with lc %d and %d\n", from, to);
 
-							if(print_adjustment_info) 
+							if(print_adjustment_info)
 								dprintf("\nUsing third land cover type\n");
 							for(int third=0; third<NLANDCOVERTYPES; third++) {
 
@@ -1375,7 +1375,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 
 		// 4. Third lc used, relaxed rules
 
-		if(print_adjustment_info) 
+		if(print_adjustment_info)
 			dprintf("\nUsing third land cover type, relaxed rules\n");
 		for(int from=0; from<NLANDCOVERTYPES; from++) {
 
@@ -1391,7 +1391,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 						// Errors must have opposite signs
 						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15)	{
 
-							if(print_adjustment_info) 
+							if(print_adjustment_info)
 								dprintf("\nUsing third land cover type, relaxed rules\n");
 							if(print_adjustment_info)
 								dprintf("Trying again with lc %d and %d\n", from, to);
@@ -1407,7 +1407,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 									}
 									double effective_corr;
 
-									// Transfer between from and third: 
+									// Transfer between from and third:
 									if(residual_error[from] >= 0.0) {
 										effective_corr = min(residual_error[from], fabs(residual_error[to]));
 										// Make sure lc_frac_transfer[third][from] not negative
@@ -1599,7 +1599,7 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 	c.lat = lat;
 	bool LUerror = false;
 
-	if(readsowingdates) { 
+	if(readsowingdates) {
 		if(!sdates.Load(c)) {
 			dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand

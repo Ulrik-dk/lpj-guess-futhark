@@ -718,7 +718,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 	//   (4) leaf_area = cmass_leaf * sla
 	// mort_shade = mortality due to shading ("self thinning") as total tree cover
 	//   approaches 1 (see code)
-	// mort_fire = mortality due to fire when using fire model GLOBFIRM. 
+	// mort_fire = mortality due to fire when using fire model GLOBFIRM.
 	//   Fire model BLAZE handles fire mortality separately. See blaze.cpp.
 	//   the fraction of the modelled area affected by
 	//   fire (fireprob) is calculated in function fire; actual mortality is influenced
@@ -732,7 +732,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 	// fireprob = fraction of modelled area affected by fire
 
 	// Constant in mortality equation [c.f. mort_max; LPJF]
-	const double K_MORT1=0.01; 
+	const double K_MORT1=0.01;
 	// Constant in mortality equation [c.f. k_mort; LPJF]; the value here differs
 	// from LPJF's k_mort in that growth efficiency here based on annual NPP, c.f.
 	// net growth increment; LPJF	
@@ -851,8 +851,8 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			if (patch.has_fires() && firemodel == GLOBFIRM) {
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			}
-			else { 
-				mort_fire=0.0; 
+			else {
+				mort_fire=0.0;
 			}
 
 			// Sum mortality components to give total mortality (maximum 1)
@@ -965,9 +965,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	// Five-year-mean growth efficiency (kgC/m2 leaf/year)
 	double greff_mean;
 	// Number of individuals (remaining) in cohort
-	int nindiv; 
+	int nindiv;
 	// Number of individuals in cohort prior to mortality
-	int nindiv_prev; 
+	int nindiv_prev;
 	int i;
 	bool killed;
 
@@ -1244,8 +1244,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Update allometry
 
 				else allometry(indiv);
-			} 
-			else { 
+			}
+			else {
 				
 				// MORTALITY in PEATLAND stands
 				// i.e. shading mortality when LAI gets too high (cf mortality_lpj above), whereupon
@@ -1262,7 +1262,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 						double maxlai_peatland = wetlandlailimit; // set from .ins file
 						
 						if (patch.stand.is_true_wetland_stand())
-							maxlai_peatland *= 2; // Allow higher LAI values for wetlands south of PEATLAND_WETLAND_LATITUDE_LIMIT N as these are more productive  
+							maxlai_peatland *= 2; // Allow higher LAI values for wetlands south of PEATLAND_WETLAND_LATITUDE_LIMIT N as these are more productive
 
 						double maxfpc_peatland = 1.0 - exp(-0.5 * maxlai_peatland);
 
@@ -1600,7 +1600,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 // Thonicke, K, Venevsky, S, Sitch, S & Cramer, W (2001) The role of fire disturbance
 //   for global vegetation dynamics: coupling fire into a Dynamic Global Vegetation
 //   Model. Global Ecology and Biogeography 10: 661-677.
-// Wolf, A., Callaghan T.V., & Larson K. (2008) Future changes in vegetation and ecosystem 
+// Wolf, A., Callaghan T.V., & Larson K. (2008) Future changes in vegetation and ecosystem
 //   function of the Barents Region. Climatic Change, 87:51-73 DOI 10.1007/s10584-007-9342-
 // Zwillinger, D 1996 CRC Standard Mathematical Tables and Formulae, 30th ed. CRC
 //   Press, Boca Raton, Florida.

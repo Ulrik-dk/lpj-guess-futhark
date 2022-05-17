@@ -63,7 +63,7 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 				ppftcrop.phu = pft.phu;
 			}
 			// not all past 20 years without vernendoccurred: too cold
-			else if (!(gridcellpft.last_verndate20 == gridcellpft.last_springdate20 + def_verndate_ndays_after_last_springdate 
+			else if (!(gridcellpft.last_verndate20 == gridcellpft.last_springdate20 + def_verndate_ndays_after_last_springdate
 						&& gridcellpft.last_verndate == gridcellpft.last_verndate20)) {
 
 				// pvd (required vernalising days): undocumented equations from Bondeau's code
@@ -102,7 +102,7 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 			const double phu_spring_ifnvern = 1500.0;
 
 			// If last_verndate has occurred during the past 20 years (or too warm):
-			if (!(gridcellpft.last_verndate20 == ppftcrop.sdate + def_verndate_ndays_after_last_springdate 
+			if (!(gridcellpft.last_verndate20 == ppftcrop.sdate + def_verndate_ndays_after_last_springdate
 					&& gridcellpft.last_verndate == gridcellpft.last_verndate20)) {
 				ppftcrop.pvd = (int)min(max_pvd, gridcellpft.last_verndate20 - ppftcrop.sdate);
 				ppftcrop.phu = phu_spring_ifvern;

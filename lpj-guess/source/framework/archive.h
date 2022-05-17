@@ -80,7 +80,7 @@ public:
 
 /// Function for checking if something inherits from Serializable
 /** This variant will be chosen by the compiler for anything which
-  * isn't Serializable (because of the overload below), and so always 
+  * isn't Serializable (because of the overload below), and so always
   * returns false.
   *
   * Only intended to be used from the operator& implementation below,

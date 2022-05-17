@@ -258,11 +258,11 @@ void CommonOutput::define_output_tables() {
 	firert_columns += ColumnDescriptor("FireRT",			8, 1);
 	firert_columns += ColumnDescriptor("BurntAr",			8, 5);
 
-	// BLAZE burnt area 
+	// BLAZE burnt area
 	ColumnDescriptors blaze_columns;
 	blaze_columns += ColumnDescriptor("BurntAr",			9, 5);
 
-	// SIMFIRE Analysis 
+	// SIMFIRE Analysis
 	ColumnDescriptors simfireanalysis_columns;
 	simfireanalysis_columns += ColumnDescriptor("Biome",	6, 0);
 	simfireanalysis_columns += ColumnDescriptor("MxNest",	7, 0);
@@ -447,13 +447,13 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
 	create_output_table(out_mburned_area,   file_mburned_area_out, month_columns);
-    
+
 	// Methane
 	create_output_table(out_mch4,           file_mch4,           month_columns);
 	create_output_table(out_mch4diff,       file_mch4diff,       month_columns);
 	create_output_table(out_mch4plan,       file_mch4plan,       month_columns);
 	create_output_table(out_mch4ebull,      file_mch4ebull,      month_columns);
-    
+
 	// Snow
 	create_output_table(out_msnow,          file_msnow,          month_columns);
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);
@@ -483,7 +483,7 @@ void CommonOutput::define_output_tables() {
 void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 	
 	// File for output of 3D vegetation structure (invoked by Windows shell only)
-	plot3d_fileopen(); 
+	plot3d_fileopen();
 	
 	if (plot3d_getfilehandle()) {
 
@@ -561,7 +561,7 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 				fwrite(&grasslai, sizeof(double), 1, plot3d_getfilehandle());
 			}
 			++gc_itr;
-		} //while (gridcell.isobj) 
+		} //while (gridcell.isobj)
 
 		plot3d_fileclose();
 
@@ -675,7 +675,7 @@ void outlimit(OutputRows& out, const Table& table, double d) {
 
 /// Output of simulation results at the end of each year
 /** Output of simulation results at the end of each year, or for specific years in
-  * the simulation of each stand or grid cell. 
+  * the simulation of each stand or grid cell.
   * This function does not have to provide any information to the framework.
   *
   * Restrict output to specific years in the local helper function outlimit().
@@ -1503,7 +1503,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		aintercep += mintercep[m];
 
 		// Arctic and wetland output
-		const int layer_ix_25cm = 2; // Layer index for 25cm soil depth. It could depend on the thickness of the layers in future updates.  
+		const int layer_ix_25cm = 2; // Layer index for 25cm soil depth. It could depend on the thickness of the layers in future updates.
 		outlimit(out,out_msoiltempdepth5, msoilt[m][0]);
 		outlimit(out,out_msoiltempdepth15, msoilt[m][1]);
 		outlimit(out,out_msoiltempdepth25, msoilt[m][layer_ix_25cm]);

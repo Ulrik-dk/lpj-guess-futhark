@@ -65,7 +65,7 @@ public:
 		}
 	}
 
-	// guess2008 - NEW METHODS 
+	// guess2008 - NEW METHODS
 
 	void reset_clim() {
 		for (int ii = 0; ii < 12; ii++) dataclim[ii] = 0.0;
@@ -87,7 +87,7 @@ public:
 
 	bool extract_data(double source[][12], const int& startyear, const int& endyear) {
 		
-		// Populate data with data from the middle of source. 
+		// Populate data with data from the middle of source.
 		// Condition: endyear - startyear + 1 == nyear
 		// if startyear == 1 and endyear == 30 then this function is identical to get_data_from above.
 
@@ -101,7 +101,7 @@ public:
 				}
 			}
 
-		} 
+		}
 		else return false;
 
 		return true;
@@ -110,8 +110,8 @@ public:
 
 	void adjust_data(double anom[12], bool additive) {
 		
-		// Adjust the spinup data to the conditions prevailing at a particular time, as given by 
-		// the (additive or multiplicative) anomalies in anom 
+		// Adjust the spinup data to the conditions prevailing at a particular time, as given by
+		// the (additive or multiplicative) anomalies in anom
 		int y,m;
 		for (y=0;y<nyear;y++) {
 			for (m=0;m<12;m++) {
@@ -142,7 +142,7 @@ public:
 	
 		// factor == 0 gives us the climatology (i.e. generalises use_clim_data above)
 		// factor == 1 leaves everything unchanged
-		// Remember to check the for negative precip or cloudiness values etc. 
+		// Remember to check the for negative precip or cloudiness values etc.
 		// after calling this method.
 
 		if (factor == 1.0) return;

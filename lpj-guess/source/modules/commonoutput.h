@@ -64,7 +64,7 @@ private:
 	xtring file_msoiltempdepth5, file_msoiltempdepth15, file_msoiltempdepth25, file_msoiltempdepth35, file_msoiltempdepth45, file_msoiltempdepth55, file_msoiltempdepth65, file_msoiltempdepth75, file_msoiltempdepth85, file_msoiltempdepth95, file_msoiltempdepth105, file_msoiltempdepth115, file_msoiltempdepth125, file_msoiltempdepth135, file_msoiltempdepth145;
 	
 	// Methane fluxes
-	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull; 
+	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull;
 	
 	// Snow, water table depth and active layer depth
 	xtring file_msnow, file_mwtp, file_mald;

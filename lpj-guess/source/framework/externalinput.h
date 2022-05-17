@@ -35,10 +35,10 @@ public:
 	/// Gets land cover and stand type fractions for a year.
 	/** Updates landcover and stand type variables frac, frac_old and frac_change
 	 *  Area fractions are re-scaled if sum is not 1.0
-	 */ 
+	 */
 	void getlandcover(Gridcell& gridcell);
 
-	/// Gets crop stand type fractions for a year, called from getlandcover() 
+	/// Gets crop stand type fractions for a year, called from getlandcover()
 	double get_crop_fractions(Gridcell& gridcell, int year, TimeDataD& CFTdata, double sum_tot);
 
 	/// Gets land cover or stand type transitions for a year
@@ -46,9 +46,9 @@ public:
 
 	/// Gets land cover transitions for a year
 	/** Updates landcover frac_transfer array
-	 *  Transition values are checked against net lcc fractions and 
-	 *  rescaled if necessary. 
-	 */ 
+	 *  Transition values are checked against net lcc fractions and
+	 *  rescaled if necessary.
+	 */
 	bool get_lc_transfer(Gridcell& gridcell);
 
 	/// Gets first historic year of net land cover fraction input data

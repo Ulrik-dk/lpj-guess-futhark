@@ -270,10 +270,10 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 	soil.cpool_fast*=fr_soilfast;
 	soil.cpool_slow*=fr_soilslow;
 
-	// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.  
+	// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.
 	if (patch.stand.landcover != PEATLAND)
 		patch.fluxes.report_flux(Fluxes::SOILC, cflux);
-	else 
+	else
 		soil.dcflux_soil=cflux;
 
 	// Solve SOM pool sizes at end of year given by soil.solvesom_end
@@ -396,7 +396,7 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 			// Linear approach (Koven et al. 2011)
 			double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
 			temp_mod = slope * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
-		} 
+		}
 		else {
 			// Alternative Q10 relationship (Schaefer & Jafarov, 2016)
 			double q10_freeze = 200.5; // i.e. average of 164 and 237 based on incubation of frozen soil samples (Mikan et al., 2002)
@@ -437,7 +437,7 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 		}
 
 		double acrotelm_climit = 7.5; // kgC/m2 - Max C content in a 30cm-deep acrotelm - see Wania et al. (2009b)
-		if (cmass_total > acrotelm_climit) { // take a weighted average of the aerobic and anaerobic moisture modifiers 
+		if (cmass_total > acrotelm_climit) { // take a weighted average of the aerobic and anaerobic moisture modifiers
 			moist_mod = (acrotelm_climit * RMOIST + (cmass_total-acrotelm_climit) * RMOIST_ANAEROBIC) / cmass_total;
 			// moist_mod approaches a value of RMOIST_ANAEROBIC asymptotically as cmass_total increases
 		}
@@ -773,11 +773,11 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	if (!ifequilsom) {
 
-		// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.  
+		// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.
 		if (patch.stand.landcover != PEATLAND)
 			patch.fluxes.report_flux(Fluxes::SOILC, respsum);
-		else 
-			soil.dcflux_soil=respsum; 
+		else
+			soil.dcflux_soil=respsum;
 
 		// Sum annual organic nitrogen leaching
 
@@ -796,7 +796,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	soil.labile_carbon = respsum * frac_labile_carbon;
 
 	// Adding mineral nitrogen to soil available pool
-	double nmin_inc = nmin_actual - nimmob; 
+	double nmin_inc = nmin_actual - nimmob;
 
 	// Estimate of N flux from soil (simple CLM-CN approach)
 	if(!ifntransform) {
@@ -816,7 +816,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		if(ifntransform) {
 			soil.NH4_mass = NMASS_SAT / 2.0;
 			soil.NO3_mass = NMASS_SAT / 2.0;
-		} 
+		}
 		else {
 			soil.NH4_mass = NMASS_SAT;
 		}
@@ -1040,7 +1040,7 @@ void transfer_litter(Patch& patch) {
 				}
 			}
 
-			// Monthly fraction of REMAINING last year's heartwood litter 
+			// Monthly fraction of REMAINING last year's heartwood litter
 			double litter_heart       = pft.litter_heart       / (12. - (double)date.month);
 			double nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
 			pft.litter_heart         -= litter_heart;
@@ -1148,7 +1148,7 @@ void leaching(Soil& soil) {
 
 		// Leaching from available nitrogen mineral pool
 		// in proportion to amount of water drainage
-		// Use Gerten equivalents here 
+		// Use Gerten equivalents here
 		minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.gawc[0] * soil.get_soil_water_upper());
 
 		// Leaching from decayed organic carbon/nitrogen
@@ -1293,7 +1293,7 @@ void vegetation_n_uptake(Patch& patch) {
 			double ammonium = nuptake_day * ammonium_frac;
 			soil.NH4_mass -= ammonium;
 			soil.NO3_mass -= nuptake_day - ammonium;
-		} 
+		}
 		else {
 			soil.nmass_subtract(nuptake_day);
 		}
@@ -1515,7 +1515,7 @@ void som_dynamics(Patch& patch, Climate& climate) {
 //   with a modified version of the CENTURY model." Soil Biology & Biochemistry 34(3): 341-354.
 // Meentemeyer, V. (1978) Macroclimate and lignin control of litter decomposition
 //   rates. Ecology 59: 465-472.
-// Mikan, C. J., Schimel, J. P., and Doyle, A. P. 2002. Temperature controls of microbial respiration 
+// Mikan, C. J., Schimel, J. P., and Doyle, A. P. 2002. Temperature controls of microbial respiration
 //   in arctic tundra soils above and below freezing, Soil Biol.Biochem., 34, 1785–1795, 2002.
 // Parton, W. J., Scurlock, J. M. O., Ojima, D. S., Gilmanov, T. G., Scholes, R. J., Schimel, D. S.,
 //   Kirchner, T., Menaut, J. C., Seastedt, T., Moya, E. G., Kamnalrut, A. & Kinyamario, J. I. 1993.
@@ -1524,7 +1524,7 @@ void som_dynamics(Patch& patch, Climate& climate) {
 // Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. & Kelly, R. 2010.
 //   ForCent model development and testing using the Enriched Background Isotope Study experiment.
 //   Journal of Geophysical Research-Biogeosciences, 115.
-// Schaefer, K. and Jafarov, E. 2016. 
+// Schaefer, K. and Jafarov, E. 2016.
 //   A parameterization of respiration in frozen soils based on substrate availability
 //   Biogeosciences, 13, 1991 - 2001, https ://doi.org/10.5194/bg-13-1991-2016
 

@@ -30,9 +30,9 @@ struct NCompetingIndividual {
 
 /// Distributes N among individuals according to supply, demand and uptake strength
 /** Grasses should get at least 5% and no
- *  individual should get more than 100% of its nitrogen demand. 
+ *  individual should get more than 100% of its nitrogen demand.
  */
-void ncompete(std::vector<NCompetingIndividual>& individuals, 
+void ncompete(std::vector<NCompetingIndividual>& individuals,
               double nmass_avail);
 
 #endif // LPJ_GUESS_NCOMPETE_H

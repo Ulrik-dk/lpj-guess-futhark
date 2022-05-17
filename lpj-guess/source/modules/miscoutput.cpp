@@ -328,7 +328,7 @@ void MiscOutput::define_output_tables() {
         create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
 
 	if(run_landcover)
-		create_output_table(out_irrigation, file_irrigation,     irrigation_columns); 
+		create_output_table(out_irrigation, file_irrigation,     irrigation_columns);
 
 	create_output_table(out_npool_cropland, file_npool_cropland, npool_columns);
 	create_output_table(out_npool_pasture,  file_npool_pasture,  npool_columns);
@@ -405,7 +405,7 @@ void outlimit_misc(OutputRows& out, const Table& table, double d) {
 
 /// Output of simulation results at the end of each year
 /** Output of simulation results at the end of each year, or for specific years in
-  * the simulation of each stand or grid cell. 
+  * the simulation of each stand or grid cell.
   * This function does not have to provide any information to the framework.
   *
   * Restrict output to specific years in the local helper function outlimit_misc().
@@ -1176,7 +1176,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			pftlist.firstobj();
 			while (pftlist.isobj) {
 
-				 Pft& pft=pftlist.getobj();	 
+				 Pft& pft=pftlist.getobj();	
 				 Standpft& standpft=stand.pft[pft.id];
 
 				 if(standpft.active)

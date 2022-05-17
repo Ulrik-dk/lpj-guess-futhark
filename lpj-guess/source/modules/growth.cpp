@@ -1572,5 +1572,5 @@ void growth(Stand& stand, Patch& patch) {
 // Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
 //   land surface model: 1. Model description, site-scale evaluation, and sensitivity
 //   to parameter estimates. Global Biogeochemical Cycles, 24.
-// Zeide, B. 2001. Natural thinning and environmental change: an ecological process model. 
+// Zeide, B. 2001. Natural thinning and environmental change: an ecological process model.
 // Forest Ecology and Management 154: 165-177.

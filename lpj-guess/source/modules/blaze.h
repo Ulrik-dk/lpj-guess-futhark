@@ -29,6 +29,6 @@ void blaze_accounting_gridcell(Climate& climate);
  */
 void blaze_driver(Patch& patch, Climate& climate);
 
-#endif 
+#endif
 
 
