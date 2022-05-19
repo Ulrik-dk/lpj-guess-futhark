@@ -531,6 +531,31 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 	else {
 		vmaxnlim = 1.0;
 	}
+
+	if (FIRST_TIME_HERE) {
+	  static std::ostringstream oss;
+	  init_oss(oss);
+
+	  dec_real(oss, "b", b);
+	  dec_real(oss, "c1", c1);
+		dec_real(oss, "c2", c2);
+		dec_real(oss, "apar", apar);
+		dec_real(oss, "tscal", tscal);
+		dec_real(oss, "daylength", daylength);
+		dec_real(oss, "temp", temp);
+		dec_real(oss, "nactive", nactive);
+		dec_bool(oss, "ifnlimvmax", ifnlimvmax);
+
+	  finish_input(oss, "(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax)");
+
+	  string res_fields_values[] =
+	    {"vm", "vm", to_string(vm)
+	    ,"vmaxnlim", "vmaxnlim", to_string(vmaxnlim)
+	    ,"nactive_opt", "nactive_opt", to_string(nactive_opt)};
+	  gen_entry_point_tests(oss, "vmax", "(vm, vmaxnlim, nactive_opt)", res_fields_values, 3);
+
+	  gen_test_file(oss, "vmax");
+	}
 }
 
 /// Total daily gross photosynthesis
@@ -748,11 +773,11 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 			ps_result.agd_g *= moss_ps_limit;
 			ps_result.rd_g *= moss_ps_limit;
 		}
-	
+
 		// 2b) Graminoid dessication (NB! all other PFTs have graminoid_ps_limit == 1)
 		ps_result.agd_g *= graminoid_ps_limit;
 		ps_result.rd_g *= graminoid_ps_limit;
-	
+
 	}
 
     // Leaf-level net daytime photosynthesis (gC/m2/day)
@@ -798,31 +823,18 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	  finish_input(oss, "(ps_env, ps_stresses, pft, lambda, nactive, vm)");
 
 		string res_fields_values[] =
-	    {"agd_g", to_string(ps_result.agd_g),
-	      "adtmm", to_string(ps_result.adtmm),
-				"rd_g", to_string(ps_result.rd_g),
-				"vm", to_string(ps_result.vm),
-				"je", to_string(ps_result.je),
-				"nactive_opt", to_string(ps_result.nactive_opt),
-				"vmaxnlim", to_string(ps_result.vmaxnlim)};
-		gen_entry_point_tests(oss, "photosynthesis", res_fields_values, 7);
+	    {"agd_g", "ps_result.agd_g", to_string(ps_result.agd_g),
+	      "adtmm", "ps_result.adtmm", to_string(ps_result.adtmm),
+				"rd_g", "ps_result.rd_g", to_string(ps_result.rd_g),
+				"vm", "ps_result.vm", to_string(ps_result.vm),
+				"je", "ps_result.je", to_string(ps_result.je),
+				"nactive_opt", "ps_result.nactive_opt", to_string(ps_result.nactive_opt),
+				"vmaxnlim", "ps_result.vmaxnlim", to_string(ps_result.vmaxnlim)};
+		gen_entry_point_tests(oss, "photosynthesis", "ps_result", res_fields_values, 7);
 
 		gen_test_file(oss, "photosynthesis");
 	}
 }
-
-
-/*
-		init_obj(oss, "ps_result", "PhotosynthesisResult");
-		inplace_update(oss, "ps_result", "", ps_result.agd_g);
-		inplace_update(oss, "ps_result", "", ps_result.adtmm);
-		inplace_update(oss, "ps_result", "", ps_result.rd_g);
-		inplace_update(oss, "ps_result", "", ps_result.vm);
-		inplace_update(oss, "ps_result", "", ps_result.je);
-		inplace_update(oss, "ps_result", "", ps_result.nactive_opt);
-		inplace_update(oss, "ps_result", "", ps_result.vmaxnlim);
-*/
-
 
 /// Calculate value for canopy conductance component associated with photosynthesis (mm/s)
 /** Eqn 21, Haxeltine & Prentice 1996
@@ -902,7 +914,7 @@ double get_moss_wtp_limit(Patch& p, Pft& pft) {
  */
 void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
-	PhotosynthesisEnvironment ps_env;					
+	PhotosynthesisEnvironment ps_env;
 	PhotosynthesisStresses ps_stress;
 	ps_stress.no_stress();
 
@@ -1072,7 +1084,7 @@ void nstore_usage(Vegetation& vegetation) {
 
 				// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
 				indiv.nstress = ifnlim;
-				
+
 			}
 		}
 		else
@@ -1715,7 +1727,7 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
  */
 double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	Patchpft& ppft = patch.pft[pft.id];
-	
+
 	// Prepare for water balance tests
 	double initial_water_in_column = 0.0;
 
@@ -1771,7 +1783,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				// Array of optimal wcont_values instead.
 				for (int i = 0; i<NSOILLAYER_UPPER; i++) {
 					wcont_opt[i] = (wr_opt * pft.emax - min(patch.soil.get_soil_water_lower() * awc1 * patch.fpc_rescale, pft.emax * grootdist[1])/ NSOILLAYER_UPPER) / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
-			
+
 					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * pft.rootdist[i]) {
 						wcont_opt[i] = pft.emax * pft.rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
 					}
@@ -1858,13 +1870,13 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				// to test the new wcont
 				double total_available_water = 0.0;
 				double total_capacity = 0.0;
-	
+
 				for (int s=0; s<NSOILLAYER_UPPER; s++) {
 
 					if (add_water[s]) {
 
 						double water_input_ly = 0.0;
-						
+
 						if (iftwolayersoil)
 							water_input_ly = water_to_add * (potential_layer[s] / potential_water);
 						else
@@ -1873,12 +1885,12 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 						Faw_layer[s] += water_input_ly;
 						potential_layer[s] -= water_input_ly;
 						wcont_cp[s] = Faw_layer[s] / soil.soiltype.awc[s];
-				
+
 						// Update wcont (and wcont_evap, Frac_water etc.) too
 						soil.set_layer_soil_water(s, Faw_layer[s] / soil.soiltype.awc[s]);
 
 					}
-					
+
 					total_available_water += wcont_cp[s] * soil.soiltype.awc[s]; // mm
 					total_capacity += soil.soiltype.awc[s]; // mm
 
@@ -1897,7 +1909,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				// Error check
 				if (iftwolayersoil) {
 					double new_wcont = total_available_water/ total_capacity;
-			
+
 					if (fabs(new_wcont - wcont_0_opt) > 0.0001) {
 						dprintf("irrigated_water_uptake - error in the water balance!\n");
 						return -9999.0;
@@ -2807,4 +2819,3 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
 //   land surface model: 1. Model description, site-scale evaluation, and sensitivity
 //   to parameter estimates. Global Biogeochemical Cycles, 24.
-
