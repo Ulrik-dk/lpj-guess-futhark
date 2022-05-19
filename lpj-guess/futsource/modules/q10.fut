@@ -36,8 +36,9 @@ type LookupQ10 = {
 --- Creates a lookup table
 -- \param q10    The Q10 to be used for the table
 -- \param base25 Base value for 25 degrees C
-let LookupQ10(q10 : real, base25 : real) =
-  map (\i -> base25 * pow(q10, (Q10_MINTEMP + (realFromInt i)*Q10_PRECISION - 25.0) / 10.0)) (iota Q10_NDATA)
+let LookupQ10(q10 : real, base25 : real) = map (\i ->
+   base25 * pow(q10, (Q10_MINTEMP + (realFromInt i)*Q10_PRECISION - 25.0) / 10.0))
+   (iota Q10_NDATA)
 
 -- "Array element" operator
 -- \param temp  Temperature (deg C)

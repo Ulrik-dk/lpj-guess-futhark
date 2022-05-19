@@ -115,7 +115,7 @@ void gen_entry_point_test(std::ostringstream& oss
 
   // print entrypoint
   oss << "entry " << testname << "_test" << " =" << endl;
-  oss << "  let " << function_output << "=" << function << " input" << endl;
+  oss << "  let " << function_output << " = " << function << " input" << endl;
   oss << "  in " << output_element << endl;
   oss << endl;
  }

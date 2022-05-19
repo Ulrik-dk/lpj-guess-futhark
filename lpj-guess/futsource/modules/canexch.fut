@@ -384,19 +384,19 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   let PATMOS : real = 1e5  -- atmospheric pressure (Pa)
 
   -- Get the environmental variables
-  let temp : real = ps_env.temp
-  let co2 : real = ps_env.co2
-  let fpar : real = ps_env.fpar
-  let par : real = ps_env.par
-  let daylength : real = ps_env.daylength
+  let temp : real = ps_env.temp -- 21.794977
+  let co2 : real = ps_env.co2 -- 296.378500
+  let fpar : real = ps_env.fpar --1.000000
+  let par : real = ps_env.par --7307193.574951
+  let daylength : real = ps_env.daylength --10.826868
 
   -- Get the stresses
-  let ifnlimvmax : bool = ps_stresses.ifnlimvmax
+  let ifnlimvmax : bool = ps_stresses.ifnlimvmax -- false
 
-  let pstemp_max = pft.pstemp_max
-  let pstemp_high = pft.pstemp_high
-  let pstemp_low = pft.pstemp_low
-  let pstemp_min = pft.pstemp_min
+  let pstemp_max = pft.pstemp_max --55
+  let pstemp_high = pft.pstemp_high--30
+  let pstemp_low = pft.pstemp_low--25
+  let pstemp_min = pft.pstemp_min--2
 
   let pathway = pft.pathway
   let lifeform = pft.lifeform
@@ -407,7 +407,10 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   -- Scale fractional PAR absorption at plant projective area level (FPAR) to
   -- fractional absorption at leaf level (APAR)
   -- Eqn 4, Haxeltine & Prentice 1996a
-  let apar : real = par * fpar * alphaa(pft)
+
+  let (par, fpar) = (7.30719e+06, 1)
+
+  let apar : real = 4.74968e+6--par * fpar * alphaa(pft)
 
   -- Calculate temperature-inhibition coefficient
   -- This function (tscal) is mathematically identical to function tstress in LPJF.
@@ -457,17 +460,20 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
       -- Calculation of C1_C4 given actual pi (lambda)
       -- C1_C4 incorporates term accounting for effect of intercellular CO2
       -- concentration on photosynthesis (Eqn 14, 16, Haxeltine & Prentice 1996a)
-      let b = BC4
       let c1 = min(lambda/LAMBDA_SC4, 1.0) * ALPHA_C4
       let c2 = 1.0
+      let b = BC4
       in (b, c1, c2)
 
   -- Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
   let ps_result = PhotosynthesisResult()
 
+
+
   let (vm, vmaxnlim, nactive_opt) =
     if (vm < 0) then vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax)
     else (ps_result.vm, ps_result.vmaxnlim, ps_result.nactive_opt)
+
 
   -- Calculation of daily leaf respiration
   -- Eqn 10, Haxeltine & Prentice 1996a
@@ -486,6 +492,7 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   -- Notes: - there is an error in Eqn 2, Haxeltine & Prentice 1996a (missing
   --       theta in 4*theta*je*jc term) which is fixed here
   let agd_g = ((je + jc - sqrt((je + jc) * (je + jc) - 4.0 * THETA * je * jc)) /(2.0 * THETA) * daylength)
+
 
   let (agd_g, rd_g) = if (!iftwolayersoil) then
     -- LIMITS TO PHOTOSYNTHESIS
@@ -526,13 +533,13 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   let adt : real = agd_g - daylength / 24.0 * rd_g
 
   -- Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
-  let adtmm = (adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3)
-  in {agd_g=agd_g,
-      adtmm=adtmm,
-      je=je,
-      rd_g=rd_g,
-      vm=vm,
-      nactive_opt=nactive_opt,
+  let adtmm = (adt / 12 * 8.314 * (temp + 273.15) / 100000 * 1000) -- expected 20, got 31 -- 0.64
+  in {agd_g=agd_g, -- expected 11, got 16 -- 0.67
+      adtmm=adtmm, -- expected 20, got 31 -- 0.64
+      je=je, -- expected 1.248, got 1.711 -- 0.73
+      rd_g=rd_g, -- expected 2.704, got 2.364 -- 1.144
+      vm=vm, -- expected 180.282, got 118.218 -- 1.525
+      nactive_opt=nactive_opt, -- expected 1.2033e-2, got 7.890385969566833e-3 --1.525
       vmaxnlim=vmaxnlim
   }
 

@@ -306,7 +306,7 @@ let ifbvoc : bool = true
 -- Arctic and wetland inputs
 
 --- Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
-let iftwolayersoil : bool = true
+let iftwolayersoil : bool = false
 
 --- Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 let ifmultilayersnow : bool = true

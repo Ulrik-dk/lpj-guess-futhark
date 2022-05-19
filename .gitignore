@@ -1,3 +1,12 @@
 *.svn*
 *build*
 A0DIrVORl7.zip
+extra/
+lpj-guess/example/gmon.out
+lpj-guess/example/analysis.txt
+lpj-guess/example/guess
+lpj-guess/example/guess.log
+lpj-guess/results.out
+**gch
+**.actual
+**.expected

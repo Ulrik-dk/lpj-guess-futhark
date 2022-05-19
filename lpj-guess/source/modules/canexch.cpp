@@ -487,7 +487,6 @@ void fpar(Patch& patch) {
 }
 
 double alphaa(const Pft& pft) {
-
 	if (pft.phenology == CROPGREEN)
 		return ifnlim ? ALPHAA_CROP_NLIM : ALPHAA_CROP;
 	else
@@ -664,11 +663,11 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	double apar = par * fpar * alphaa(pft);
 	double b, c1, c2;
 
-
 	// Calculate temperature-inhibition coefficient
 	// This function (tscal) is mathematically identical to function tstress in LPJF.
 	// In contrast to earlier versions of modular LPJ and LPJ-GUESS, it includes both
 	// high- and low-temperature inhibition.
+
 	double k1 = (pft.pstemp_min+pft.pstemp_low) / 2.0;
 	double tscal = (1. - .01*exp(4.6/(pft.pstemp_max-pft.pstemp_high)*(temp-pft.pstemp_high)))/
 							(1.0+exp((k1-temp)/(k1-pft.pstemp_min)*4.6));
@@ -721,14 +720,18 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 		c2 = 1;
 		b = BC4;
 	}
-	if (vm < 0) {
 
+
+	if (vm < 0) {
 		// Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
 		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, ps_result.vm, ps_result.vmaxnlim, ps_result.nactive_opt);
 	}
 	else {
 		ps_result.vm = vm;			// reuse existing Vmax
 	}
+
+
+
 	// Calculation of daily leaf respiration
 	// Eqn 10, Haxeltine & Prentice 1996a
 	ps_result.rd_g = ps_result.vm * b;
@@ -736,6 +739,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// PAR-limited photosynthesis rate (gC/m2/h)
 	// Eqn 3, Haxeltine & Prentice 1996a
 	ps_result.je = c1 * tscal * apar * CMASS * CQ / daylength;
+
 
 	// Rubisco-activity limited photosynthesis rate (gC/m2/h)
 	// Eqn 5, Haxeltine & Prentice 1996a
@@ -745,8 +749,8 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// Eqn 2, Haxeltine & Prentice 1996a
 	// Notes: - there is an error in Eqn 2, Haxeltine & Prentice 1996a (missing
 	// 			theta in 4*theta*je*jc term) which is fixed here
-	ps_result.agd_g = (ps_result.je + jc - sqrt((ps_result.je + jc) * (ps_result.je + jc) - 4.0 * THETA * ps_result.je * jc)) /
-														(2.0 * THETA) * daylength;
+	ps_result.agd_g = (ps_result.je + jc - sqrt((ps_result.je + jc) * (ps_result.je + jc) - 4.0 * THETA * ps_result.je * jc)) / (2.0 * THETA) * daylength;
+
 
 
 	if (!iftwolayersoil) {
@@ -812,8 +816,11 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	    {"pstemp_max", to_string(pft.pstemp_max),
 	      "pstemp_high", to_string(pft.pstemp_high),
 	      "pstemp_low", to_string(pft.pstemp_low),
-	      "pstemp_min", to_string(pft.pstemp_min),
-	      "lifeform", to_string(pft.lifeform)};
+        "pstemp_min", to_string(pft.pstemp_min),
+        "pathway", to_string(pft.pathway),
+        "phenology", to_string(pft.phenology),
+        "lambda_max", to_string(pft.lambda_max),
+        "lifeform", to_string(pft.lifeform)};
 	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 5);
 
 	  dec_real(oss, "lambda", lambda);
