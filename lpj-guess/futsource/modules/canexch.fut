@@ -188,13 +188,13 @@ let vmax(b : real,
 -- or in PhotosynthesisResult if it is a result.
 --/
 
-let photosynthesis_ugly_naive_dont_use_this_one(ps_env : PhotosynthesisEnvironment,
-                  ps_stresses : PhotosynthesisStresses,
-                  pft: Pft,
-                  lambda : real,
-                  nactive : real,
-                  vm : real)
-                  : PhotosynthesisResult =
+let photosynthesis(ps_env : PhotosynthesisEnvironment,
+                   ps_stresses : PhotosynthesisStresses,
+                   pft: Pft,
+                   lambda : real,
+                   nactive : real,
+                   vm : real)
+                   : PhotosynthesisResult =
 
   -- NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
   -- the formulation of low-temperature inhibition coefficient tscal (tstress LPJF).
@@ -225,178 +225,10 @@ let photosynthesis_ugly_naive_dont_use_this_one(ps_env : PhotosynthesisEnvironme
   -- Get the stresses
   let ifnlimvmax : bool = ps_stresses.ifnlimvmax
 
-  -- No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
-  in if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !(boolFromReal vm)) then PhotosynthesisResult() else
-
-  -- Scale fractional PAR absorption at plant projective area level (FPAR) to
-  -- fractional absorption at leaf level (APAR)
-  -- Eqn 4, Haxeltine & Prentice 1996a
-  let apar : real = par * fpar * alphaa(pft)
-
-  -- Calculate temperature-inhibition coefficient
-  -- This function (tscal) is mathematically identical to function tstress in LPJF.
-  -- In contrast to earlier versions of modular LPJ and LPJ-GUESS, it includes both
-  -- high- and low-temperature inhibition.
-  let k1 : real = (pft.pstemp_min+pft.pstemp_low) / 2.0
-  let tscal : real = (1.0 - 0.01*exp(4.6/(pft.pstemp_max-pft.pstemp_high)*(temp-pft.pstemp_high)))/
-                    (1.0+exp((k1-temp)/(k1-pft.pstemp_min)*4.6))
-
-  let (b, c1, c2) : (real, real, real) =
-    if (pft.pathway == C3) then      -- C3 photosynthesis
-      -- Calculate CO2 compensation point (partial pressure)
-      -- Eqn 8, Haxeltine & Prentice 1996a
-      let gammastar : real = PO2 / 2.0 / readQ10(temp, lookup_tau)
-
-      -- Intercellular partial pressure of CO2 given stomatal opening (Pa)
-      -- Eqn 7, Haxeltine & Prentice 1996a
-      let pi_co2 : real = lambda * co2 * PATMOS * CO2_CONV
-
-      -- Calculation of C1_C3, Eqn 4, Haxeltine & Prentice 1996a
-      -- High-temperature inhibition modelled by suppression of LUE by decreased
-      -- relative affinity of rubisco for CO2 with increasing temperature (Table 3.7,
-      -- Larcher 1983)
-      -- Notes: - there is an error in Eqn 4, Haxeltine & Prentice 1996a (missing
-      --          2.0* in denominator) which is fixed here (see Eqn A2, Collatz
-      --          et al 1991)
-      --        - the explicit low temperature inhibition function has been removed
-      --          and replaced by a temperature-dependent upper limit on V_m, see
-      --          below
-      --        - the reduction in maximum photosynthesis due to leaf age (phi_c)
-      --          has been removed
-      --        - alpha_a, accounting for reduction in PAR utilisation efficiency
-      --          from the leaf to ecosystem level, appears in the calculation of
-      --          apar (above) instead of here
-      --        - C_mass, the atomic weight of carbon, appears in the calculation
-      --          of V_m instead of here
-      let c1 : real = (pi_co2 - gammastar) / (pi_co2 + 2.0 * gammastar) * ALPHA_C3
-
-      -- Calculation of C2_C3, Eqn 6, Haxeltine & Prentice 1996a
-      let c2 : real = (pi_co2 - gammastar) / (pi_co2 + readQ10(temp, lookup_kc) * (1.0 + PO2/readQ10(temp, lookup_ko)))
-
-      let b : real = if pft.lifeform == MOSS then BC_moss else BC3
-      -- see Wania et al. 2009b
-      in (b, c1, c2)
-
-    else               -- C4 photosynthesis
-      -- Calculation of C1_C4 given actual pi (lambda)
-      -- C1_C4 incorporates term accounting for effect of intercellular CO2
-      -- concentration on photosynthesis (Eqn 14, 16, Haxeltine & Prentice 1996a)
-      let b = BC4
-      let c1 = min(lambda/LAMBDA_SC4, 1.0) * ALPHA_C4
-      let c2 = 1.0
-      in (b, c1, c2)
-
-  -- Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
-  let ps_result = PhotosynthesisResult()
-
-
-  let ps_result =
-    if (vm < 0) then
-      let (vm, vmaxnlim, nactive_opt) = vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax)
-      let ps_result = ps_result with vm = vm
-      let ps_result = ps_result with vmaxnlim = vmaxnlim
-      let ps_result = ps_result with nactive_opt = nactive_opt
-      in ps_result
-    else ps_result
-
-  -- Calculation of daily leaf respiration
-  -- Eqn 10, Haxeltine & Prentice 1996a
-  let ps_result = ps_result with rd_g = (ps_result.vm * b)
-
-  -- PAR-limited photosynthesis rate (gC/m2/h)
-  -- Eqn 3, Haxeltine & Prentice 1996a
-  let ps_result = ps_result with je = (c1 * tscal * apar * CMASS * CQ / daylength)
-
-  -- Rubisco-activity limited photosynthesis rate (gC/m2/h)
-  -- Eqn 5, Haxeltine & Prentice 1996a
-  let jc : real = c2 * ps_result.vm / 24.0
-
-  -- Calculation of daily gross photosynthesis
-  -- Eqn 2, Haxeltine & Prentice 1996a
-  -- Notes: - there is an error in Eqn 2, Haxeltine & Prentice 1996a (missing
-  --       theta in 4*theta*je*jc term) which is fixed here
-  let ps_result = ps_result with agd_g = ((ps_result.je + jc - sqrt((ps_result.je + jc) * (ps_result.je + jc) - 4.0 * THETA * ps_result.je * jc)) /(2.0 * THETA) * daylength)
-
-  let ps_result = if (!iftwolayersoil) then
-    -- LIMITS TO PHOTOSYNTHESIS
-    -- On wetlands, both agd_g and rd_g are scaled in the event of inundation (all PFTS),
-    -- or, for mosses and graminoids only, in the event of the water table dropping below
-    -- the PFT's optimal water table depth (dessication). See Wania et al. (2009b)
-    -- Get the stresses
-    let moss_ps_limit : real = ps_stresses.moss_ps_limit
-    let graminoid_ps_limit : real = ps_stresses.graminoid_ps_limit
-    let inund_stress : real = ps_stresses.inund_stress
-
-    -- 1) Inundation stress
-    -- Reduce GPP if there is inundation stress
-    -- (possibility of) inund stress (i.e. values < 1) only on PEATLAND stands and when ifinundationstress is true
-    let ps_result = ps_result with agd_g = (ps_result.agd_g * inund_stress)
-    let ps_result = ps_result with rd_g = (ps_result.rd_g * inund_stress)
-
-    -- 2a) Moss dessication
-    let ps_result =
-      if (pft.lifeform == MOSS) then
-        -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
-        let ps_result = ps_result with agd_g = (ps_result.agd_g * moss_ps_limit)
-        let ps_result = ps_result with rd_g = (ps_result.rd_g * moss_ps_limit)
-        in ps_result
-      else ps_result
-
-    -- 2b) Graminoid dessication (NB! all other PFTs have graminoid_ps_limit == 1)
-    let ps_result = ps_result with agd_g = ps_result.agd_g * graminoid_ps_limit
-    let ps_result = ps_result with rd_g = ps_result.rd_g * graminoid_ps_limit
-    in ps_result
-  else ps_result
-
-    -- Leaf-level net daytime photosynthesis (gC/m2/day)
-  -- Based on Eqn 19, Haxeltine & Prentice 1996a
-  let adt : real = ps_result.agd_g - daylength / 24.0 * ps_result.rd_g
-
-  -- Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
-  let ps_result = ps_result with adtmm = (adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3)
-  in ps_result
-
-let photosynthesis(ps_env : PhotosynthesisEnvironment,
-                   ps_stresses : PhotosynthesisStresses,
-                   pft: Pft,
-                   lambda : real,
-                   nactive : real,
-                   vm : real)
-                   : PhotosynthesisResult =
-
-  -- NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
-  -- the formulation of low-temperature inhibition coefficient tscal (tstress LPJF).
-  -- The function adopted here draws down metabolic activity in approximately the
-  -- temperature range pstemp_min-pstemp_low but does not affect photosynthesis
-  -- at high temperatures.
-
-  -- HISTORY
-  -- Ben Smith 18/1/2001: Tested in comparison to LPJF subroutine "photosynthesis":
-  -- function showed identical behaviour except at temperatures >= c. 35 deg C where
-  -- LPJF temperature inhibition function results in lower photosynthesis.
-
-  -- Make sure that only two alternative modes are possible:
-  --  * daily non-water stressed (forces Vmax calculation)
-  --  * with pre-calculated Vmax (sub-daily and water-stressed)
-  --assert(vm >= 0 || lambda == pft.lambda_max) --TODO
-  --assert(lambda <= pft.lambda_max) --TODO
-
-  let PATMOS : real = 1e5  -- atmospheric pressure (Pa)
-
-  -- Get the environmental variables
-  let temp : real = ps_env.temp -- 21.794977
-  let co2 : real = ps_env.co2 -- 296.378500
-  let fpar : real = ps_env.fpar --1.000000
-  let par : real = ps_env.par --7307193.574951
-  let daylength : real = ps_env.daylength --10.826868
-
-  -- Get the stresses
-  let ifnlimvmax : bool = ps_stresses.ifnlimvmax -- false
-
-  let pstemp_max = pft.pstemp_max --55
-  let pstemp_high = pft.pstemp_high--30
-  let pstemp_low = pft.pstemp_low--25
-  let pstemp_min = pft.pstemp_min--2
+  let pstemp_max = pft.pstemp_max
+  let pstemp_high = pft.pstemp_high
+  let pstemp_low = pft.pstemp_low
+  let pstemp_min = pft.pstemp_min
 
   let pathway = pft.pathway
   let lifeform = pft.lifeform
@@ -516,12 +348,6 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
       if (lifeform == MOSS) then (agd_g * moss_ps_limit, rd_g * moss_ps_limit)
       else (agd_g, rd_g)
 
-    -- 2a) Moss dessication
-    -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
-    let agd_g = if lifeform == MOSS then agd_g * moss_ps_limit else agd_g
-    let rd_g = if lifeform == MOSS then rd_g * moss_ps_limit else rd_g
-
-
     -- 2b) Graminoid dessication (NB! all other PFTs have graminoid_ps_limit == 1)
     let agd_g = agd_g * graminoid_ps_limit
     let rd_g = rd_g * graminoid_ps_limit
@@ -533,15 +359,14 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   let adt : real = agd_g - daylength / 24.0 * rd_g
 
   -- Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
-  let adtmm = (adt / 12 * 8.314 * (temp + 273.15) / 100000 * 1000) -- expected 20, got 31 -- 0.64
-  in {agd_g=agd_g, -- expected 11, got 16 -- 0.67
-      adtmm=adtmm, -- expected 20, got 31 -- 0.64
-      je=je, -- expected 1.248, got 1.711 -- 0.73
-      rd_g=rd_g, -- expected 2.704, got 2.364 -- 1.144
-      vm=vm, -- expected 180.282, got 118.218 -- 1.525
-      nactive_opt=nactive_opt, -- expected 1.2033e-2, got 7.890385969566833e-3 --1.525
-      vmaxnlim=vmaxnlim
-  }
+  let adtmm = (adt / 12 * 8.314 * (temp + 273.15) / 100000 * 1000)
+  in {agd_g = agd_g -- failed - 0
+     ,adtmm = adtmm -- failed - 0
+     ,je = je
+     ,rd_g = rd_g -- failed - 0
+     ,vm = vm -- failed - 0
+     ,nactive_opt = nactive_opt
+     ,vmaxnlim = vmaxnlim}
 
 
 -- ASSIMILATION_WSTRESS

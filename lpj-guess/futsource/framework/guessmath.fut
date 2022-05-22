@@ -33,7 +33,6 @@ let FRACT_TO_PERCENT : real = 100.0
 let PERCENT_TO_FRACT : real = 0.01
 let R_EARTH : real = 6371.2213 -- mean earth-radius[km]
 
-
 -- TODO default limit should be 0.0
 let negligible (dval : real) : bool = abs(dval) < 1.0e-30
 -- Returns true if |dval| < EPSILON, otherwise false

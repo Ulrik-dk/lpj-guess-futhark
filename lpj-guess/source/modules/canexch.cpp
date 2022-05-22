@@ -721,7 +721,6 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 		b = BC4;
 	}
 
-
 	if (vm < 0) {
 		// Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
 		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, ps_result.vm, ps_result.vmaxnlim, ps_result.nactive_opt);
@@ -729,8 +728,6 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	else {
 		ps_result.vm = vm;			// reuse existing Vmax
 	}
-
-
 
 	// Calculation of daily leaf respiration
 	// Eqn 10, Haxeltine & Prentice 1996a
@@ -838,6 +835,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 				"nactive_opt", "ps_result.nactive_opt", to_string(ps_result.nactive_opt),
 				"vmaxnlim", "ps_result.vmaxnlim", to_string(ps_result.vmaxnlim)};
 		gen_entry_point_tests(oss, "photosynthesis", "ps_result", res_fields_values, 7);
+
 
 		gen_test_file(oss, "photosynthesis");
 	}
@@ -2158,6 +2156,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 // ASSIMILATION_WSTRESS
 // Internal function (do not call directly from framework)
 
+
 void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase,
 			double vmax, PhotosynthesisResult& phot_result, double& lambda,
@@ -2221,6 +2220,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	ps_stress.set(ifnlimvmax, moss_wtp_limit, graminoid_wtp_limit, inund_stress);
 
 	photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result);
+
 	double f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max);
 
 	if (f_lambda_max <= 0) {
