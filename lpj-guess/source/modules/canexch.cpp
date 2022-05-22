@@ -486,11 +486,43 @@ void fpar(Patch& patch) {
 	}
 }
 
+
+
 double alphaa(const Pft& pft) {
+
+	double result;
+
 	if (pft.phenology == CROPGREEN)
-		return ifnlim ? ALPHAA_CROP_NLIM : ALPHAA_CROP;
+		result = ifnlim ? ALPHAA_CROP_NLIM : ALPHAA_CROP;
 	else
-		return ifnlim ? ALPHAA_NLIM : ALPHAA;
+		result = ifnlim ? ALPHAA_NLIM : ALPHAA;
+
+		// ALPHAA_CROP_NLIM 0.9
+		// ALPHAA_CROP 			0.7
+		// ALPHAA_NLIM 			0.65
+		// ALPHAA						0.5
+
+	if (FIRST_TIME_HERE) {
+	  ostringstream oss;
+	  init_oss(oss);
+
+		string pft_fields_values[] =
+	    {"phenology", to_string(pft.phenology)};
+	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 1);
+
+	  finish_input(oss, "pft");
+
+	  string res_fields_values[] =
+	    {"result", "result", to_string(result)};
+	  gen_entry_point_tests(oss, "alphaa", "result", res_fields_values, 1);
+
+	  gen_test_file(oss, "alphaa");
+	}
+
+
+
+	return result;
+
 }
 
 /// Non-water stressed rubisco capacity, with or without nitrogen limitation
@@ -532,7 +564,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 	}
 
 	if (FIRST_TIME_HERE) {
-	  static std::ostringstream oss;
+	  ostringstream oss;
 	  init_oss(oss);
 
 	  dec_real(oss, "b", b);
@@ -620,6 +652,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 					double nactive,
 					double vm,
 					PhotosynthesisResult& ps_result) {
+						static int test_count = 0;
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
 	// the formulation of low-temperature inhibition coefficient tscal (tstress; LPJF).
@@ -637,6 +670,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	//  * with pre-calculated Vmax (sub-daily and water-stressed)
 	assert(vm >= 0 || lambda == pft.lambda_max);
 	assert(lambda <= pft.lambda_max);
+
 
 	const double PATMOS = 1e5;	// atmospheric pressure (Pa)
 
@@ -660,7 +694,9 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// Scale fractional PAR absorption at plant projective area level (FPAR) to
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
-	double apar = par * fpar * alphaa(pft);
+	double alpha_res = alphaa(pft);
+	double apar = par * fpar * alpha_res;
+
 	double b, c1, c2;
 
 	// Calculate temperature-inhibition coefficient
@@ -788,8 +824,9 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
 	ps_result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
 
+
 	if (FIRST_TIME_HERE) {
-	  static std::ostringstream oss;
+	  ostringstream oss;
 	  init_oss(oss);
 
 	  string ps_env_fields_values[] =
@@ -818,7 +855,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
         "phenology", to_string(pft.phenology),
         "lambda_max", to_string(pft.lambda_max),
         "lifeform", to_string(pft.lifeform)};
-	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 5);
+	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 8);
 
 	  dec_real(oss, "lambda", lambda);
 	  dec_real(oss, "nactive", nactive);
@@ -2277,6 +2314,52 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	// bvoc
 	lambda=xmid;
+
+	if(FIRST_TIME_HERE){
+
+		ostringstream oss;
+		init_oss(oss);
+
+		string pft_fields_values[] =
+	    {"pstemp_max", to_string(pft.pstemp_max),
+	      "pstemp_high", to_string(pft.pstemp_high),
+	      "pstemp_low", to_string(pft.pstemp_low),
+        "pstemp_min", to_string(pft.pstemp_min),
+        "pathway", to_string(pft.pathway),
+        "phenology", to_string(pft.phenology),
+        "lambda_max", to_string(pft.lambda_max),
+        "lifeform", to_string(pft.lifeform)};
+	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 8);
+
+		dec_real(oss, "co2", co2);
+		dec_real(oss, "temp", temp);
+		dec_real(oss, "par", par);
+		dec_real(oss, "daylength", daylength);
+		dec_real(oss, "fpar", fpar);
+		dec_real(oss, "fpc", fpc);
+		dec_real(oss, "gcbase", gcbase);
+		dec_real(oss, "vmax", vmax);
+		dec_real(oss, "nactive", nactive);
+		dec_bool(oss, "ifnlimvmax", ifnlimvmax);
+		dec_real(oss, "moss_wtp_limit", moss_wtp_limit);
+		dec_real(oss, "graminoid_wtp_limit", graminoid_wtp_limit);
+		dec_real(oss, "inund_stress", inund_stress);
+
+		finish_input(oss, "(pft, co2, temp, par, daylength, fpar, fpc, gcbase, vmax, nactive, ifnlimvmax, moss_wtp_limit, graminoid_wtp_limit, inund_stress)");
+
+		string res_fields_values[] =
+	    {"agd_g", "phot_result.agd_g", to_string(phot_result.agd_g),
+	      "adtmm", "phot_result.adtmm", to_string(phot_result.adtmm),
+				"rd_g", "phot_result.rd_g", to_string(phot_result.rd_g),
+				"vm", "phot_result.vm", to_string(phot_result.vm),
+				"je", "phot_result.je", to_string(phot_result.je),
+				"nactive_opt", "phot_result.nactive_opt", to_string(phot_result.nactive_opt),
+				"vmaxnlim", "phot_result.vmaxnlim", to_string(phot_result.vmaxnlim),
+				"lambda", "lambda", to_string(lambda)};
+		gen_entry_point_tests(oss, "assimilation_wstress", "(phot_result, lambda)", res_fields_values, 8);
+
+		gen_test_file(oss, "assimilation_wstress");
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

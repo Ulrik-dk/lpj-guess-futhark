@@ -19,6 +19,9 @@ let input =
   let pft = pft with pstemp_high = 30.000000
   let pft = pft with pstemp_low = 25.000000
   let pft = pft with pstemp_min = 2.000000
+  let pft = pft with pathway = 1
+  let pft = pft with phenology = 1
+  let pft = pft with lambda_max = 0.800000
   let pft = pft with lifeform = 1
 
   let lambda : f64 = 0.8

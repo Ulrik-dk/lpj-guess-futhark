@@ -240,9 +240,7 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   -- fractional absorption at leaf level (APAR)
   -- Eqn 4, Haxeltine & Prentice 1996a
 
-  let (par, fpar) = (7.30719e+06, 1)
-
-  let apar : real = 4.74968e+6--par * fpar * alphaa(pft)
+  let apar : real = par * fpar * alphaa(pft)
 
   -- Calculate temperature-inhibition coefficient
   -- This function (tscal) is mathematically identical to function tstress in LPJF.
@@ -300,12 +298,9 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
   -- Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
   let ps_result = PhotosynthesisResult()
 
-
-
   let (vm, vmaxnlim, nactive_opt) =
     if (vm < 0) then vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax)
-    else (ps_result.vm, ps_result.vmaxnlim, ps_result.nactive_opt)
-
+    else (vm, ps_result.vmaxnlim, ps_result.nactive_opt)
 
   -- Calculation of daily leaf respiration
   -- Eqn 10, Haxeltine & Prentice 1996a
@@ -360,11 +355,11 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
 
   -- Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
   let adtmm = (adt / 12 * 8.314 * (temp + 273.15) / 100000 * 1000)
-  in {agd_g = agd_g -- failed - 0
-     ,adtmm = adtmm -- failed - 0
+  in {agd_g = agd_g
+     ,adtmm = adtmm
      ,je = je
-     ,rd_g = rd_g -- failed - 0
-     ,vm = vm -- failed - 0
+     ,rd_g = rd_g
+     ,vm = vm
      ,nactive_opt = nactive_opt
      ,vmaxnlim = vmaxnlim}
 
@@ -386,7 +381,7 @@ let assimilation_wstress
     moss_wtp_limit: real,
     graminoid_wtp_limit: real,
     inund_stress: real)
-    : (Pft, PhotosynthesisResult, real) =
+    : (PhotosynthesisResult, real) =
 
     -- DESCRIPTION
     -- Calculation of net C-assimilation under water-stressed conditions
@@ -422,68 +417,72 @@ let assimilation_wstress
   let lambda = -1
 
   in if (negligible(fpc) || negligible(fpar) || negligible(gcbase * daylength * 3600)) -- Return zero assimilation
-  then (pft, PhotosynthesisResult(), lambda) else
-    -- Canopy conductance component associated with photosynthesis on a
-    -- daily basis (mm / m2 / day)
-    let gcphot : real = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV
+  then (PhotosynthesisResult(), lambda) else
 
-    -- At this point the function f(x) = g(x) - h(x) can be calculated as:
-    --
-    -- g(x) = phot_result.adtmm / fpc (after a call to photosynthesis with lambda x)
-    -- h(x) = gcphot * (1 - x)
+  -- Canopy conductance component associated with photosynthesis on a
+  -- daily basis (mm / m2 / day)
+  let gcphot : real = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV
 
-    -- Evaluate f(lambda_max) to see if there's a root
-    -- in the interval we're searching
-    let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
+  -- At this point the function f(x) = g(x) - h(x) can be calculated as:
+  --
+  -- g(x) = phot_result.adtmm / fpc (after a call to photosynthesis with lambda x)
+  -- h(x) = gcphot * (1 - x)
 
-    let ps_stress = {ifnlimvmax=ifnlimvmax, moss_ps_limit=moss_wtp_limit, graminoid_ps_limit=graminoid_wtp_limit, inund_stress=inund_stress}
+  -- Evaluate f(lambda_max) to see if there's a root
+  -- in the interval we're searching
+  let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
+  let ps_stress = {ifnlimvmax=ifnlimvmax, moss_ps_limit=moss_wtp_limit, graminoid_ps_limit=graminoid_wtp_limit, inund_stress=inund_stress}
 
-    let phot_result = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax)
+  let phot_result = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax)
 
-    let f_lambda_max : real = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max)
-    in if (f_lambda_max <= 0) -- Return zero assimilation
-    then (pft, PhotosynthesisResult(), lambda) else
-      let EPS : real = 0.1 -- minimum precision of solution in bisection method
+  let f_lambda_max : real = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max)
 
-      let xmid : real = 0.0 -- TODO
 
-      -- Implement numerical solution
-      let x1 : real = 0.02                      -- minimum bracket of root
-      let x2 : real = pft.lambda_max            -- maximum bracket of root
-      let rtbis : real = x1                     -- root of the bisection
-      let dx : real = x2 - x1
+  in if (f_lambda_max <= 0) -- Return zero assimilation
+  then (PhotosynthesisResult(), lambda) else
 
-      let MAXTRIES : int = 6 -- maximum number of iterations towards a solution
-      let b : int = 0        -- number of tries so far towards solution
 
-      let fmid : real = EPS + 1.0
+  let EPS : real = 0.1 -- minimum precision of solution in bisection method
 
-      let ps_env = {co2=co2, temp=temp, par=par, fpar=fpar, daylength=daylength}
-      let (_, _, xmid, _, _, _, _, pft, phot_result) =
-      loop (b, dx, _, rtbis, fmid, ps_env, ps_stress, pft, _)
-          = (b, dx, xmid, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
-        while (abs(fmid) > EPS && b <= MAXTRIES) do
-          let dx = dx * 0.5
-          let xmid = rtbis + dx -- current guess for lambda
+  -- Implement numerical solution
+  let x1 : real = 0.02                      -- minimum bracket of root
+  let x2 : real = pft.lambda_max            -- maximum bracket of root
+  let rtbis : real = x1                     -- root of the bisection
+  let dx : real = x2 - x1
 
-          -- Call function photosynthesis to calculate alternative value
-          -- for total daytime photosynthesis according to Eqns 2 & 19,
-          -- Haxeltine & Prentice (1996), and current guess for lambda
+  let MAXTRIES : int = 6 -- maximum number of iterations towards a solution
+  let b : int = 0        -- number of tries so far towards solution
 
-          let phot_result = photosynthesis(ps_env, ps_stress, pft,
-                                                      xmid, nactive, vmax)
+  let fmid : real = EPS + 1.0
 
-         -- Evaluate fmid at the point lambda=xmid
-         -- fmid will be an increasing function of xmid, with a solution
-         -- (fmid=0) between x1 and x2
+  let (_, _, xmid, _, _, _, _, phot_result) =
+  loop (b, dx, _, rtbis, fmid, ps_env, ps_stress, _)
+      = (b, dx, 0.0, rtbis, fmid, ps_env, ps_stress, phot_result)
+    while (abs(fmid) > EPS && b <= MAXTRIES) do
 
-         -- Second term is total daytime photosynthesis (mm/m2/day) implied by
-         -- canopy conductance and current guess for lambda (xmid)
-         -- Eqn 18, Haxeltine & Prentice 1996
 
-          let fmid = phot_result.adtmm / fpc - gcphot * (1 - xmid)
-          let rtbis = if (fmid < 0) then xmid else rtbis
-          in (b + 1, dx, xmid, rtbis, fmid, ps_env, ps_stress, pft, phot_result)
-      -- bvoc
-      let lambda = xmid
-      in (pft, phot_result, lambda)
+      let dx = dx * 0.5
+      let xmid = rtbis + dx -- current guess for lambda
+
+      -- Call function photosynthesis to calculate alternative value
+      -- for total daytime photosynthesis according to Eqns 2 & 19,
+      -- Haxeltine & Prentice (1996), and current guess for lambda
+
+      let phot_result = photosynthesis(ps_env, ps_stress, pft, xmid, nactive, vmax)
+
+     -- Evaluate fmid at the point lambda=xmid
+     -- fmid will be an increasing function of xmid, with a solution
+     -- (fmid=0) between x1 and x2
+
+     -- Second term is total daytime photosynthesis (mm/m2/day) implied by
+     -- canopy conductance and current guess for lambda (xmid)
+     -- Eqn 18, Haxeltine & Prentice 1996
+
+      let fmid = phot_result.adtmm / fpc - gcphot * (1 - xmid)
+
+      let rtbis = if (fmid < 0) then xmid else rtbis
+
+      in (b + 1, dx, xmid, rtbis, fmid, ps_env, ps_stress, phot_result)
+  -- bvoc
+  let lambda = xmid
+  in (phot_result, lambda)
