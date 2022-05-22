@@ -1,7 +1,35 @@
 \section{Background}
+\subsection{LPJ-GUESS}
+LPJ-GUESS is a framework for modelling terrestrial ecosystems at various scales.\cite{smith2001lpj} It models various different ecological systems, such as photosynthesis, respiration and stomatal regulation at high temporal resolution, with slower processes such as growth, population dynamics and disturbance at larger time steps. Input parameters involve climate parameters, atmospheric carbondioxide concentrations and a soil parameter. Daily air temperature, precipitation and a parameter for sunshine are also involved. All of these things, and more, come together to model the dynamics of plant growth in small or large areas over spans of years.
+
+The models constructed with the framework require intensive data-parallel computations, which lends itself to efficient GPU execution.
+
+Translating the existing industry-size and quality framework, written in idiomatic sequential imperative C++ code, into a language which makes GPU execution both possible and efficient would be desireable for the scientific community, as the performance-gains might be multiple orders of magnitude.
+
+Futhark is a morally functionally pure data-parallel array language, currently under development at diku, which generates efficient GPU code\cite{futhark}.
+
+\subsection{Project}
+The project consist in investigating the feasability of translating the framework, written in sequential imperative code into Futhark.
+
+This will be quite challenging, as the existing implementation is very complex, and as I do not have much experience with large professional codebases of this kind.
+
+If time permits, there will also be performance evaluation of the resulting futhark implementation. However, the main burden of the project is software engineering of translating the code.
+
+Practically, it involves getting familiarised with the existing codebase, its structure, and creating a mental model of this. Based on this understanding, a plan for which parts to initially emulate with futhark can be developed, and then as a start to translating the whole framework, a futhark equivalent of the main moving parts of the framwork can be constructed. Initially this can be tested using extracted input and output values from the framework as a reference, and eventually integrated directly. Futhark is only relevant for the parts of the framework that do the heavy lifting, and can be integrated to replace those parts in the existing framework.
+
 \subsection*{Main learning goals}
 \begin{enumerate}
 \item Getting familiarised the software engineering and architecture of a large industry simulation framework.
 \item Investigate the challenges and feasability of translating idiomatic imperative C++ code to the functional array language Futhark.
 \item Investigate how to prove, test or argue for functional equivalence between a program and its manual translation.
 \end{enumerate}
+
+\subsection{Existing implementation}
+This subsection will describe the exisiting implementation, in a level of detail necessary to understand the following sections.
+
+\husk{Write about the relevant stuff, maybe here?}
+
+It is very relevant to read the architecture section of the technical document, and to read the paper by Ben Smith.
+
+\subsection{Futhark best practice}
+\husk{review and reference the futhark papers, website and blog a bunch here}

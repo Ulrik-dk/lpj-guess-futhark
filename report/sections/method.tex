@@ -1,52 +1,178 @@
-\section{Method - Architecture and overall approach}
-\begin{enumerate}
-  \item Initially reuse the folder and file structure of the existing codebase.
-  \item Do a function by function and object by object translation, not necessarily line by line.
-  \item Focus on translating the functions in which most of the computational work is done first, and the dependencies of these.
-  \item Figure out a way of testing equivalence between these functions and the translation. Perhaps using generated tests?
-\end{enumerate}
+\section{Analysis and conventions}
+In order for the resulting conventions and code of the present project to be made the most useful for a follow up project, certain considerations are relevant to take into account.
 
-The declaration definition distinction does not exist in Futhark, wherefore the C++ distinction between header files and regular files becomes unnatural. The question arises, whether to conceptually fuse the two files when writing the corresponding futhark files, or whether to preserve the original structure. The decision was made to fuse them, but this is up for debate.
+There is a significant difference between writing Futhark code from the bottom up, and to writing it as a translation from an object oriented language - C++ in this case. This author does have some experience in writing Futhark programs, and likewise in writing C and C\# programs, but not much experience in translating code in general, even less so in translating idiomatic code between paradigms.
+
+It seems plausible that a hypothetical continuator of the present work is in a similar situation, and for that reason, I will present the reasoning behind the present work for consideration.
+
+\subsection{Architecture}
+In translating the architecture, several choices presented themselves. First off, preserving the folder and file structure in translating the framework seems to have no drawbacks, and is very useful for keeping track of progress, comparing the translated code with its referent, etc. Given the dependency segregation principle of the SOLID principles of OOP, C++ has a distinction between header files (.h) and implementation files (.cpp) which is absent in futhark. Header files contain the definitions or interfaces of functions and classes, and the implementation files contain their implementations. This is not a strict distinction - the compilers will not force you to actually structure the code in this way - but it will pair headers and their corresponding implementation files together when compiling and linking the code.
+
+Because of this one-to-one correspondece headers have with their bodies, I decided to conceptually combine them into single futhark files. So, for canexch.h and canexch.cpp, only canexch.fut will exist. For the purpose of keeping track of progress and such, the content from the header file should appear first, and their sepparation should be denoted by a visually substantial comment.
+
+Whenever there is a name for something, a file, field or function, or anything else, it is desirable to preserve this name in the translation. When functions are overloaded, or have default values, and in many other situations, a reasonable alternative must be found.
+
+\subsection{Basic values and operations}
+Most of the basic arithmetical operations used in the framework are common to both languages, as are basic data types. Doubles from C++ are represented by reals, which are parameterised and may be f64s or f32s for instance. Similar goes for ints. C++ structs can be represented most simply using records, and have almost equivalent semantics.
+
+\husk{when there are very small constantly sized arrays, make tuples instead} \cite{smallarraysbad}
+
+\subsection{Enumerators}
+In C++, enumerators are types with a very limited number of possible values, which are named tokens whose underlying representation is of secondary importance. However, they are essentially represented as integer constants, with each value of the enumerator, in order, having a value starting at zero and going up. For this reason, the last value of the enumerator is sometimes a pseudo-value, called for instance, NUM_SOME_ENUMERATOR. This allows the programmer to reference the size of the enumerator space, so to speak, but to me it seems like a hack. Printing an enumerator value to standard out will yield its underlying integer representation.
+
+Futhark has built-in enumerator types which can contain arbitrary data. This is very flexible, however they can not be type-unified with integers. I went back and forth between the elegant native futhark representation, and the unelegant integer constant representation, but due to the seeming infeasability of printing the code representation of an enumerator in C++, i have currently gone for the integer constant representation. While this unfortunately is slightly more verbose in the futhark source code, it makes testing much more streamlined and productive, as one does not have to write unique print functions for each enumerator.
+
+\husk{put examples here}
+
+\subsection{Functions, calling conventions and memory management}
+A widespread and useful convention in C++ is to have void functions that do not return anything, and that instead have return values of functions be allocated by the caller and passed to the callee by reference. C++ objects are likewise always passed by reference implicitly, whereas structs are passed by value unless otherwise specified.
+
+Futhark passes everyting as values, and has no concept of reference or manual memory management, such as the C++ destinction between declaration and initialization.
+
+Write-first values should be privatized, and only those values which have been modified should be returned. These values should then be shadowed in the caller, syntactically simulating them having been overwritten (which is morally impossible in a pure functional language).
+
+\husk{investigate this further, and futhark consumption and ownership etc}
 
 
-In-place updates:
+\subsection{Classes and their objects}
+Classes and objects do not exist in Futhark, so there is no one-to-one translation to be had. A reasonable convention therefore has to be discovered. In general, it is not desired for the translation to be a simulation of the original, but a functionally equivalent implementation of the original in the target language, true to the target language. One must therefore distinguish between objects and classes that exist to satisfy the OO paradigm, and objects and classes that exist to represent something in the mathematical model, of which the framework is an implementation.
 
-\begin{minted}{cpp}
-// 2a) Moss dessication
-if (pft.lifeform == MOSS) {
-  // Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
-  ps_result.agd_g *= moss_ps_limit;
-  ps_result.rd_g *= moss_ps_limit;
+To keep things simple, classes are represented as records, member methods as functions on records, and constructors as functions returning records.
+
+Member functions should refer to the 'object' they are operating on as 'this'.
+
+\husk{mention and discuss the futhark module alternative to records for classes}
+
+\newpage
+
+Class definitions:
+\begin{minted}{c++}
+class SomeClass {
+public:
+  bool somefield;
+  double someotherfield;
+  // all the other class members here
 }
 \end{minted}
 
 \begin{minted}{futhark}
--- 2a) Moss dessication
-let ps_result =
-  if (pft.lifeform == #MOSS) then
-    -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
-    let ps_result = ps_result with agd_g = (ps_result.agd_g * moss_ps_limit)
-    in              ps_result with rd_g  = (ps_result.rd_g * moss_ps_limit)
-  else ps_result
+type SomeClass = {
+  somefield: bool,
+  someotherfield: real
+}
+\end{minted}
+
+
+Constructors:
+\begin{minted}{c++}
+public
+  SomeClass() {
+    somefield = true;
+    someotherfield = 2.0;
+  }
 \end{minted}
 
 \begin{minted}{futhark}
--- 2a) Moss dessication
-let ps_result =
-  if (pft.lifeform == #MOSS) then
-    -- Reduce agd_g using moss_wtp_limit (lies between [0.3, 1.0])
-    { agd_g = ps_result.agd_g * moss_ps_limit,
-      adtmm = ps_result.rd_g * moss_ps_limit,
-      je = ps_result.je,
-      rd_g = ps_result.rd_g,
-      vm = ps_result.vm,
-      nactive_opt = ps_result.nactive_opt,
-      vmaxnlim = ps_result.vmaxnlim,
-    }
-  else ps_result
+let SomeClass() : SomeClass =
+  {somefield = true
+  ,someotherfield = 2.0
+  }
 \end{minted}
 
 
+
+
+
+
+
+
+
+Method:
+\begin{minted}{c++}
+double someMethod() {
+  if(somefield){
+    return someotherfield;
+  } else {
+    return someotherfield/1.0;
+  }
+}
+\end{minted}
+\begin{minted}{futhark}
+let someMethod(this: SomeClass) : SomeClass =
+  if(this.somefield)
+    then this.someotherfield
+    else this.someotherfield/1.0
+\end{minted}
+
+
+
+Another method:
+\begin{minted}{c++}
+void anotherMethod(double somevalue) {
+  someotherfield *= somevalue;
+}
+\end{minted}
+\begin{minted}{futhark}
+let anotherMethod(this: SomeClass, somevalue: real) : SomeClass =
+  this with someotherfield = someotherfield * somevalue
+\end{minted}
+
+Notice the verbosity of the in-place update of records. This is mostly an aesthetic concern, but when we get to functions that modify many fields of records many times, this becomes an issue, which brings us to:
+
+\subsection{Handling many in-place updates}
+\husk{how does futhark handle in-place updates?}
+\husk{ownership and consumption in futhark?}
+
+OOP generally involves heavy modification of fields of objects, and a translation to futhark easily ends up having an equal number of in-place updates to records, which ends up being difficult to read.
+
+It is advisable to extract values that are to be read multiple times into local variables, and it is advisable to generate and modify fields as local variables, externally, and then doing a series of in-place updates or a literal record construction at the end of the function. This keeps the code cleaner and more easily readable. Example, compare the following snippets for readability:
+\newpage
+\begin{minted}{futhark}
+-- 1) Inundation stress
+let ps_result = ps_result with agd_g = (ps_result.agd_g * inund_stress)
+let ps_result = ps_result with rd_g = (ps_result.rd_g * inund_stress)
+
+-- 2a) Moss dessication
+let ps_result = if (pft.lifeform == MOSS)
+  then
+    let ps_result = ps_result with agd_g = (ps_result.agd_g * moss_ps_limit)
+    let ps_result = ps_result with rd_g = (ps_result.rd_g * moss_ps_limit)
+    in ps_result
+  else ps_result
+\end{minted}
+
+Compare the readability of the above code to:
+
+\begin{minted}{futhark}
+-- 1) Inundation stress
+let agd_g = agd_g * inund_stress
+let rd_g = rd_g * inund_stress
+
+-- 2a) Moss dessication
+let (agd_g, rd_g) = if (lifeform == MOSS)
+  then (agd_g * moss_ps_limit, rd_g * moss_ps_limit)
+  else (agd_g, rd_g)
+\end{minted}
+
+The first example (point 1) should suffice to motivate just avoiding doing inplace updates as much as possible, but notice how it becomes especially unwieldy when doing multiple conditional updates.
+
+\begin{minted}{futhark}
+-- returning after having done verbose inplace updates
+  in ps_result
+
+-- returning by constructing a literal of the record
+  in {agd_g = agd_g, rd_g = rd_g}
+
+-- returning by constructing a literal of the record
+  let ps_result = ps_result with agd_g = agd_g
+  in ps_result with rd_g = rd_g
+\end{minted}
+
+No matter the size of the record, constructing a literal is the simplest way to do it. The only case where it is advisable to do inplace updates before returning is if there are a lot of fields with values that have not been modified, and which should be preserved. Only in that case would you end up with shorter and more readable code by doing inplace updates.
+
+\subsection{Where to begin translation}
+Focus on translating the functions in which most of the computational work is done first, and the dependencies of these. A good place to start:
+\begin{minted}{bash}
 Each sample counts as 0.01 seconds.
   %   cumulative   self              self     total
  time   seconds   seconds    calls   s/call   s/call  name
@@ -60,3 +186,5 @@ Each sample counts as 0.01 seconds.
   2.54     63.87     2.58 593102126     0.00     0.00  Stand::is_highlatitude_peatland_stand() const
   2.34     66.24     2.37  4046040     0.00     0.00  decayrates_century(Soil&, double, double, bool)
   2.34     68.61     2.37  4046025     0.00     0.00  ndemand(Patch&, Vegetation&)
+\end{minted}
+And then we want to translate, so as to 'uncover', the parallelism, in order to be able to exploit it.

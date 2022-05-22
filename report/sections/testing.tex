@@ -1,4 +1,8 @@
 \section{Testing}
+\husk{test driven development}
+
+Figure out a way of testing equivalence between these functions and the translation. Perhaps using generated tests?
+
 Very difficult to prove that something cant break, but if we can prove that each function will return the correct result on a normal execution path, and if there are multiple paths, we migth want to prove this for each path, then we have a lot to argue for, perhaps not perfection, but at least normal functionality.
 
 We only want to generate one test for each function (to begin with), and so we only need to run each function once to generate a test. Using a mutex enables us to only gather data from a single run, and then only generate one test file for the given function.
@@ -7,3 +11,11 @@ Ensure that inputs and outputs are from the same run, ie. not taking inputs from
 Ensure that inputs are true inputs, and have not been written during the current run. That the inputs we use are really what they were at the start - if something is a const, this is trivially the case.
 
 If you want to be able to test multiple execution paths, collecting input and output at the end of these paths seems to be the most elegant approach, both to ensure correctness and for ease of implementation.
+
+
+
+
+
+These differences (in calling convetions mentioned in the relevant section) mean that is is extremely advisable to perform an analysis of any given function before writing it and testing it. This analysis must discover the following: What are the parameters of the function. Which ones are only ever read. Which ones are read before being written, and which ones are written before being read (if ever). These last ones are likely the return values, passed by reference. Anything passed as a const can not be written or modified by the given function. It is necessary to discover, for each parameter that is an object, exactly which fields are read.
+
+For all functions called by the given function, it is necessary to perform the same analysis, and to consider that the relevant inherits the read-dependencies on object fields of sub-functions. Otherwise it will not be possible to correctly test a given function. Having once forgotten to properly do this, I overlooked that a tiny helper function read a field of an object, and forgot to include this in the test data, making the test fail. Once corrected, the test passed. This took several hours of manual print statements and data injections to isolate the issue to the given function, and then to the missing data.
