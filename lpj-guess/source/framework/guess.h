@@ -548,7 +548,7 @@ public:
 	bool check_indiv(Individual& indiv, bool check_harvest = false);
 	bool check_indiv_C(Individual& indiv, bool check_harvest = false);
 	bool check_indiv_N(Individual& indiv, bool check_harvest = false);
-	
+
 	void init_patch(Patch& patch);
 	bool check_patch(Patch& patch, bool check_harvest = false);
 	bool check_patch_C(Patch& patch, bool check_harvest = false);
@@ -635,7 +635,7 @@ public:
 	int indx;
 	/// Random state variable have
 	bool have;
-	/// Random state gamma	
+	/// Random state gamma
 	double gamma_vals[2];
 	/// Indicator for whether the recent two days were rein-days
 	bool pday[2];
@@ -761,19 +761,19 @@ public:
     }
 
 	bool get_ifnlimvmax() const {
-		return ifnlimvmax;	
+		return ifnlimvmax;
 	}
 
 	double get_moss_ps_limit() const {
-		return moss_ps_limit;	
+		return moss_ps_limit;
 	}
 
 	double get_graminoid_ps_limit() const {
-		return graminoid_ps_limit;	
+		return graminoid_ps_limit;
 	}
 
 	double get_inund_stress() const {
-		return inund_stress;	
+		return inund_stress;
 	}
 };
 
@@ -913,9 +913,9 @@ public:
 	/// Keetch-Byram-Drought-Index
 	double kbdi;
 	/// McArthur forest fire index (FFDI)
-	double mcarthur_forest_fire_index;	
+	double mcarthur_forest_fire_index;
 	/// To keep track of running months daily FFDI
-	double months_ffdi[30];	
+	double months_ffdi[30];
 
 	// Saved parameters used by function daylengthinsoleet
 
@@ -1031,7 +1031,7 @@ public:
 	/// annual precipitation sum
 	double aprec;
 	/// annual average precipitation (last year) (mm)
-	double aprec_lastyear;	
+	double aprec_lastyear;
 
 public:
 	/// constructor function: initialises gridcell member
@@ -1272,7 +1272,7 @@ public:
 private:
 
 	/// Stores one flux value per PFT and flux type
-	std::vector<std::vector<double> > annual_fluxes_per_pft;
+	std::vector<std::vector<double>> annual_fluxes_per_pft;
 
 	/// Stores one flux value per month and flux type
 	/** For the fluxes only stored as totals for the whole patch */
@@ -1431,7 +1431,7 @@ public:
 	}
 };
 
-/// The one and only linked list of ManagementType objects	
+/// The one and only linked list of ManagementType objects
 extern ManagementTypelist mtlist;
 
 /// Storage class of crop rotation information for a stand type, read from the instruction file.
@@ -1779,7 +1779,7 @@ public:
 	double gdd0_min;
 	/// GDD0 max
 	double gdd0_max;
-	
+
 	/// New parameters from parameters from Wania et al. (2009a, 2009b, 2010)
 
 	/// Days per month for which inundation is tolerated
@@ -2896,16 +2896,16 @@ public:
 	double wp[NSOILLAYER];
 	/// saturation point. Cosby et al 1984
 	double wsats[NSOILLAYER];
-	
+
 	/// organic soil fraction
 	double org_frac_gridcell[NSOILLAYER];
-	
+
 	/// mineral soil fraction
 	double min_frac_gridcell[NSOILLAYER];
 
 	/// porosity of the soil
 	double porosity_gridcell[NSOILLAYER];
-	
+
 	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
 	// equivalents for the standard Gerten soil layers [0=upper, 1 = lower]
 	double gwp[2];
@@ -2948,7 +2948,7 @@ public:
 	// Run on [mm/day]
 	// Currently only used for wetlands, but could be used for irrigation too
 	double runon;
-	
+
 
 	// PEAT PROPERTIES (needed if there is a peat stand in this gridcell)
 
@@ -2985,7 +2985,7 @@ public:
 		solvesom_begin = SOLVESOM_BEGIN;
 		organic_frac = 0.02;
 		pH = -1.0;
-		
+
 		// Assume no mineral content on peatlands
 		sand_frac_peat = clay_frac_peat = silt_frac_peat = 0.0;
 
@@ -3187,7 +3187,7 @@ public:
 	int ngroundl;
 	/// density of the snowpack, daily
 	double snowdens;
-	
+
 
 	// Temperature variables:
 
@@ -3203,7 +3203,7 @@ public:
 	double T_soil_yesterday[NLAYERS];
 	/// soil temperature at 25 cm depth, as calculated using previous versions of the model [deg C]
 	double temp_analyticsoln;
-	
+
 
 	// Padding - The values initialised in first call to calctemp method
 
@@ -3211,19 +3211,19 @@ public:
 	double pad_temp[PAD_LAYERS];
 	/// thickness of padding layers [mm]
 	double pad_dz[PAD_LAYERS];
-	
+
 
 	// Ice and water variables for the soil layers, where Frac stands for Fraction
-	
+
 	/// (Frac)tion of ice in each layer: amount of ice / total volume of soil layer. Not associated with AWC.
 	double Frac_ice[NLAYERS];
-	
+
 	/// ice fraction in each layer YESTERDAY
 	double Frac_ice_yesterday[NLAYERS];
-	
+
 	/// fraction of water in each layer: water / total volume of soil layer
 	double Frac_water[NLAYERS];
-	
+
 
 	// Layer composition and properties:
 	// Soil layer information:
@@ -3273,7 +3273,7 @@ public:
 	double mthaw[12];
 	/// daily thawing depth full, where ALL the ice has melted [mm]
 	double dthaw[Date::MAX_YEAR_LENGTH];
-	
+
 	/// depth of the acrotelm [mm]
 	double acro_depth;
 	/// depth of the catotelm [mm]
@@ -3306,7 +3306,7 @@ public:
 	double acro_por;
 	/// acrotelm porosity MINUS Fgas (so, 0.92-0.08)
 	double cato_por;
-	
+
 
 	// Peatland hydrology variables:
 
@@ -3350,27 +3350,27 @@ public:
 	int SIDX_old;
 	/// index for mixed layer
 	int MIDX;
-	
+
 	// Hydrology variables:
 
 	/// records the first time hydrology routine is called
 	bool firstHydrologyCalc;
-	
+
 	// These are the number of sublayers in the standard 0.5/1.0m
 	// hydrology laters. Set ONCE in hydrology routine
 	int nsublayer1;
 	int nsublayer2;
 	int num_evaplayers;
-	
+
 	/// root fractions per layer
 	double rootfrac[NLAYERS];
 	/// air fraction in each layer
 	double Frac_air[NLAYERS];
-	
+
 	/// daily carbon flux to atmosphere from soil respiration
 	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
 	double dcflux_soil;
-	
+
 	/// CH4 and CO2 stores in the soil layers - updated daily
 	double ch4_store;
 	double co2_store;
@@ -3407,14 +3407,14 @@ public:
 	double CH4_vgc[NLAYERS];
 	/// dissolved O2 concentration in each layer [mol O2 layer-1 d-1]
 	double O2[NLAYERS];
-	
+
 	/// layer water volume [m3]
 	double volume_liquid_water[NLAYERS];
 	/// layer water + ice volume [m3]
 	double total_volume_water[NLAYERS];
 	/// tiller area
 	double tiller_area[NLAYERS];
-	
+
 
 	// Gas diffusion variables:
 
@@ -3430,7 +3430,7 @@ public:
 	double Ceq_CO2;
 	/// Equilibrium concentration of CH4 [mol L-1]
 	double Ceq_CH4;
-	
+
 
 //////////////////////////////////////////////////////////////////////////////////
 // CENTURY SOM pools and other variables
@@ -3462,7 +3462,7 @@ public:
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
 	/// annual leaching of organics nitrogen from carbon pool
-	double aorgCleach;	
+	double aorgCleach;
 
 	// Variables for fast spinup of SOM pools
 
@@ -3543,7 +3543,7 @@ public:
 	void soil_temp_analytic(const Climate& climate, double depth);
 
 	/// main hydrology routine
-	void hydrology_lpjf(const Climate& climate, double fevap);	
+	void hydrology_lpjf(const Climate& climate, double fevap);
 
 	/// simpler hydrology routine from LPJ-GUESS v4.0
 	void hydrology_lpjf_twolayer(const Climate& climate, double fevap);
@@ -3589,7 +3589,7 @@ public:
 
 	/// Calculate methane dynamics today
 	bool methane(bool generatemethane);
-	
+
 	/// Initialise the root fractions in each layer of the wetland - see Wania et al. (2010)
 	void init_peatland_root_fractions();
 
@@ -4183,7 +4183,7 @@ public:
 	double cflux();
 	/// Total patch nitrogen fluxes so far this year
 	double nflux();
-	
+
 	/// Get 5-year mean of wood C mass increase (periodic annual increment)
 	double get_cmass_wood_inc_5() {
 		double cmass_wood_inc_5_mean = 0.0;
@@ -4198,7 +4198,7 @@ public:
 		}
 		return cmass_wood_inc_5_mean;
 	}
-	
+
 	/// Get cmass_wood of all individuals in patch
 	double cmass_wood() {
 		double cmass_wood = 0.0;
@@ -4405,7 +4405,7 @@ public:
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_true_wetland_stand() const;
-	
+
 	/// Creates a duplicate stand with a new landcovertype
 	/** The new stand is added to this stand's gridcell.
 	*

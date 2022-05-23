@@ -83,7 +83,7 @@ let snowdens_start : real =  275.0
 let snowdens_end : real =  500.0
 
 --/ maximum number of snow layers allowed (<= 5)
-let NLAYERS_SNOW : real =  5
+let NLAYERS_SNOW : int =  5
 
 --/ ice density [kg m-3] - CLM value
 let ice_density : real =  917.0

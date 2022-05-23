@@ -5,6 +5,16 @@ all: build setup-tests run-tests r
 run-tests:
 	cd example;	bash lpjguess_run_cf.sh
 
+0:
+	futhark check futsource/futhark-extras.fut
+
+	futhark check futsource/framework/guess.fut
+	futhark check futsource/framework/guessmath.fut
+	futhark check futsource/framework/parameters.fut
+
+	futhark check futsource/modules/q10.fut
+	futhark check futsource/modules/soil.fut
+	futhark check futsource/modules/canexch.fut
 
 1: build
 

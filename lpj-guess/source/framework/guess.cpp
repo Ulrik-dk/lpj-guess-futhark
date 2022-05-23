@@ -786,7 +786,7 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 		if (!readharvestdates)
 			pft[pftid].hdate_force = mt0.hdate;
 	}
-	
+
 	if(!readNfert_st)
 		gridcell->st[st.id].nfert = mt0.nfert;
 
@@ -2502,7 +2502,7 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 
 	bool balance = true;
-	
+
 	Patch& patch = indiv.vegetation.patch;
 	Stand& stand = patch.stand;
 	if(!stand.is_true_crop_stand())
@@ -2586,14 +2586,14 @@ bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
 bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 
 	bool balance = true;
-	
+
 	Stand& stand = patch.stand;
 	//if (!stand.is_true_crop_stand())
 	//	return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ncont = patch.ncont();
 	double nflux = patch.nflux();
-	
+
 	if (stand.get_gridcell_fraction())
 		nflux += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
 
@@ -2634,7 +2634,7 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 
 		// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
-		
+
 		// N balance check:
 		if (!negligible(ncont_year - ncont + nflux_year, -9)) {
 			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont_year - ncont + nflux_year);
@@ -2694,7 +2694,7 @@ void MassBalance::check_period(Gridcell& gridcell) {
 	}
 	// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
-	
+
 	// N balance check:
 	if (!negligible(ncont - ncont_zero + nflux, -9)) {
 		dprintf("\nWARNING: (%.2f, %.2f): Period N balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), ncont - ncont_zero + nflux);

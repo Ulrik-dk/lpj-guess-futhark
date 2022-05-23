@@ -79,6 +79,12 @@ let lookup_kc = LookupQ10(2.1, 30.0)
 
 
 
+--void interception(Patch& patch,Climate& climate) {
+
+--void fpar(Patch& patch) {
+
+
+
 let alphaa(pft : Pft) =
   if (pft.phenology == CROPGREEN) then
     if ifnlim then ALPHAA_CROP_NLIM else ALPHAA_CROP
@@ -364,6 +370,43 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
      ,vmaxnlim = vmaxnlim}
 
 
+-- Calculate value for canopy conductance component associated with photosynthesis (mm/s)
+-- Eqn 21, Haxeltine & Prentice 1996
+-- includes conversion of daylight from hours to seconds
+
+let gpterm (adtmm: real, co2: real, lambda: real, daylength: real) : real =
+  if (adtmm <= 0)
+    then 0.0
+    else 1.6 / CO2_CONV / 3600 * adtmm / co2 / (1 - lambda) / daylength
+
+-- Determine CO2 in peatland water
+-- Updated daily
+let get_co2(p: Patch, climate: Climate, pft: Pft) : real =
+  if p.stand.is_highlatitude_peatland_stand() && pft.ismoss()
+    then p.soil.acro_co2
+    else climate.co2
+
+
+
+--double get_co2(Patch& p, Climate& climate, Pft& pft) {
+--double get_inund_stress(Patch& p, Patchpft& ppft) {
+--double get_graminoid_wtp_limit(Patch& p, Pft& pft) {
+--double get_moss_wtp_limit(Patch& p, Pft& pft) {
+--void photosynthesis_nostress(Patch& patch, Climate& climate) {
+--double nitrogen_uptake_strength(const Individual& indiv) {
+--void fnuptake(Vegetation& vegetation, double nmass_avail) {
+--void nstore_usage(Vegetation& vegetation) {
+--void ndemand(Patch& patch, Vegetation& vegetation) {
+--void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation) {
+--void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day) {
+--double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
+--double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
+--double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
+--void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
+--void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
+
+
+
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)
 let assimilation_wstress
@@ -437,7 +480,6 @@ let assimilation_wstress
 
   let f_lambda_max : real = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max)
 
-
   in if (f_lambda_max <= 0) -- Return zero assimilation
   then (PhotosynthesisResult(), lambda) else
 
@@ -486,3 +528,9 @@ let assimilation_wstress
   -- bvoc
   let lambda = xmid
   in (phot_result, lambda)
+
+--void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
+--void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day) {
+--void forest_floor_conditions(Patch& patch) {
+--void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
+--void canopy_exchange(Patch& patch, Climate& climate) {

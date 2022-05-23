@@ -824,6 +824,8 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
 	ps_result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
 
+	cout << "npft: " << npft << endl;
+
 
 	if (FIRST_TIME_HERE) {
 	  ostringstream oss;

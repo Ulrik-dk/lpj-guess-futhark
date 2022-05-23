@@ -1,7 +1,9 @@
 type real = f64
 type int = i64
 
-let Date_MAX_YEAR_LENGTH_plusone : int = 367
+let realzero : real = 0.0
+let Date_MAX_YEAR_LENGTH : int = 365
+let Date_MAX_YEAR_LENGTH_plusone : int = 366
 type xtring = int -- we wont care about strings
 let euler : real = 2.71828
 let pow(a: real, b: real) = a ** b
@@ -11,6 +13,7 @@ let sqrt = f64.sqrt
 let abs = f64.abs
 
 let nan = f64.nan
+let intnan = i64.lowest --this may serve the purpose
 let atan = f64.atan
 let min (a: f64, b: f64) = if a > b then b else a
 let max (a: f64, b: f64) = if a > b then a else b
@@ -20,3 +23,6 @@ let realFromInt = f64.i64
 let intFromReal = i64.f64
 
 type enum_type = i64
+
+
+let npft : i64 = 6 -- TODO: this is a dynamic global variable that should be aquired otherwise than this!

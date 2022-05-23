@@ -156,7 +156,7 @@ let ROOTDIST_JACKSON : rootdisttype = 1
 let ifnlim : bool = true
 
 --- number of years to allow spinup without nitrogen limitation
---let freenyears : int = 1
+let freenyears : int = 100
 
 --- fraction of nitrogen relocated by plants from roots and leaves
 --let  nrelocfrac : real = 1.0
@@ -240,7 +240,7 @@ let ifnlim : bool = true
 --let nyear_dyn_phu : int = 1
 
 --- number of spinup years
---let nyear_spinup : int = 1
+let nyear_spinup : int = 500
 
 --- Whether to use sowingdates from input file
 --let readsowingdates : bool = true
