@@ -263,7 +263,7 @@ type PhotosynthesisResult = {
   agd_g : real,
 
   -- leaf-level net daytime photosynthesis
-  -- expressed in CO2 diffusion units (mm/m2/day) */
+  -- expressed in CO2 diffusion units (mm/m2/day)--
   adtmm : real,
 
   -- leaf respiration (gC/m2/day)
@@ -303,7 +303,7 @@ let PhotosynthesisResult() : PhotosynthesisResult =
 
 
 -- This struct contains the environmental input to a photosynthesis calculation.
--- \see photosynthesis */
+-- \see photosynthesis--
 type PhotosynthesisEnvironment = {
   -- atmospheric ambient CO2 concentration (ppmv)
   co2 : real,
@@ -470,11 +470,11 @@ type Fluxes = {
   annual_fluxes_per_pft : [npft][NPERPFTFLUXTYPES]real,
 
   -- Stores one flux value per month and flux type
-  -- For the fluxes only stored as totals for the whole patch */
+  -- For the fluxes only stored as totals for the whole patch--
   monthly_fluxes_patch : [12][NPERPATCHFLUXTYPES]real,
 
   -- Stores one flux value per month and flux type
-  --- For the fluxes stored per pft for annual values */
+  --- For the fluxes stored per pft for annual values--
   monthly_fluxes_pft : [12][NPERPFTFLUXTYPES]real,
 
   -- Stores one flux value per day and flux type
@@ -500,11 +500,11 @@ let Fluxes() : Fluxes = {
     annual_fluxes_per_pft = replicate npft (replicate NPERPFTFLUXTYPES realzero),
 
     -- Stores one flux value per month and flux type
-    -- For the fluxes only stored as totals for the whole patch */
+    -- For the fluxes only stored as totals for the whole patch--
     monthly_fluxes_patch = replicate 12 (replicate NPERPATCHFLUXTYPES realzero),
 
     -- Stores one flux value per month and flux type
-    --- For the fluxes stored per pft for annual values */
+    --- For the fluxes stored per pft for annual values--
     monthly_fluxes_pft = replicate 12 (replicate NPERPFTFLUXTYPES realzero),
 
     -- Stores one flux value per day and flux type
@@ -665,7 +665,7 @@ type Pft  = {
   fnstorage: real,
 
   -- Michaelis-Menten kinetic parameters
-  -- Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
+  -- Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000)--
   km_volume: real,
 
   -- fraction of NPP allocated to reproduction
@@ -701,7 +701,7 @@ type Pft  = {
   -- fire resistance (0-1)
   fireresist: real,
   -- minimum forest-floor PAR level for growth (grasses) or establishment (trees)
-  -- J/m2/day, individual and cohort modes */
+  -- J/m2/day, individual and cohort modes--
   parff_min: real,
   -- parameter capturing non-linearity in recruitment rate relative to
   -- understorey growing conditions for trees (Fulton 1991) (individual and
@@ -715,7 +715,7 @@ type Pft  = {
 
   kest_repr: real,
   -- constant affecting amount of background establishment
-  -- \see ifbgestab */
+  -- \see ifbgestab--
   kest_bg: real,
   -- constant used in calculation of sapling establishment rate when spatial
   -- mass effect disabled (individual and cohort modes)
@@ -724,7 +724,7 @@ type Pft  = {
   -- expected longevity under non-stressed conditions (individual and cohort modes)
   longevity: real,
   -- threshold growth efficiency for imposition of growth suppression mortality
-  -- kgC/m2 leaf/year, individual and cohort modes */
+  -- kgC/m2 leaf/year, individual and cohort modes--
   greff_min: real,
 
   -- Bioclimatic limits (all temperatures deg C)
@@ -788,7 +788,7 @@ type Pft  = {
   cton_stem_max: real,
 
   -- Drought tolerance level (0 = very -> 1 = not at all) (unitless)
-  -- Used to implement drought-limited establishment */
+  -- Used to implement drought-limited establishment--
   drought_tolerance: real,
 
   -- bvoc
@@ -826,7 +826,7 @@ type Pft  = {
 
   -- Sapling/regeneration characteristics (used only in population mode)
   -- For trees, on sapling individual basis (kgC) for grasses, on stand area basis,
-  -- kgC/m2 */
+  -- kgC/m2--
 
   -- leaf C biomass
   regen_cmass_leaf: real,
@@ -1541,7 +1541,7 @@ type Soil = {
   --- water content of soil layers [0=upper layer] as fraction of available water holding capacity,
   wcont : [NSOILLAYER]real,
   --- water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible
-  --- fraction of available water holding capacity */
+  --- fraction of available water holding capacity--
   wcont_evap : real,
 
   --- reference to parent Patch object
@@ -1553,17 +1553,17 @@ type Soil = {
   --- daily water content in upper soil layer for each day of year
   dwcontupper : [Date_MAX_YEAR_LENGTH]real,
   --- mean water content in upper soil layer for last month
-  --- (valid only on last day of month following call to daily_accounting_patch) */
+  --- (valid only on last day of month following call to daily_accounting_patch)--
   mwcontupper : real,
   --- stored snow as average over modelled area (mm rainfall equivalent)
   snowpack : real,
   --- total runoff today (mm/day)
   runoff : real,
   --- daily temperatures for the last month (deg C)
-  --- (valid only on last day of month following call to daily_accounting_patch) */
+  --- (valid only on last day of month following call to daily_accounting_patch)--
   dtemp : [31]real,
   --- mean soil temperature for the last month (deg C)
-  --- (valid only on last day of month following call to daily_accounting_patch) */
+  --- (valid only on last day of month following call to daily_accounting_patch)--
   mtemp : real,
   --- respiration response to today's soil temperature at 0.25 m depth
   -- incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor 1994)
@@ -1594,7 +1594,7 @@ type Soil = {
   --- daily water content in lower soil layer for each day of year
   dwcontlower : [Date_MAX_YEAR_LENGTH]real,
   --- mean water content in lower soil layer for last month
-  --- (valid only on last day of month following call to daily_accounting_patch) */
+  --- (valid only on last day of month following call to daily_accounting_patch)--
   mwcontlower : real,
 
   --- rainfall and snowmelt today (mm)
@@ -2402,7 +2402,7 @@ let cropphen_struct() : cropphen_struct = {
 
 
 --/ State variables common to all individuals of a particular PFT in a particular patch
--- Used in individual and cohort modes only. */
+-- Used in individual and cohort modes only.--
 type Patchpft = {
   -- MEMBER VARIABLES:
   --/ id code (equal to value of member variable id in corresponding Pft object)
@@ -2573,7 +2573,7 @@ type Patch = {
     -- mean growing season PAR at top of grass canopy (J/m2/day)
     par_grass_mean: real,
     -- number of days in growing season, estimated from mean vegetation leaf-on fraction
-    -- \see function fpar in canopy exchange module */
+    -- \see function fpar in canopy exchange module--
     nday_growingseason: int,
     -- total patch FPC
     fpc_total: real,
@@ -2628,7 +2628,7 @@ type Patch = {
     plant_this_year: bool,
 
     -- DLE - the number of days over which wcont is averaged for this patch
-    -- i.e. those days for which daily temp > 5.0 degC */
+    -- i.e. those days for which daily temp > 5.0 degC--
     growingseasondays: int,
 
 
@@ -2667,7 +2667,7 @@ type Patch = {
     -- daily average of the above variable (mm/day)
     wdemand_day: real,
     -- transpirative demand for patch assuming full leaf cover today
-    -- mm/day, patch vegetative area basis  */
+    -- mm/day, patch vegetative area basis --
     wdemand_leafon: real,
     -- rescaling factor to account for spatial overlap between individuals/cohorts populations
     fpc_rescale: real,
@@ -2702,4 +2702,709 @@ type Patch = {
     nharv: int,
     -- whether today is a harvest day and/or cover-crop killing or turnover day
     isharvestday: bool
+}
+
+--/ Container for variables common to individuals of a particular PFT in a stand.
+-- Used in individual and cohort modes only
+--
+type Standpft = {
+
+  -- MEMBER VARIABLES
+  id : int,
+  pft : Pft,
+-- net C allocated to reproduction for this PFT in all patches of this stand this year (kgC/m2)
+  cmass_repr : real,
+-- maximum value of Patchpft::anetps_ff for this PFT in this stand so far in the simulation (kgC/m2/year)
+  anetps_ff_max : real,
+
+-- FPC sum for this PFT as average for stand
+  fpc_total : real,
+
+-- Photosynthesis values for this PFT under non-water-stress conditions
+  photosynthesis_result : PhotosynthesisResult,
+
+-- Whether this PFT is allowed to grow in this stand
+  active : bool,
+-- Whether this PFT is planted in this stand
+  plant : bool,
+-- Whether this PFT is allowed to establish (after planting) in this stand
+  reestab : bool,
+
+-- Whether this PFT is irrigated in this stand
+  irrigated : bool,
+-- sowing date specified in stand type or read from input file
+  sdate_force : int,
+-- harvest date specified in stand type or read from input file
+  hdate_force : int
+  -- MEMBER FUNCTIONS
+
+-- Constructor: initialises various data members
+}
+
+let Standpft(i : int, p : Pft) : Standpft {
+  id = i,
+  pft = p,
+  anetps_ff_max = 0.0,
+  active = !run_landcover,
+  plant = false,
+  reestab = false,
+  irrigated = false,
+  sdate_force = -1,
+  hdate_force = -1
+}
+
+
+--/ The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
+-- There may be several stands of the same landcover type (but with different settings).
+--
+type Stand = {
+  -- MEMBER VARIABLES
+-- list array [0...npft-1] of Standpft (initialised in constructor)
+  pft : [npft]Standpft,
+
+-- A number identifying this Stand within the grid cell
+  id : int,
+
+-- stand type id
+  stid : int,
+
+-- pft id of main crop, updated during rotation
+  pftid : int,
+
+-- current crop rotation item
+  current_rot : int,
+-- number of days passed in current rotation item
+  ndays_inrotation : int,
+-- Returns true if stand is in fallow (with cover crop grass)
+  infallow : bool,
+-- Returns true if crop rotation item is to be updated today
+  isrotationday : bool,
+-- Returns true if current crop management hydrology == irrigated, updated during rotation
+  isirrigated : bool,
+-- Returns true if the stand's main crop pft intercrop==naturalgrass and a pft with isintercrop==true is in the pftlist.
+  hasgrassintercrop : bool,
+-- gdd5-value at first intercrop grass growth
+  gdd5_intercrop : real,
+
+-- old fraction of this stand relative to the gridcell before update
+  frac_old : real,
+
+-- used during land cover change involving several calls to reveiving_stand_change()
+-- Set to frac_old in reduce_stands(), then modified in donor_stand_change() and receiving_stand_change().
+  --
+  frac_temp : real,
+-- fraction unavailable for transfer to other stand types
+  protected_frac : real,
+-- net stand fraction change
+  frac_change : real,
+-- gross fraction increase
+  gross_frac_increase : real,
+-- gross fraction decrease
+  gross_frac_decrease : real,
+-- fraction that has been cloned from another stand
+  cloned_fraction : real,
+-- Returns true if this stand is cloned from another stand
+  cloned : bool,
+-- pointer to array of fractions transferred from this stand to other stand types
+  double *transfer_area_st;
+-- land cover origin of this stand
+  origin : landcovertype,
+-- used for output from separate stands
+  anpp : real,
+-- used for output from separate stands
+  cmass : real,
+
+-- Seed for generating random numbers within this Stand
+-- The reason why Stand has its own seed, rather than using for instance
+  -- a single global seed is to make it easier to compare results when using
+  -- different land cover types.
+  --
+  --  Randomness not associated with a specific stand, but rather a whole
+  --  grid cell should instead use the seed in the Gridcell class.
+  --
+  --  \see randfrac()
+  --
+  seed : int,
+
+-- type of landcover
+-- \see landcovertype
+-- initialised in constructor
+  --
+  landcover : landcovertype,
+
+-- The year when this stand was created.
+-- Will typically be year zero unless running with dynamic
+  --  land cover.
+  --
+  --  Needed to set patchpft.anetps_ff_est_initial
+  --
+  first_year : int,
+  -- The year this stand was cloned from another stand
+  clone_year : int,
+-- scaling factor for stands that have grown in area this year (old fraction/new fraction)
+  scale_LC_change : real
+}
+
+let Stand(i : int, st : Soiltype, landcoverX : landcovertype, npatch : int) : Stand =
+
+  -- MEMBER FUNCTIONS
+
+-- Constructs a Stand
+-- \param i         The id for the stand within the grid cell
+  --  \param gc        The parent grid cell
+  --  \param st        The soil type to be used within this Stand
+  --  \param landcover The type of landcover to use for this stand
+  --
+  Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcover, int no_patch = 0);
+
+  ~Stand();
+
+-- Gives the fraction of this Stand relative to the whole grid cell
+  double get_gridcell_fraction() const;
+
+-- Gives the fraction of this Stand relative to its land cover type; NB: unsafe to use within landcover_dynamics() !
+  double get_landcover_fraction() const;
+
+-- Set the fraction of this Stand relative to the gridcell
+  void set_gridcell_fraction(double fraction);
+
+-- Returns the number of patches in this Stand
+  unsigned int npatch() const { return nobj; }
+
+-- Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland or other land cover
+  inline bool is_true_crop_stand() {
+    return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;  -- OK also for fallow (pftid always cropgreen)
+  }
+-- Moves crop rotation forward
+  void rotate();
+-- Returns area transferred to other land cover during land cover change
+  double transfer_area_lc(landcovertype to);
+-- Initiates new stand land cover settings
+  void init_stand_lu(StandType& st, double fraction);
+-- Total stand carbon biomass and litter
+  double ccont(double scale_indiv = 1.0);
+-- Total stand nitrogen biomass and litter
+  double ncont(double scale_indiv = 1.0);
+-- Total stand carbon fluxes so far this year
+  double cflux();
+-- Total stand nitrogen fluxes so far this year
+  double nflux();
+-- Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
+  bool is_highlatitude_peatland_stand() const;
+-- Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
+  bool is_true_wetland_stand() const;
+
+-- Creates a duplicate stand with a new landcovertype
+-- The new stand is added to this stand's gridcell.
+--
+--  \returns reference to the new stand
+--/
+  Stand& clone(StandType& st, double fraction);
+
+  void serialize(ArchiveStream& arch);
+
+-- Returns the Climate for this Stand
+-- This function returns a const reference to prevent code which operates
+   *  on a stand basis to modify the climate and thereby affect other
+   *  stands.
+  --
+  const Climate& get_climate() const;
+
+-- Returns the Gridcell containing this Stand
+  Gridcell& get_gridcell() const;
+
+private:
+
+-- Pointer to parent object, could be a null pointer
+-- Prefer to access the gridcell through get_gridcell(), even internally
+--  within the Stand class.
+--
+  Gridcell* gridcell;
+
+-- Soil type to be used in this Stand
+  Soiltype& soiltype;
+
+-- Fraction of this stand relative to the gridcell
+-- used by crop stands; initialized in constructor to 1,
+--  set in landcover_init()
+  double frac;
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Stand member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int npatch)
+ : id(i),
+   gridcell(gc),
+   soiltype(st),
+   landcover(landcoverX),
+   origin(landcoverX),
+   frac(1.0) {
+
+	// Constructor: initialises reference member of climate and
+	// builds list array of Standpft objects
+
+	if (landcover >= NLANDCOVERTYPES) {
+		fail("Unrecognized landcover type\n");
+	}
+
+	for (unsigned int p=0;p<pftlist.nobj;p++) {
+		pft.createobj(pftlist[p]);
+	}
+
+	unsigned int num_patches = 1;
+	if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE)) {
+		num_patches = ::npatch; // use the global variable npatch for stands with stochastic events
+	}
+	if (npatch > 0) {
+		num_patches = npatch;	// use patch number provided by calling function
+	}
+
+	for (unsigned int p=0;p<num_patches;p++) {
+		createobj(*this, soiltype);
+	}
+
+	first_year = date.year;
+	clone_year = -1;
+	transfer_area_st = new double[nst];
+	for(int i=0;i<nst;i++)
+		transfer_area_st[i] = 0.0;
+	seed = 12345678;
+
+	stid = 0;
+	pftid = -1;
+	current_rot = 0;
+	ndays_inrotation = 0;
+	infallow = false;
+	isrotationday = false;
+	isirrigated = false;
+	hasgrassintercrop = false;
+	gdd5_intercrop = 0.0;
+	frac = 1.0;
+	frac_old = 0.0;
+	frac_temp = 0.0;
+	protected_frac = 0.0;
+	frac_change = 0.0;
+	gross_frac_increase = 0.0;
+	gross_frac_decrease = 0.0;
+	cloned_fraction = 0.0;
+	cloned = false;
+	anpp = 0.0;
+	cmass = 0.0;
+	scale_LC_change = 1.0;
+}
+
+Stand::~Stand() {
+
+	if (transfer_area_st) {
+		delete[] transfer_area_st;
+	}
+}
+
+double Stand::get_gridcell_fraction() const {
+	return frac;
+}
+
+/// Initiation of stand variables when run_landcover==true
+/**
+  * Rules for which PFT:s are allowed to establish are set in the instruction file by the parameters landcover
+  * (allows all active PFT:s with the same landcovertype), naturalveg (allows none, natural grass or all natural pft:s)
+  * and intercrop ("naturalgrass" allows dedicated covercrop grass pft:s).
+  * If restrictpfts is true, further restriction of pft:s are specified in the management settings.
+  * Rules for reestablishment (after sowing or planting) are set by the parameter reestab, "none", "restricted" - only planted pft:s
+  */
+void Stand::init_stand_lu(StandType& st, double fraction) {
+
+	landcovertype lc = st.landcover;
+	landcover = lc;
+
+	stid = st.id;
+	set_gridcell_fraction(fraction);
+	frac_old = 0.0;
+	frac_change = fraction;
+	gross_frac_increase = fraction;
+
+	bool naturalveg = st.naturalveg == "ALL";
+	bool naturalgrass = st.naturalveg == "ALL" || st.naturalveg == "GRASSONLY";
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pftx = pftlist.getobj();
+
+		if(!st.restrictpfts && pftx.landcover == lc
+			|| !st.restrictpfts && naturalveg && pftx.landcover == NATURAL // Allow all natural pft:s to grow in e.g. forests
+			|| naturalgrass && pftx.landcover == NATURAL && pftx.lifeform == GRASS // Allow natural grass pft:s to grow in e.g. forests
+			|| pftx.landcover == lc && lc == FOREST && pftx.lifeform == GRASS) { // Always allow forest grass pft:s to grow in forests
+
+			pft[pftx.id].active = true;
+			pft[pftx.id].reestab = true;
+			// If restrictpfts = false, plant all tree pft:s after clearcut
+			if(pftx.lifeform == TREE)
+				pft[pftx.id].plant = true;
+		}
+		else {
+			pft[pftx.id].active = false;
+		}
+		pftlist.nextobj();
+	}
+
+	if(date.get_calendar_year() >= st.firstmanageyear) {
+		for(unsigned int i=0;i<npatch();i++)
+			(*this)[i].managed = true;
+	}
+
+	ManagementType& mt0 = st.get_management(0);
+	pftid = pftlist.getpftid(mt0.pftname);	// First main crop, will change during crop rotation
+	current_rot = 0;
+
+	if (mt0.hydrology == IRRIGATED) {
+		isirrigated = true;								// First main crop, may change during crop rotation
+		if (pftid >= 0)
+			pft[pftid].irrigated = true;
+	}
+
+	if (st.intercrop==NATURALGRASS && ifintercropgrass) {
+		hasgrassintercrop = true;
+
+		for (unsigned int i=0; i<pftlist.nobj; i++) {
+			if (pftlist[i].isintercropgrass)
+				pft[pftlist[i].id].active = true;
+		}
+	}
+
+	if(pftid > -1) {
+		if (!readNfert)
+			gridcell->pft[pftid].Nfert_read = mt0.nfert;
+		if (!readsowingdates)
+			pft[pftid].sdate_force = mt0.sdate;
+		if (!readharvestdates)
+			pft[pftid].hdate_force = mt0.hdate;
+	}
+
+	if(!readNfert_st)
+		gridcell->st[st.id].nfert = mt0.nfert;
+
+	if(!st.restrictpfts)
+		return;
+
+	// Set standpft- and patchpft-variables for active crops
+	for (int rot=0; rot<st.rotation.ncrops; rot++) {
+
+		ManagementType& mt = st.get_management(rot);
+
+		if(mt.planting_system == "MONOCULTURE") {
+
+			int id = pftlist.getpftid(mt.pftname);
+
+			if (id >=0) {
+
+				if(lc == CROPLAND) {
+
+					pft[id].active = true;
+
+					if (rot == 0) {
+						// Set crop cycle dates to default values only for first crop in a rotation.
+						for (unsigned int p = 0; p < nobj; p++) {
+
+							Gridcellpft& gcpft = get_gridcell().pft[id];
+							Patchpft& ppft = (*this)[p].pft[id];
+
+							ppft.set_cropphen()->sdate = gcpft.sdate_default;
+							ppft.set_cropphen()->hlimitdate = gcpft.hlimitdate_default;
+
+							if (pftlist[id].phenology == ANY)
+								ppft.set_cropphen()->growingseason = true;
+							else if (pftlist[id].phenology == CROPGREEN) {
+								ppft.set_cropphen()->eicdate = Date::stepfromdate(ppft.get_cropphen()->sdate, -15);
+							}
+						}
+					}
+				}
+				else if(rot == 0) {
+
+					// Only first tree rotation implemented; pft[id].active etc. has to be set anew in stand.crop_rotation()
+					pft[id].active = true;
+					pft[id].plant = true;
+					if(st.reestab == "RESTRICTED") {
+						pft[id].reestab = true;
+					}
+					else if(st.reestab == "ALL") {
+						pftlist.firstobj();
+						while (pftlist.isobj) {
+							Pft& pftx = pftlist.getobj();
+							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL) needs to be distinguished in the output
+							// 1. reestablishment by both forest and natural pfts
+//							if(pftx.landcover == lc || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							// 2. reestablishment by natural pfts (when active) and planted forest pfts
+//							if(pftx.landcover == lc && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							// 3. reestablishment only by natural pfts (when active)
+							if(pftx.landcover == lc && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+								pft[pftx.id].active = true;
+								pft[pftx.id].reestab = true;
+							}
+							pftlist.nextobj();
+						}
+					}
+				}
+			}
+			else if(!mt.fallow) {
+				dprintf("Warning: stand type %d pft %s not in pftlist !\n", stid, (char*)mt.pftname);;
+				break;
+			}
+		}
+		else if(mt.planting_system == "SELECTION") {
+
+			if(mt.selection != "") {
+				pftlist.firstobj();
+				while (pftlist.isobj) {
+					Pft& pftx = pftlist.getobj();
+
+					if(mt.pftinselection((const char*)pftx.name)) {
+
+						pft[pftx.id].active = true;
+						pft[pftx.id].reestab = true;
+						if(pftx.lifeform == TREE)
+							pft[pftx.id].plant = true;
+					}
+					else if(pftx.lifeform == TREE) {	// Whether grass is allowed is specified in the generic code above
+						pft[pftx.id].active = false;
+						if(st.reestab == "ALL") {
+							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL) needs to be distinguished in the output
+							// 1. reestablishment by both forest and natural pfts
+//							if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							// 2. reestablishment by natural pfts (when active) and planted forest pfts
+//							if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							// 3. reestablishment only by natural pfts (when active)
+							if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+								pft[pftx.id].active = true;
+								pft[pftx.id].reestab = true;
+							}
+						}
+					}
+					pftlist.nextobj();
+				}
+			}
+			else {
+				dprintf("Warning: stand type %d planting selection not defined !\n", stid);;
+				break;
+			}
+		}
+		else if(mt.planting_system != "") {
+
+			// planting systems (pft selections) defined here
+
+
+		}
+	}
+}
+
+void Stand::rotate() {
+
+	if (pftid >= 0 && stid >= 0) {
+
+		ndays_inrotation = 0;
+
+		int pftid_old = pftid;
+
+		current_rot = (current_rot + 1) % stlist[stid].rotation.ncrops;
+		ManagementType& mt = stlist[stid].get_management(current_rot);
+		pftid = pftlist.getpftid(mt.pftname);
+
+		// If fallow, use old pftid !
+		if(mt.fallow)
+			pftid = pftid_old;
+
+		Standpft& standpft = pft[pftid];
+
+		if (mt.hydrology == IRRIGATED) {
+			isirrigated = true;
+			standpft.irrigated = true;
+		}
+		else {
+			isirrigated = false;
+			standpft.irrigated = false;
+		}
+
+		if (!readNfert)
+			gridcell->pft[pftid].Nfert_read = mt.nfert;
+		if (!readsowingdates)
+			standpft.sdate_force = mt.sdate;
+		if (!readharvestdates)
+			standpft.hdate_force = mt.hdate;
+		if(!readNfert_st)
+			gridcell->st[stid].nfert = mt.nfert;
+	}
+}
+
+double Stand::transfer_area_lc(landcovertype to) {
+
+	double area = 0.0;
+
+	if (transfer_area_st) {
+
+		for (int j=0; j<nst; j++) {
+
+			if (stlist[j].landcover == to)
+				area += transfer_area_st[j];
+		}
+	}
+	return area;
+}
+
+double Stand::ccont(double scale_indiv) {
+
+	double ccont = 0.0;
+
+	for (unsigned int p = 0; p < nobj; p++)
+		ccont += (*this)[p].ccont(scale_indiv) / nobj;
+
+	return ccont;
+}
+
+double Stand::ncont(double scale_indiv) {
+
+	double ncont = 0.0;
+
+	for (unsigned int p = 0; p < nobj; p++)
+		ncont += (*this)[p].ncont(scale_indiv) / nobj;
+
+	return ncont;
+}
+
+double Stand::cflux() {
+
+	double cflux = 0.0;
+
+	for (unsigned int p = 0; p < nobj; p++)
+		cflux += (*this)[p].cflux() / nobj;
+
+	return cflux;
+}
+
+double Stand::nflux() {
+
+	double nflux = 0.0;
+
+	for (unsigned int p = 0; p < nobj; p++)
+		nflux += (*this)[p].nflux() / nobj;
+
+	return nflux;
+}
+
+/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
+bool Stand::is_highlatitude_peatland_stand() const {
+
+	double lat = gridcell->get_lat();
+
+	return landcover==PEATLAND && lat >= PEATLAND_WETLAND_LATITUDE_LIMIT;
+}
+
+/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
+bool Stand::is_true_wetland_stand() const {
+
+	double lat = gridcell->get_lat();
+
+	return landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT;
+}
+
+Stand& Stand::clone(StandType& st, double fraction) {
+
+	// Serialize this stand to an in-memory stream
+	std::stringstream ss;
+	ArchiveOutStream aos(ss);
+	serialize(aos);
+
+	// Create a new stand in the gridcell...
+	// NB: the patch number is always that of the old stand, even if the new stand is a pasture or crop stand
+	Stand& new_stand = gridcell->create_stand(st.landcover, nobj);
+	int new_seed = new_stand.seed;
+
+	// ...and deserialize to that stand
+	ArchiveInStream ais(ss);
+	new_stand.serialize(ais);
+
+	new_stand.clone_year = date.year;
+//	new_stand.seed = new_seed;	// ?
+
+	// Set land use settings for new stand
+	new_stand.init_stand_lu(st, fraction);
+
+	for (unsigned int p = 0; p < nobj; p++) {
+//		new_stand[p].age = 0;				// probably not what we want
+		new_stand[p].managed = false;		// or use value of mother stand ?
+	}
+
+	return new_stand;
+}
+
+double Stand::get_landcover_fraction() const {
+	if (get_gridcell().landcover.frac[landcover])
+		return frac / get_gridcell().landcover.frac[landcover];
+	else
+		return 0.0;
+}
+
+void Stand::set_gridcell_fraction(double fraction) {
+	frac = fraction;
+}
+
+void Stand::serialize(ArchiveStream& arch) {
+	if (arch.save()) {
+		for (unsigned int i = 0; i < pft.nobj; i++) {
+			arch & pft[i];
+		}
+
+		arch & nobj;
+		for (unsigned int k = 0; k < nobj; k++) {
+			arch & (*this)[k];
+		}
+	}
+	else {
+		pft.killall();
+		for (unsigned int i = 0; i < pftlist.nobj; i++) {
+			Standpft& standpft = pft.createobj(pftlist[i]);
+			arch & standpft;
+		}
+
+		killall();
+		unsigned int npatch;
+		arch & npatch;
+		for (unsigned int k = 0; k < npatch; k++) {
+			Patch& patch = createobj(*this, soiltype);
+			arch & patch;
+		}
+	}
+
+	arch & first_year
+		& clone_year
+		& frac
+		& stid
+		& pftid
+		& current_rot
+		& ndays_inrotation
+		& infallow
+		& isirrigated
+		& hasgrassintercrop
+		& gdd5_intercrop
+		& cloned
+		& origin
+		& landcover
+		& seed;
+}
+
+const Climate& Stand::get_climate() const {
+
+	// In this implementation all stands within a grid cell
+	// share the same climate. Note that this might not be
+	// true in all versions of LPJ-GUESS, some may have
+	// different climate per landcover type for instance.
+
+	return get_gridcell().climate;
+}
+
+Gridcell& Stand::get_gridcell() const {
+	assert(gridcell);
+	return *gridcell;
 }
