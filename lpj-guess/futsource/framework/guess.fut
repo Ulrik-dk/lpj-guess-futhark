@@ -21,265 +21,10 @@ open import "../framework/parameters"
 --#include "guesscontainer.h"
 open import "../modules/soil"
 open import "../futhark-extras"
-
-----------------------------------------------------------
--- GLOBAL ENUMERATED TYPE DEFINITIONS
-
--- Life form class for PFTs (trees, grasses)
-type lifeformtype = enum_type
-let NOLIFEFORM : lifeformtype = 0
-let TREE : lifeformtype = 1
-let GRASS : lifeformtype = 2
-let MOSS : lifeformtype = 3
-
--- Phenology class for PFTs
-type phenologytype = enum_type
-let NOPHENOLOGY : phenologytype = 0
-let EVERGREEN : phenologytype = 1
-let RAINGREEN : phenologytype = 2
-let SUMMERGREEN : phenologytype = 3
-let CROPGREEN : phenologytype = 4
-let ANY : phenologytype = 5
--- Biochemical pathway for photosynthesis (C3 or C4)
-type pathwaytype = enum_type
-let NOPATHWAY : pathwaytype = 0
-let C3 : pathwaytype = 1
-let C4 : pathwaytype = 2
--- Leaf physiognomy types for PFTs
-type leafphysiognomytype = enum_type
-let NOLEAFTYPE : leafphysiognomytype = 0
-let NEEDLELEAF : leafphysiognomytype = 1
-let BROADLEAF : leafphysiognomytype = 2
--- The level of verbosity of LPJ-GUESS. Decides the amount of information that is written to the log-file.
-type verbositylevel = enum_type
-let ERROR : verbositylevel = 0
-let WARNING : verbositylevel = 1
-let INFO : verbositylevel = 2
-let DEBUG_WARNING : verbositylevel = 3
--- Units for insolation driving data
--- Insolation can be expressed as:
---
---  - Percentage sunshine
---  - Net instantaneous downward shortwave radiation flux (W/m2)
---  - Total (i.e. with no correction for surface albedo) instantaneous downward
---    shortwave radiation flux (W/m2)
---
---  Radiation flux can be interpreted as W/m2 during daylight hours, or averaged
---  over the whole time step which it represents (24 hours in daily mode). For
---  this reason there are two enumerators for these insolation types (e.g. SWRAD
---  and SWRAD_TS).
---/
-type insoltype = enum_type
-let NOINSOL : insoltype = 0 -- No insolation type chosen
-let SUNSHINE : insoltype = 1 -- Percentage sunshine
-let NETSWRAD : insoltype = 2 -- Net shortwave radiation flux during daylight hours (W/m2)
-let SWRAD : insoltype = 3 -- Total shortwave radiation flux during daylight hours (W/m2)
-let NETSWRAD_TS : insoltype = 4 -- Net shortwave radiation flux during whole time step (W/m2)
-let SWRAD_TS : insoltype = 5 -- Total shortwave radiation flux during whole time step (W/m2)
--- CENTURY pool names, NSOMPOOL number of SOM pools
-type pooltype = enum_type
-let SURFSTRUCT : pooltype = 0
-let SOILSTRUCT : pooltype = 1
-let SOILMICRO : pooltype = 2
-let SURFHUMUS : pooltype = 3
-let SURFMICRO : pooltype = 4
-let SURFMETA : pooltype = 5
-let SURFFWD : pooltype = 6
-let SURFCWD : pooltype = 7
-let SOILMETA : pooltype = 8
-let SLOWSOM : pooltype = 9
-let PASSIVESOM : pooltype = 10
-let NSOMPOOL : pooltype = 11
+open import "guess_datatypes"
 
 
--- Irrigation type for PFTs
-type hydrologytype = enum_type
-let RAINFED : hydrologytype = 0
-let IRRIGATED : hydrologytype = 1
 
--- Intercrop type for PFTs
-type intercroptype = enum_type
-let NOINTERCROP : intercroptype = 0
-let NATURALGRASS : intercroptype = 1
-
---  0:SEASONALITY_NO      No seasonality
---  1:SEASONALITY_PREC      Precipitation seasonality only
---  2:SEASONALITY_PRECTEMP    Both temperature and precipitation seasonality, but "weak" temperature seasonality (coldest month > 10degC)
---  3:SEASONALITY_TEMP      Temperature seasonality only
---  4:SEASONALITY_TEMPPREC    Both temperature and precipitation seasonality, but temperature most important (coldest month < 10degC)
---  5:    Temperature seasonality, always above 10 degrees (currently not used)
-type seasonality_type = enum_type
-let SEASONALITY_NO : seasonality_type = 0
-let SEASONALITY_PREC : seasonality_type = 1
-let SEASONALITY_PRECTEMP : seasonality_type = 2
-let SEASONALITY_TEMP : seasonality_type = 3
-let SEASONALITY_TEMPPREC : seasonality_type = 4
---let SEASONALITY_TEMPWARM : seasonality_type = 5 -- TODO: this one was in the original comment but not source
-
--- Precipitation seasonality type of gridcell
--- 0:DRY            (minprec_pet20<=0.5 && maxprec_pet20<=0.5)
---  1:DRY_INTERMEDIATE      (minprec_pet20<=0.5 && maxprec_pet20>0.5 && maxprec_pet20<=1.0)
---  2:DRY_WET          (minprec_pet20<=0.5 && maxprec_pet20>1.0)
---  3:INTERMEDIATE        (minprec_pet20>0.5 && minprec_pet20<=1.0 && maxprec_pet20>0.5 && maxprec_pet20<=1.0)
---  4:INTERMEDIATE_WET      (minprec_pet20>0.5 && minprec_pet20<=1.0 && maxprec_pet20>1.0)
---  5:WET            (minprec_pet20>1.0 && maxprec_pet20>1.0)
---/
-type prec_seasonality_type = enum_type
-let DRY : prec_seasonality_type = 0
-let DRY_INTERMEDIATE : prec_seasonality_type = 1
-let DRY_WET : prec_seasonality_type = 2
-let INTERMEDIATE : prec_seasonality_type = 3
-let INTERMEDIATE_WET : prec_seasonality_type = 4
-let WET : prec_seasonality_type = 5
-
--- Temperature seasonality type of gridcell
--- 0:COLD            (mtemp_max20<=10)
--- 1:COLD_WARM          (mtemp_min20<=10 && mtemp_max20>10 && mtemp_max20<=30)
--- 2:COLD_HOT          (mtemp_min20<=10 && mtemp_max20>30)
--- 3:WARM            (mtemp_min20>10 && mtemp_max20<=30)
--- 4:WARM_HOT          (mtemp_min20>10 && mtemp_max20>30)
--- 5:HOT            (mtemp_min20>30)
---/
-type temp_seasonality_type = enum_type
-let COLD : temp_seasonality_type = 0
-let COLD_WARM : temp_seasonality_type = 1
-let COLD_HOT : temp_seasonality_type = 2
-let WARM : temp_seasonality_type = 3
-let WARM_HOT : temp_seasonality_type = 4
-let HOT : temp_seasonality_type = 5
--- Gas type (used in methane code)
-type gastype = enum_type
-let O2gas : gastype = 0
-let CO2gas : gastype = 1
-let CH4gas : gastype = 2
--- Nitrogen preferance
-type n_pref_type = enum_type
-let NO : n_pref_type = 0
-let NH4 : n_pref_type = 1
-let NO3 : n_pref_type = 2
-----------------------------------------------------------
--- GLOBAL CONSTANTS
-
--- number  of soil layers modelled
-let NSOILLAYER_UPPER : int = 5
-let NSOILLAYER_LOWER : int = NSOILLAYER - NSOILLAYER_UPPER
-
--- bvoc: number of monoterpene species used
-let NMTCOMPOUNDS : int = NMTCOMPOUNDTYPES
-
--- SOIL DEPTH VALUES
-
--- soil upper layer depth (mm)
-let SOILDEPTH_UPPER : real = 500.0
--- soil lower layer depth (mm)
-let SOILDEPTH_LOWER : real = 1000.0
-
--- Depth of sublayer at top of upper soil layer, from which evaporation is
--- possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
--- Must be a multiple of Dz_soil
-let SOILDEPTH_EVAP : real = 200.0
-
--- Year at which to calculate equilibrium soil carbon
-let SOLVESOM_END : int = 400
-
--- Year at which to begin documenting means for calculation of equilibrium soil carbon
-let SOLVESOM_BEGIN : int = 350
-
--- Number of years to average growth efficiency over in function mortality
-let NYEARGREFF : int = 5
-
--- Coldest day in N hemisphere (January 15)
--- Used to decide when to start counting GDD's and leaf-on days
---  for summergreen phenology.
---/
-let COLDEST_DAY_NHEMISPHERE : int = 14
-
--- Coldest day in S hemisphere (July 15)
--- Used to decide when to start counting GDD's and leaf-on days
---  for summergreen phenology.
---/
-let COLDEST_DAY_SHEMISPHERE : int = 195
-
--- Warmest day in N hemisphere (same as COLDEST_DAY_SHEMISPHERE)
-let WARMEST_DAY_NHEMISPHERE : int = COLDEST_DAY_SHEMISPHERE
-
--- Warmest day in S hemisphere (same as COLDEST_DAY_NHEMISPHERE)
-let WARMEST_DAY_SHEMISPHERE : int = COLDEST_DAY_NHEMISPHERE
-
--- number of years to average aaet over in function soilnadd
-let NYEARAAET : int = 5
-
--- number of years to average max snow depth over in function soilnadd
-let NYEARMAXSNOW : int = 20
-
--- Priestley-Taylor coefficient (conversion factor from equilibrium evapotranspiration to PET)
-let PRIESTLEY_TAYLOR : real = 1.32
-
--- Solving Century SOM pools
-
--- fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
-let SOLVESOMCENT_SPINBEGIN  : real = 0.1
--- fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
-let SOLVESOMCENT_SPINEND : real = 0.3
-
--- Kelvin to deg C conversion
-let K2degC : real = 273.15
-
--- Maximum number of crop rotation items
-let NROTATIONPERIODS_MAX : int = 3
-
--- Conversion factor for CO2 from ppmv to mole fraction
-let CO2_CONV : real = 1.0e-6
-
--- Initial carbon allocated to crop organs at sowing, kg m-2
-let CMASS_SEED : real = 0.01
-
--- Precision in land cover fraction input
-let INPUT_PRECISION : real = 1.0e-14
-let INPUT_ERROR : real = 0.5e-6
-let INPUT_RESOLUTION : real = INPUT_PRECISION - INPUT_PRECISION * INPUT_ERROR
-
--- Averaging interval for average maximum annual fapar (SIMFIRE)
-let AVG_INTERVAL_FAPAR : int = 3
-
--- Averaging interval for biome averaging (SIMFIRE)
-let N_YEAR_BIOMEAVG : int = 3
-
-
--- type Date
--- type Day
--- type MassBalance
-
-
--- This struct contains the result of a photosynthesis calculation.
--- see photosynthesis
-type PhotosynthesisResult = {
-  -- Constructs an empty result
-
-  -- RuBisCO capacity (gC/m2/day)
-  vm : real,
-
-  -- gross daily photosynthesis (gC/m2/day)
-  agd_g : real,
-
-  -- leaf-level net daytime photosynthesis
-  -- expressed in CO2 diffusion units (mm/m2/day)--
-  adtmm : real,
-
-  -- leaf respiration (gC/m2/day)
-  rd_g : real,
-
-  -- PAR-limited photosynthesis rate (gC/m2/h)
-  je : real,
-
-  -- optimal leaf nitrogen associated with photosynthesis (kgN/m2)
-  nactive_opt : real,
-
-  -- nitrogen limitation on vm
-  vmaxnlim : real
-
-  -- net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
-}
 
 let net_assimilation(psr : PhotosynthesisResult) : real =
   (psr.agd_g - psr.rd_g) * KG_PER_G
@@ -299,24 +44,6 @@ let PhotosynthesisResult() : PhotosynthesisResult =
   }
 
 
-  -- type WeatherGenState
-
-
--- This struct contains the environmental input to a photosynthesis calculation.
--- \see photosynthesis--
-type PhotosynthesisEnvironment = {
-  -- atmospheric ambient CO2 concentration (ppmv)
-  co2 : real,
-  -- mean air temperature today (deg C)
-  temp : real,
-  -- total daily photosynthetically-active radiation today (J / m2 / day) (ALPHAA not yet accounted for)
-  par : real,
-  -- fraction of PAR absorbed by foliage
-  fpar : real,
-  -- day length, must equal 24 in diurnal mode(h)
-  daylength : real
-}
-
 -- Constructs an empty result
 let PhotosynthesisEnvironment() : PhotosynthesisEnvironment =
   {
@@ -328,22 +55,6 @@ let PhotosynthesisEnvironment() : PhotosynthesisEnvironment =
   }
 
 
---- This struct contains the stresses used in a photosynthesis calculation.
-type PhotosynthesisStresses = {
-  --- whether nitrogen should limit Vmax
-  ifnlimvmax: bool,
-
-  ---  limit to moss photosynthesis. [0,1], where 1 means no limit
-  moss_ps_limit: real,
-
-  --- limit to graminoid photosynthesis. [0,1], where 1 means no limit
-  graminoid_ps_limit: real,
-
-  --- limit to photosynthesis due to inundation, where 1 means no limit
- inund_stress: real
-  }
-
-
 let PhotosynthesisStresses() : PhotosynthesisStresses =
   {
     ifnlimvmax = false,
@@ -352,138 +63,6 @@ let PhotosynthesisStresses() : PhotosynthesisStresses =
     inund_stress = 1.0
   }
 
-
--- type Climate
-
-
---- Stores accumulated monthly and annual fluxes.
--- This class handles the storage and accounting of fluxes for a single patch.
---  Different fluxes can be stored in different ways, depending on what kind of
---  flux it is and what kind of output we want. The details of whether fluxes
---  are stored per PFT or just as a patch total, or per day, month or only a
---  yearly sum, is hidden from the 'scientific' code, which merely reports the
---  fluxes generated.
---/
-type PerPatchFluxType = enum_type
-type PerPFTFluxType = enum_type
-
-
-
-
---- Fluxes stored as totals for the whole patch
-  --- Carbon flux to atmosphere from burnt vegetation and litter (kgC/m2)
-  let FIREC : PerPatchFluxType = 0
-  --- Carbon flux to atmosphere from soil respiration (kgC/m2)
-  let SOILC : PerPatchFluxType = 1
-  --- Flux from atmosphere to vegetation associated with establishment (kgC/m2)
-  let ESTC : PerPatchFluxType = 2
-  --- Flux to atmosphere from consumed harvested products (kgC/m2)
-  let HARVESTC : PerPatchFluxType = 3
-  --- Flux from atmosphere to vegetation associated with sowing (kgC/m2)
-  let SEEDC : PerPatchFluxType = 4
-  --- Flux from atmosphere to vegetation associated with manure addition (kgC/m2)
-  let MANUREC : PerPatchFluxType = 5
-  --- Flux to vegetation associated with manure addition (kgN/m2)
-  let MANUREN : PerPatchFluxType = 6
-  --- Flux to vegetation associated with N addition (kgN/m2)
-  let NFERT : PerPatchFluxType = 7
-  --- Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
-  let HARVESTN : PerPatchFluxType = 8
-  --- Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
-  let SEEDN : PerPatchFluxType = 9
-  --- NH3 flux to atmosphere from fire
-  let NH3_FIRE : PerPatchFluxType = 10
-  --- NOx flux to atmosphere from fire
-  let NOx_FIRE : PerPatchFluxType = 11
-  --- N2O flux to atmosphere from fire
-  let N2O_FIRE : PerPatchFluxType = 12
-  --- N2 flux to atmosphere from fire
-  let N2_FIRE : PerPatchFluxType = 13
-  ------ Soil N transformation -----
-  --- NH3 flux from soil (ntransform)
-  let NH3_SOIL : PerPatchFluxType = 14
-  --- NO flux from soil (ntransform)
-  let NO_SOIL : PerPatchFluxType = 15
-  --- N2O flux in soil (ntransform)
-  let N2O_SOIL : PerPatchFluxType = 16
-  --- N2 flux from soil (ntransform)
-  let N2_SOIL : PerPatchFluxType = 17
-  --- DOC flux from soil (ntransform)
-  let DOC_FLUX : PerPatchFluxType = 18
-  --- Net nitrification (ntransform)
-  let NET_NITRIF : PerPatchFluxType = 19
-  --- Net denitrification (ntransform)
-  let NET_DENITRIF : PerPatchFluxType = 20
-  --- Gross nitrification (ntransform)
-  let GROSS_NITRIF : PerPatchFluxType = 21
-  --- Gross denitrification (ntransform)
-  let GROSS_DENITRIF : PerPatchFluxType = 22
-  --- Reproduction costs
-  let REPRC : PerPatchFluxType = 23
-  --- Total (i.e. CH4C_DIFF + CH4C_PLAN + CH4C_EBUL) CH4 flux to atmosphere from peatland soils (gC/m2).
-  let CH4C : PerPatchFluxType = 24
-  --- Diffused CH4 flux to atmosphere from peatland soils (gC/m2).
-  let CH4C_DIFF : PerPatchFluxType = 25
-  --- Plant-mediated CH4 flux to atmosphere from peatland soils (gC/m2).
-  let CH4C_PLAN : PerPatchFluxType = 26
-  --- CH4 flux to atmosphere from peatland soils due to ebullition (gC/m2).
-  let CH4C_EBUL : PerPatchFluxType = 27
-  --- Number of types must be last
-  let NPERPATCHFLUXTYPES : PerPatchFluxType = 28
-
---- Fluxes stored per pft
-  --- NPP (kgC/m2)
-  let NPP : PerPFTFluxType = 0
-  --- GPP (kgC/m2)
-  let GPP : PerPFTFluxType = 1
-  --- Autotrophic respiration (kgC/m2)
-  let RA : PerPFTFluxType = 2
-  --- Isoprene (mgC/m2)
-  let ISO : PerPFTFluxType = 3
-  --- Monoterpene (mgC/m2)
-  let MT_APIN : PerPFTFluxType = 4
-  let MT_BPIN : PerPFTFluxType = 5
-  let MT_LIMO : PerPFTFluxType = 6
-  let MT_MYRC : PerPFTFluxType = 7
-  let MT_SABI : PerPFTFluxType = 8
-  let MT_CAMP : PerPFTFluxType = 9
-  let MT_TRIC : PerPFTFluxType = 10
-  let MT_TBOC : PerPFTFluxType = 11
-  let MT_OTHR : PerPFTFluxType = 12
-  --- Number of types must be last
-  let NPERPFTFLUXTYPES : PerPFTFluxType = 13
-
--- emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
-
-  let NH3_FIRERATIO : real = 0.005
-  let NOx_FIRERATIO : real = 0.237
-  let N2O_FIRERATIO : real = 0.036
-  let N2_FIRERATIO  : real = 0.722
-
-  --- Reference to patch to which this Fluxes object belongs
-  --Patch& patch, --FUTHARK: ID instead of pointer? What is it used for?
-
-
-type Fluxes = {
-  ---- Private members, mutable
-  -- Stores one flux value per PFT and flux type
-  annual_fluxes_per_pft : [npft][NPERPFTFLUXTYPES]real,
-
-  -- Stores one flux value per month and flux type
-  -- For the fluxes only stored as totals for the whole patch--
-  monthly_fluxes_patch : [12][NPERPATCHFLUXTYPES]real,
-
-  -- Stores one flux value per month and flux type
-  --- For the fluxes stored per pft for annual values--
-  monthly_fluxes_pft : [12][NPERPFTFLUXTYPES]real,
-
-  -- Stores one flux value per day and flux type
-  daily_fluxes_patch : [365][NPERPATCHFLUXTYPES]real,
-
-  -- Stores one flux value per day and flux type
-  daily_fluxes_pft : [365][NPERPFTFLUXTYPES]real
-
-}
 
 
 --------------------------------------------------------------------------------
@@ -514,10 +93,6 @@ let Fluxes() : Fluxes = {
     daily_fluxes_pft = replicate 365 (replicate NPERPFTFLUXTYPES realzero)
   }
 
-type Date = {
-  month : int,
-  day : int
-}
 
 -- Forgive me for this, there is no other way of updating arrays in records.
 let report_flux_PerPFTFluxType(
@@ -587,352 +162,6 @@ let get_annual_flux_PerPFTFluxType(this: Fluxes, flux_type: PerPFTFluxType) : re
 
 let get_annual_flux_PerPatchFluxType(this: Fluxes, flux_type: PerPatchFluxType) : real =
   reduce (+) realzero <| (transpose this.annual_fluxes_per_pft)[flux_type]
-
-
--- type CropRotation
--- type StandType
-
-
--- Holds static functional parameters for a plant functional type (PFT).
--- There should be one Pft object for each potentially occurring PFT. The same Pft object
--- may be referenced (via the pft member of the Individual object see below) by different
--- average individuals. Member functions are included for initialising SLA given leaf
--- longevity, and for initialising sapling/regen characteristics (required for
--- population mode).
-
-type Pft  = {
-  -- MEMBER VARIABLES
-  -- id code (should be zero based and sequential, 0...npft-1)
-  id: int,
-  -- name of PFT
-  name: xtring,
-  -- life form (tree or grass)
-  lifeform: lifeformtype,
-  -- leaf phenology (raingreen, summergreen, evergreen, rain+summergreen, cropgreen)
-  phenology: phenologytype,
-  -- leaf physiognomy (needleleaf, broadleaf)
-  leafphysiognomy: leafphysiognomytype,
-  -- growing degree sum on 5 degree base required for full leaf cover
-  phengdd5ramp: real,
-  -- water stress threshold for leaf abscission (range 0-1 raingreen PFTs)
-  wscal_min: real,
-  -- biochemical pathway for photosynthesis (C3 or C4)
-  pathway: pathwaytype,
-  -- approximate low temperature limit for photosynthesis (deg C)
-  pstemp_min: real,
-  -- approximate lower range of temperature optimum for photosynthesis (deg C)
-  pstemp_low: real,
-  -- approximate upper range of temperature optimum for photosynthesis (deg C)
-  pstemp_high: real,
-  -- maximum temperature limit for photosynthesis (deg C)
-  pstemp_max: real,
-  -- non-water-stressed ratio of intercellular to ambient CO2 partial pressure
-  lambda_max: real,
-  -- vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
-  rootdist: [NSOILLAYER]real,
-  -- shape parameter for initialisation of root distribtion
-  root_beta: real,
-  -- canopy conductance component not associated with photosynthesis (mm/s)
-  gmin: real,
-  -- maximum evapotranspiration rate (mm/day)
-  emax: real,
-  -- maintenance respiration coefficient (0-1)
-  respcoeff: real,
-
-  -- minimum leaf C:N mass ratio allowed when nitrogen demand is determined
-  cton_leaf_min: real,
-  -- maximum leaf C:N mass ratio  allowed when nitrogen demand is determined
-  cton_leaf_max: real,
-  -- average leaf C:N mass ratio (between min and max)
-  cton_leaf_avr: real,
-  -- average fine root C:N mass ratio (connected cton_leaf_avr)
-  cton_root_avr: real,
-  -- maximum fine root C:N mass ratio (used when mass is negligible)
-  cton_root_max: real,
-  -- average sapwood C:N mass ratio (connected cton_leaf_avr)
-  cton_sap_avr: real,
-  -- maximum sapwood C:N mass ratio (used when mass is negligible)
-  cton_sap_max: real,
-  -- reference fine root C:N mass ratio
-  cton_root: real,
-  -- reference sapwood C:N mass ratio
-  cton_sap: real,
-  -- Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
-  nuptoroot: real,
-  -- coefficient to compensate for vertical distribution of fine root on nitrogen uptake
-  nupscoeff: real,
-  -- fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen longterm storage scalar
-  fnstorage: real,
-
-  -- Michaelis-Menten kinetic parameters
-  -- Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000)--
-  km_volume: real,
-
-  -- fraction of NPP allocated to reproduction
-  reprfrac: real,
-  -- annual leaf turnover as a proportion of leaf C biomass
-  turnover_leaf: real,
-  -- annual fine root turnover as a proportion of fine root C biomass
-  turnover_root: real,
-  -- annual sapwood turnover as a proportion of sapwood C biomass
-  turnover_sap: real,
-  -- sapwood and heartwood density (kgC/m3)
-  wooddens: real,
-  -- maximum tree crown area (m2)
-  crownarea_max: real,
-  -- constant in allometry equations
-  k_allom1: real,
-  -- constant in allometry equations
-  k_allom2: real,
-  -- constant in allometry equations
-  k_allom3: real,
-  -- constant in allometry equations
-  k_rp: real,
-  -- tree leaf to sapwood area ratio
-  k_latosa: real,
-  -- specific leaf area (m2/kgC)
-  sla: real,
-  -- leaf longevity (years)
-  leaflong: real,
-  -- leaf to root mass ratio under non-water-stressed conditions
-  ltor_max: real,
-  -- litter moisture flammability threshold (fraction of AWC)
-  litterme: real,
-  -- fire resistance (0-1)
-  fireresist: real,
-  -- minimum forest-floor PAR level for growth (grasses) or establishment (trees)
-  -- J/m2/day, individual and cohort modes--
-  parff_min: real,
-  -- parameter capturing non-linearity in recruitment rate relative to
-  -- understorey growing conditions for trees (Fulton 1991) (individual and
-  -- cohort modes)
-
-  alphar: real,
-  -- maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
-  est_max: real,
-  -- constant used in calculation of sapling establishment rate when spatial
-  -- mass effect enabled (individual and cohort modes)
-
-  kest_repr: real,
-  -- constant affecting amount of background establishment
-  -- \see ifbgestab--
-  kest_bg: real,
-  -- constant used in calculation of sapling establishment rate when spatial
-  -- mass effect disabled (individual and cohort modes)
-
-  kest_pres: real,
-  -- expected longevity under non-stressed conditions (individual and cohort modes)
-  longevity: real,
-  -- threshold growth efficiency for imposition of growth suppression mortality
-  -- kgC/m2 leaf/year, individual and cohort modes--
-  greff_min: real,
-
-  -- Bioclimatic limits (all temperatures deg C)
-
-  -- minimum 20-year coldest month mean temperature for survival
-  tcmin_surv: real,
-  -- maximum 20-year coldest month mean temperature for establishment
-  tcmax_est: real,
-  -- minimum degree day sum on 5 deg C base for establishment
-  gdd5min_est: real,
-  -- minimum 20-year coldest month mean temperature for establishment
-  tcmin_est: real,
-  -- minimum warmest month mean temperature for establishment
-  twmin_est: real,
-  -- continentality parameter for boreal summergreen trees
-  twminusc: real,
-  -- constant in equation for budburst chilling time requirement (Sykes et al 1996)
-  k_chilla: real,
-  -- coefficient in equation for budburst chilling time requirement
-  k_chillb: real,
-  -- exponent in equation for budburst chilling time requirement
-  k_chillk: real,
-  -- array containing values for GDD0(c) given c=number of chill days
-  -- Sykes et al 1996, Eqn 1
-  -- gdd0 has one element for each possible value for number of chill days
-
-  ---- FIXME TODO HACK! comes from Date::MAX_YEAR_LENGTH+1
-  gdd0: [Date_MAX_YEAR_LENGTH_plusone]real,
-
-  -- interception coefficient (unitless)
-  intc: real,
-
-  -- the amount of N that is applied (kg N m-2)
-  N_appfert: real,
-  -- 0 - 1 how much of the fertiliser is applied the first date, default 1.
-  fertrate: (real, real),
-  -- dates relative to sowing date
-  fertdates: (int, int),
-  fert_stages: (real, real),
-  fertilised: (bool, bool),
-
-  T_vn_min: real,
-  T_vn_opt: real,
-  T_vn_max: real,
-
-  T_veg_min: real,
-  T_veg_opt: real,
-  T_veg_max: real,
-
-  T_rep_min: real,
-  T_rep_opt: real,
-  T_rep_max: real,
-
-  photo: (real, real, real),
-
-  dev_rate_veg: real,
-  dev_rate_rep: real,
-
-  a1: real, b1: real, c1: real, d1: real, a2: real, b2: real, c2: real, d2: real, a3: real, b3: real, c3: real, d3: real,
-  cton_stem_avr: real,
-  cton_stem_max: real,
-
-  -- Drought tolerance level (0 = very -> 1 = not at all) (unitless)
-  -- Used to implement drought-limited establishment--
-  drought_tolerance: real,
-
-  -- bvoc
-
-  -- aerodynamic conductance (m s-1)
-  ga: real,
-  -- isoprene emission capacity (ug C g-1 h-1)
-  eps_iso: real,
-  -- whether (1) or not (1) isoprene emissions show a seasonality
-  seas_iso: bool,
-  -- monoterpene emission capacity (ug C g-1 h-1) per monoterpene species
-  eps_mon: [NMTCOMPOUNDS]real,
-  -- fraction of monoterpene production that goes into storage pool (-) per monoterpene species
-  storfrac_mon: [NMTCOMPOUNDS]real,
-
-  -- Bioclimatic limits parameters from Wolf et al. 2008
-
-  -- snow max [mm]
-  max_snow: real,
-  -- snow min [mm]
-  min_snow: real,
-  -- GDD0 min
-  gdd0_min: real,
-  -- GDD0 max
-  gdd0_max: real,
-
-  -- New parameters from parameters from Wania et al. (2009a, 2009b, 2010)
-
-  -- Days per month for which inundation is tolerated
-  inund_duration: int,
-  -- Inundation stress is felt when the water table (mm) is above wtp_max
-  wtp_max: real,
-  -- Whether this PFT has aerenchyma through which O2 and CH4 can be transported (Wania et al. 2010 - Sec 2.6)
-  has_aerenchyma: bool,
-
-  -- Sapling/regeneration characteristics (used only in population mode)
-  -- For trees, on sapling individual basis (kgC) for grasses, on stand area basis,
-  -- kgC/m2--
-
-  -- leaf C biomass
-  regen_cmass_leaf: real,
-  -- fine root C biomass
-  regen_cmass_root: real,
-  -- sapwood C biomass
-  regen_cmass_sap: real,
-  -- heartwood C biomass
-  regen_cmass_heart: real,
-
-  -- specifies type of landcover pft is allowed to grow in (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
-  landcover: landcovertype,
-  -- pft selection
-  selection: xtring,
-  -- fraction of residue outtake at harvest
-  res_outtake: real,
-  -- harvest efficiencytype leafphysiognomy = int
-
-  harv_eff: real,
-  -- harvest efficiency of intercrop grass
-  harv_eff_ic: real,
-  -- fraction of harvested products that goes into patchpft.harvested_products_slow
-  harvest_slow_frac: real,
-  -- yearly turnover fraction of patchpft.harvested_products_slow (goes to gridcell.acflux_harvest_slow)
-  turnover_harv_prod: real,
-  -- whether pft may grow as cover crop
-  isintercropgrass: bool,
-  -- whether autumn temperature dependent sowing date is calculated
-  ifsdautumn: bool,
-  -- upper temperature limit for autumn sowing
-  tempautumn: real,
-  -- lower temperature limit for spring sowing
-  tempspring: real,
-  -- default length of growing period
-  lgp_def: int,
-  -- upper minimum temperature limit for crop sowing
-  maxtemp_sowing: real,
-  -- default sowing date in the northern hemisphere (julian day)
-  sdatenh: int,
-  -- default sowing date in the southern hemisphere
-  sdatesh: int,
-  -- whether sowing date adjusting equation is used
-  sd_adjust: bool,
-  -- parameter 1 in sowing date adjusting equation
-  sd_adjust_par1: real,
-  -- parameter 2 in sowing date adjusting equation
-  sd_adjust_par2: real,
-  -- parameter 3 in sowing date adjusting equation
-  sd_adjust_par3: real,
-  -- latest date for harvesting in the northern hemisphere
-  hlimitdatenh: int,
-  -- latest date for harvesting in the southern hemisphere
-  hlimitdatesh: int,
-  -- default base temperature (°C) for heat unit (hu) calculation
-  tb: real,
-  -- temperature under which vernalisation is possible (°C)
-  trg: real,
-  -- default number of vernalising days required
-  pvd: int,
-    -- sensitivity to the photoperiod effect [0-1]
-  psens: real,
-  -- basal photoperiod (h) (pb<ps for longer days plants)
-  pb: real,
-  -- lag in days after sowing before vernalization starts
-  vern_lag: int,
-  -- saturating photoperiod (h) (ps<pb for shorter days plants)
-  ps: real,
-  -- default potential heat units required for crop maturity (degree-days)
-  phu: real,
-  -- whether quadratic equation used for calculating potential heat units (Bondeau method)
-  phu_calc_quad: bool,
-  -- whether linear equation used for calculating potential heat units (Bondeau method)
-  phu_calc_lin: bool,
-  -- minimum potential heat units required for crop maturity (Bondeau method) (degree-days)
-  phu_min: real,
-  -- maximum potential heat units required for crop maturity (Bondeau method) (degree-days)
-  phu_max: real,
-  -- reduction factor of potential heat units in spring crops (Bondeau method) (degree-days)
-  phu_red_spring_sow: real,
-  -- number of days of phu decrease in the linear phu equation (Bondeau method)
-  ndays_ramp_phu: real,
-  -- intercept for the linear phu equation (Bondeau method)
-  phu_interc: real,
-  -- fraction of growing season (phu) at which senescence starts [0-1]
-  fphusen: real,
-  -- type of senescence curve (see Bondeau et al. 2007)
-  shapesenescencenorm: bool,
-  -- fraction of maximal LAI still present at harvest [0-1]
-  flaimaxharvest: real,
-  -- default maximum LAI (only used for intercrop grass in the case where no pasture is present in any stand)
-  laimax: real,
-  -- whether harvestable organs are above ground
-  aboveground_ho: bool,
-  -- optimum harvest index
-  hiopt: real,
-  -- minimum harvest index
-  himin: real,
-  -- initial fraction of growing season's npp allocated to roots
-  frootstart: real,
-  -- final fraction of growing season's npp allocated to roots
-  frootend: real,
-  -- autumn/spring sowing of pft:s with tempautumn = 1
-  forceautumnsowing: int,  --0 = NOFORCING,  1 = AUTUMNSOWING, 2 = SPRINGSOWING
-  -- N limited version of pft
-  nlim: bool
-}
 
 let avg_cton (min: real, max: real) : real =
   2.0 / (1.0 / min + 1.0 / max)
@@ -1227,7 +456,6 @@ let init_nupscoeff(this: Pft) : Pft =
       (sl+1, rootdist_upper, rootdist_lower + this.rootdist[sl])
   in this with nupscoeff = rootdist_upper * upper_adv + rootdist_lower
 
-
 -- Initialises sapling/regen characteristics in population mode following LPJF formulation
 let initregen(this: Pft) : Pft =
 
@@ -1287,118 +515,171 @@ let isgrass(this: Pft) : bool = this.lifeform == GRASS
 let istree(this: Pft) : bool = this.lifeform == TREE
 let iswetlandspecies(this: Pft) : bool = (this.lifeform == MOSS || this.has_aerenchyma)
 
--- type cropindiv
--- type Individual
--- type Vegetation
 
 
---- Soiltype stores static parameters for soils and the snow pack.
---- One Soiltype object is defined for each Gridcell. State variables for soils
---  are held by objects of class Soil, of which there is one for each patch
---  (see below).
+let cropindiv_struct() : cropindiv_struct = {
+  cmass_ho=0.0,
+  cmass_agpool=0.0,
+  cmass_stem = 0.0,
+  cmass_leaf_max=0.0,
+  cmass_leaf_sen=0.0,
+  yield=0.0,
+  yield_harvest=replicate 2 realzero,
+  dcmass_leaf=0.0,
+  dcmass_root=0.0,
+  dcmass_plant=0.0,
+  dcmass_ho=0.0,
+  dcmass_agpool=0.0,
+  grs_cmass_leaf=0.0,
+  grs_cmass_root=0.0,
+  grs_cmass_plant=0.0,
+  grs_cmass_ho=0.0,
+  grs_cmass_agpool=0.0,
+  grs_cmass_stem = 0.0,
+  grs_cmass_dead_leaf = 0.0,
+  grs_cmass_leaf_luc=0.0,
+  grs_cmass_root_luc=0.0,
+  grs_cmass_ho_luc=0.0,
+  grs_cmass_agpool_luc=0.0,
+  grs_cmass_dead_leaf_luc = 0.0,
+  grs_cmass_stem_luc = 0.0,
+  nmass_ho=0.0,
+  nmass_agpool=0.0,
+  nmass_dead_leaf = 0.0,
+  ycmass_leaf=0.0,
+  ycmass_root=0.0,
+  ycmass_plant=0.0,
+  ycmass_ho=0.0,
+  ycmass_agpool=0.0,
+  ycmass_stem = 0.0,
+  ycmass_dead_leaf = 0.0,
+  harv_cmass_leaf=0.0,
+  harv_cmass_root=0.0,
+  harv_cmass_ho=0.0,
+  harv_yield=0.0,
+  harv_cmass_agpool=0.0,
+  harv_cmass_stem = 0.0,
+  cmass_ho_harvest = replicate 2 realzero,
+  --Nitrogen
+  dnmass_leaf=0.0,
+  dnmass_root=0.0,
+  dnmass_ho=0.0,
+  dnmass_agpool=0.0,
+  ynmass_leaf=0.0,
+  ynmass_root=0.0,
+  ynmass_ho=0.0,
+  ynmass_agpool=0.0,
+  ynmass_dead_leaf = 0.0,
+  harv_nmass_leaf=0.0,
+  harv_nmass_root=0.0,
+  harv_nmass_ho=0.0,
+  harv_nmass_agpool=0.0,
+  nmass_dead_leaf_luc = 0.0,
+  nmass_ho_harvest = replicate 2 realzero,
 
-type Soiltype = {
+  isprimarycrop=false,
+  isprimarycovegetation=false,
+--    issecondarycrop=false,
+  isintercropgrass=false,
 
-  awc : [NSOILLAYER]real,
-  --- fixed available water holding capacity of the standard Gerten soil layers [0=upper, 1 = lower] (mm)
-  gawc : [2]real,
-
-  --- coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
-  perc_base : real,
-  --- coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996) for the evaporation soil layer
-  perc_base_evap : real,
-  --- exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice 1996)
-  perc_exp : real,
-
-  --- thermal diffusivity at 0% WHC (mm2/s)
-  thermdiff_0 : real,
-  --- thermal diffusivity at 15% WHC (mm2/s)
-  thermdiff_15 : real,
-  --- thermal diffusivity at 100% WHC (mm2/s)
-  thermdiff_100 : real,
-
-  --- wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-  wp : [NSOILLAYER]real,
-  --- saturation point. Cosby et al 1984
-  wsats : [NSOILLAYER]real,
-
-  --- organic soil fraction
-  org_frac_gridcell : [NSOILLAYER]real,
-
-  --- mineral soil fraction
-  min_frac_gridcell : [NSOILLAYER]real,
-
-  --- porosity of the soil
-  porosity_gridcell : [NSOILLAYER]real,
-
-  --- wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-  -- equivalents for the standard Gerten soil layers [0=upper, 1 = lower]
-  gwp : [2]real,
-  --- saturation point. Cosby et al 1984
-  gwsats : [2]real,
-
-  --- year at which to calculate equilibrium soil carbon
-  solvesom_end : int,
-  --- year at which to begin documenting means for calculation of equilibrium soil carbon
-  solvesom_begin : int,
-
-  --- water holding capacity plus wilting point for whole soil volume
-  wtot : real,
-
-  -- Sand, silt and clay fractions, should always add up to 1.
-  --- fraction of soil that is sand
-  sand_frac : real,
-  --- fraction of soil that is clay
-  clay_frac : real,
-  --- fraction of soil that is silt
-  silt_frac : real,
-  --- pH
-  pH : real,
-
-  --- soilcode, 0 to 8
-  soilcode : int,
-  --- volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
-  organic_frac : real,
-  -- water held below wilting point, important for heat conductance
-  -- From the AGRMET Handbook, 2002
-  water_below_wp : real,
-  --- porosity from AGRMET Handbook, 2002
-  porosity : real,
-  -- volumetric fraction of mineral material (m3 m-3) (Hillel, 1998)
-  -- = 1 - organic_frac - porosity
-  mineral_frac : real,
-  -- [cm], 3 depths at which monthly soil temperature is saved and output.
-  -- Defaults: 25, 75 and 150 cm (if array values == 0)
-  soiltempdepths : [10]real,
-  -- Run on [mm/day]
-  -- Currently only used for wetlands, but could be used for irrigation too
-  runon : real,
-
-
-  -- PEAT PROPERTIES (needed if there is a peat stand in this gridcell)
-
-  --- fixed available water holding capacity of soil layers [0=upper layer] (mm)
-  awc_peat : [NSOILLAYER]real,
-  --- fixed available water holding capacity of the standard Gerten soil layers [0=upper, 1 = lower] (mm)
-  gawc_peat : [2]real,
-  --- wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-  wp_peat : [NSOILLAYER]real,
-  --- saturation point. Cosby et al 1984
-  wsats_peat : [NSOILLAYER]real,
-  -- equivalents for the standard Gerten soil layers [0=upper, 1 = lower]
-  --- wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-  gwp_peat : [2]real,
-  --- saturation point. Cosby et al 1984
-  gwsats_peat : [2]real,
-  --- water holding capacity plus wilting point for whole soil volume
-  wtot_peat : real,
-  --- fraction of soil that is sand
-  sand_frac_peat : real,
-  --- fraction of soil that is clay
-  clay_frac_peat : real,
-  --- fraction of soil that is silt
-  silt_frac_peat : real
+  -- UNDEFINED FIELDS:
+  dcmass_stem=nan,
+  harv_cmass_plant=nan,
+  nmass_agpool_luc=nan,
+  nmass_ho_luc=nan
 }
+
+let Individual(i : int, p : Pft, stand : Stand) = {
+  id = i,
+  pft = p,
+  --vegetation = v,
+  anpp              = 0.0,
+  fpc               = 0.0,
+  fpc_daily      = 0.0,
+  densindiv         = 0.0,
+  cmass_leaf        = 0.0,
+  cmass_root        = 0.0,
+  cmass_sap         = 0.0,
+  cmass_heart       = 0.0,
+  cmass_debt        = 0.0,
+  cmass_leaf_post_turnover      = 0.0,
+  cmass_root_post_turnover      = 0.0,
+  cmass_tot_luc     = 0.0,
+  phen              = 0.0,
+  aphen             = 0.0,
+  deltafpc          = 0.0,
+
+  nmass_leaf        = 0.0,
+  nmass_root        = 0.0,
+  nmass_sap         = 0.0,
+  nmass_heart       = 0.0,
+  cton_leaf_aopt    = 0.0,
+  cton_leaf_aavr    = 0.0,
+  cton_status       = 0.0,
+  cmass_veg         = 0.0,
+  nmass_veg         = 0.0,
+  nmass_tot_luc     = 0.0,
+
+  nactive           = 0.0,
+  nextin            = 1.0,
+  nstore_longterm   = 0.0,
+  nstore_labile     = 0.0,
+  ndemand           = 0.0,
+  fnuptake          = 1.0,
+  anuptake          = 0.0,
+  max_n_storage     = 0.0,
+  scale_n_storage   = 0.0,
+
+  leafndemand       = 0.0,
+  rootndemand       = 0.0,
+  sapndemand        = 0.0,
+  storendemand      = 0.0,
+  leaffndemand      = 0.0,
+  rootfndemand      = 0.0,
+  sapfndemand       = 0.0,
+  storefndemand     = 0.0,
+  leafndemand_store = 0.0,
+  rootndemand_store = 0.0,
+
+  nstress           = false,
+
+  -- additional initialisation
+  age               = 0.0,
+  fpar              = 0.0,
+  aphen_raingreen   = 0,
+  intercep          = 0.0,
+  phen_mean         = 0.0,
+  wstress           = false,
+  lai               = 0.0,
+  lai_layer         = 0.0,
+  lai_indiv         = 0.0,
+  lai_daily         = 0.0,
+  lai_indiv_daily   = 0.0,
+  alive             = false,
+
+  mlai = replicate 12 realzero,
+  mlai_max = replicate 12 realzero,
+
+  -- bvoc
+  iso               = 0.0,
+  fvocseas          = 1.0,
+  mon = replicate NMTCOMPOUNDS realzero,
+  monstor = replicate NMTCOMPOUNDS realzero,
+  dnpp              = 0.0,
+  cropindiv         = nan,
+  last_turnover_day = (-1),
+
+  --Stand& stand = vegetation.patch.stand,
+
+  -- there is a case where it is not initialized, but we cant have that
+  cropland = (let newone = cropindiv_struct()
+              in if (stand.pftid == p.id)
+              then newone with isprimarycrop = true
+              else if (stand.hasgrassintercrop && p.isintercropgrass)
+              then newone with isintercropgrass = true
+              else newone)
+}
+
 
 let Soiltype() : Soiltype = {
   solvesom_end = SOLVESOM_END,
@@ -1453,37 +734,6 @@ let updateSolveSOMvalues(this : Soiltype, nyrspinup : int) =
   let this = this with solvesom_begin = intFromReal (0.7 * (realFromInt nyrspinup))
   in this
 
---- CENTURY SOIL POOL
-type Sompool = {
-  --- C mass in pool kgC/m2
-  cmass : real,
-  --- Nitrogen mass in pool kgN/m2
-  nmass : real,
-  --- (potential) decrease in C following decomposition today (kgC/m2)
-  cdec : real,
-  --- (potential) decrease in nitrogen following decomposition today (kgN/m2)
-  ndec : real,
-  --- daily change in carbon and nitrogen
-  delta_cmass : real,
-  delta_nmass : real,
-  --- lignin fractions
-  ligcfrac : real,
-  --- fraction of pool remaining after decomposition
-  fracremain : real,
-  --- nitrogen to carbon ratio
-  ntoc : real,
-
-  -- Fire
-  --- soil litter moisture flammability threshold (fraction of AWC)
-  litterme : real,
-  --- soil litter fire resistance (0-1)
-  fireresist : real,
-
-  -- Fast SOM spinup variables
-  --- monthly mean fraction of carbon pool remaining after decomposition
-  mfracremain_mean : [12]real
-}
-
 --- Constructor
 let Sompool() : Sompool = {
   -- Initialise pool
@@ -1504,15 +754,6 @@ let Sompool() : Sompool = {
 }
 
 
---- This struct contains litter for solving Century SOM pools.
--- We dont need getters, just read the field.
-type LitterSolveSOM = {
-  --- Carbon litter
-  clitter : [NSOMPOOL]real,
-  --- Nitrogen litter
-  nlitter : [NSOMPOOL]real
-}
-
 let LitterSolveSOM() : LitterSolveSOM =
   { clitter = replicate NSOMPOOL 0.0
   , nlitter = replicate NSOMPOOL 0.0
@@ -1523,440 +764,6 @@ let add_litter({clitter, nlitter} : *LitterSolveSOM, cvalue : real, nvalue : rea
   { clitter = clitter with [pool] = clitter[pool] + cvalue
   , nlitter = nlitter with [pool] = nlitter[pool] + nvalue
   }
-
-
---- Soil stores state variables for soils and the snow pack.
---- Initialised by a call to initdrivers. One Soil object is defined for each patch.
---  A reference to the parent Patch object (defined below) is included as a member
---  variable. Soil static parameters are stored as objects of class Soiltype, of which
---  there is one for each grid cell. A reference to the Soiltype object holding the
---  static parameters for this soil is included as a member variable.
---
---  NB: The class Soil and its member functions and variables are declared in guess.h,
---      while its member functions are implemented in soil.cpp and in soilmethane.cpp.
----
-type Soil = {
-  --- soil temperature today at 0.25 m depth (deg C)
-  temp25 : real,
-  --- water content of soil layers [0=upper layer] as fraction of available water holding capacity,
-  wcont : [NSOILLAYER]real,
-  --- water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible
-  --- fraction of available water holding capacity--
-  wcont_evap : real,
-
-  --- reference to parent Patch object
-  --patch : Patch, -- NOTE we dont do references in futhark
-  --- reference to Soiltype object holding static parameters for this soil
-  soiltype : Soiltype,
-  --- the average wcont over the growing season, for each of the upper soil layers. Used in drought limited establishment.
-  awcont_upper : real,
-  --- daily water content in upper soil layer for each day of year
-  dwcontupper : [Date_MAX_YEAR_LENGTH]real,
-  --- mean water content in upper soil layer for last month
-  --- (valid only on last day of month following call to daily_accounting_patch)--
-  mwcontupper : real,
-  --- stored snow as average over modelled area (mm rainfall equivalent)
-  snowpack : real,
-  --- total runoff today (mm/day)
-  runoff : real,
-  --- daily temperatures for the last month (deg C)
-  --- (valid only on last day of month following call to daily_accounting_patch)--
-  dtemp : [31]real,
-  --- mean soil temperature for the last month (deg C)
-  --- (valid only on last day of month following call to daily_accounting_patch)--
-  mtemp : real,
-  --- respiration response to today's soil temperature at 0.25 m depth
-  -- incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor 1994)
-
-  gtemp : real,
-  --- soil organic matter (SOM) pool with c. 1000 yr turnover (kgC/m2)
-  cpool_slow : real,
-  --- soil organic matter (SOM) pool with c. 33 yr turnover (kgC/m2)
-  cpool_fast : real,
-
-  -- Running sums (converted to long term means) maintained by SOM dynamics module
-
-  --- mean annual litter decomposition (kgC/m2/yr)
-  decomp_litter_mean : real,
-  --- mean value of decay constant for fast SOM fraction
-  k_soilfast_mean : real,
-  --- mean value of decay constant for slow SOM fraction
-  k_soilslow_mean : real,
-
-
-  -- Parameters used by function soiltemp and updated monthly
-
-  alag : real,
-  exp_alag : real,
-
-  --- water content of soil layers [0=upper layer] as fraction of available water holding capacity
-  mwcont : [12][NSOILLAYER]real,
-  --- daily water content in lower soil layer for each day of year
-  dwcontlower : [Date_MAX_YEAR_LENGTH]real,
-  --- mean water content in lower soil layer for last month
-  --- (valid only on last day of month following call to daily_accounting_patch)--
-  mwcontlower : real,
-
-  --- rainfall and snowmelt today (mm)
-  rain_melt : real,
-  --- upper limit for percolation (mm)
-  max_rain_melt : real,
-  --- whether to percolate today
-  percolate : bool,
-
-  ---------------------------------------------------------------------------------/
-  -- Soil member variables
-
-  --- sum of soil layers
-  ngroundl : int,
-  --- density of the snowpack, daily
-  snowdens : real,
-
-
-  -- Temperature variables:
-
-  --- temperature in each layer today (after call to cnstep) [deg C]
-  T : [NLAYERS]real,
-  --- Recorded T each day of the year, at each level [deg C]
-  T_soil : [NLAYERS]real,
-  --- Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
-  T_soil_monthly : [12][SOILTEMPOUT]real,
-  --- soil temperature from previous time step
-  T_old : [NLAYERS]real,
-  --- soil temperature in each layer YESTERDAY
-  T_soil_yesterday : [NLAYERS]real,
-  --- soil temperature at 25 cm depth, as calculated using previous versions of the model [deg C]
-  temp_analyticsoln : real,
-
-
-  -- Padding - The values initialised in first call to calctemp method
-
-  --- temperature in padding layers [deg C]
-  pad_temp : [PAD_LAYERS]real,
-  --- thickness of padding layers [mm]
-  pad_dz : [PAD_LAYERS]real,
-
-
-  -- Ice and water variables for the soil layers, where Frac stands for Fraction
-
-  --- (Frac)tion of ice in each layer: amount of ice / total volume of soil layer. Not associated with AWC.
-  Frac_ice : [NLAYERS]real,
-
-  --- ice fraction in each layer YESTERDAY
-  Frac_ice_yesterday : [NLAYERS]real,
-
-  --- fraction of water in each layer: water / total volume of soil layer
-  Frac_water : [NLAYERS]real,
-
-
-  -- Layer composition and properties:
-  -- Soil layer information:
-
-  --- Thickness of soil layers [mm]
-  Dz : [NLAYERS]real,
-  --- porosity of each soil layer
-  por : [NLAYERS]real,
-  --- organic soil fraction
-  Frac_org : [NLAYERS]real,
-  --- peat fraction
-  Frac_peat : [NLAYERS]real,
-  --- mineral soil fraction
-  Frac_min : [NLAYERS]real,
-  --- Fraction of water held below permanent wilting point when no freexing
-  Fpwp_ref : [NLAYERS]real,
-  --- fraction of water held below permanent wilting point.
-  Frac_water_belowpwp : [NLAYERS]real,
-  --- diffusivity of the soil layers [mm2 / day]
-  Di : [NLAYERS]real,
-  --- heat capacities of the soil layers [J mm-3 K-1]
-  Ci : [NLAYERS]real,
-  --- thermal conductivities of the soil layers [J day-1 mm-1 K-1]
-  Ki : [NLAYERS]real,
-
-  snow_active : bool, -- active snow layer(s)?
-  snow_active_layers : int, -- <= NLAYERS_SNOW
-  --- liquid water in the snow pack [kg m-2] == [mm]
-  snow_water : [NLAYERS_SNOW]real,
-  --- ice in the snowpack [kg m-2]
-  snow_ice : [NLAYERS_SNOW]real,
-
-  -- Log (l) of thermal conductivities. Used in the calculation of thermal conductivity and diffusivity.
-  lKorg : real,
-  lKpeat : real,
-  lKmin : real,
-  lKwater : real,
-  lKice : real,
-  lKair : real,
-
-  --- records the first time T is calculated
-  firstTempCalc : bool,
-
-
-  -- Daily storage:
-
-  --- Depth in mm of the maximum depth of thaw this year
-  maxthawdepththisyear : real,
-  --- daily thaw depth. The depth to the first soil layer with a temperature greater than 0 degrees C [mm]
-  thaw : real,
-  --- monthly thawing depth full, where ALL the ice has melted [mm]
-  mthaw : [12]real,
-  --- daily thawing depth full, where ALL the ice has melted [mm]
-  dthaw : [Date_MAX_YEAR_LENGTH]real,
-
-  --- depth of the acrotelm [mm]
-  acro_depth : real,
-  --- depth of the catotelm [mm]
-  cato_depth : real,
-  --- acrotelm CO2 level [mimil L-1]
-  acro_co2 : real,
-
-
-  -- Snow:
-
-  --- days of continuous snow cover
-  snow_days : int,
-  --- previous days of continuous snow cover
-  snow_days_prev : int,
-  --- daily snow depth [mm]
-  dsnowdepth : real,
-  --- Monthly snow depth (average) [mm]
-  msnowdepth : [12]real,
-  --- Previous December's snowdepth [mm] - used in establishment - from Wolf et al. (2008)
-  dec_snowdepth : real,
-
-
-  -- Daily photosynthetic limits:
-
-  --- Daily limit on moss photosynthetic activity due to dessication [0,1], but really [0.3,1]
-  dmoss_wtp_limit : real,
-  --- Daily limit on graminoid photosynthetic activity as WTP drops.
-  dgraminoid_wtp_limit : real,
-    --- acrotelm porosity MINUS Fgas (so, 0.98-0.08)
-  acro_por : real,
-  --- acrotelm porosity MINUS Fgas (so, 0.92-0.08)
-  cato_por : real,
-
-
-  -- Peatland hydrology variables:
-
-  --- daily water table position [mm]
-  wtp : [Date_MAX_YEAR_LENGTH]real,
-  --- monthly average water table position [mm]
-  mwtp : [12]real,
-  --- annual average water table position [mm]
-  awtp : real,
-  --- water table depth from yesterday and updated today = -wtp [mm]
-  wtd : real,
-  --- Water in acrotelm plus standing water (up to a max of 100mm) [mm]
-  Wtot : real,
-  --- Standing water (up to a max of 100mm) [mm] - set to 0 in LPJG
-  stand_water : real,
-  --- Volumetric water content in the NSUBLAYERS_ACRO of the acrotelm
-  sub_water : [NSUBLAYERS_ACRO]real,
-  -- available water holding capacity of soil layers [0=upper layer] [mm], taking into
-  -- account the unavailability of frozen water. Default value: soiltype.awc[]
-  whc : [NSOILLAYER]real,
-   -- available water holding capacity of evap soil layers [mm], taking into
-  -- account the unavailability of frozen water. Default value: (2/5) * soiltype.awc[]
-  whc_evap : real,
-  --- Max water (mm) that can be held in each layer
-  aw_max : [NSOILLAYER]real,
-  -- Volumetric liquid water content. A fraction. Considers the entire (awc + Fpwp)
-  -- volumetric water content MINUS the ice fraction. Updated daily.
-  alwhc : [NSOILLAYER]real,
-  -- Initial volumetric liquid water content. A fraction. Considers the entire
-  -- (awc + Fpwp) volumetric water content MINUS the ice fraction.
-  alwhc_init : [NSOILLAYER]real,
-
-
-  -- Indices
-
-  --- index for first active layer of soil
-  IDX : int,
-  --- index for snow layers
-  SIDX : int,
-  --- index for snow layer from previous day
-  SIDX_old : int,
-  --- index for mixed layer
-  MIDX : int,
-
-  -- Hydrology variables:
-
-  --- records the first time hydrology routine is called
-  firstHydrologyCalc : bool,
-
-  -- These are the number of sublayers in the standard 0.5/1.0m
-  -- hydrology laters. Set ONCE in hydrology routine
-  nsublayer1 : int,
-  nsublayer2 : int,
-  num_evaplayers : int,
-
-  --- root fractions per layer
-  rootfrac : [NLAYERS]real,
-  --- air fraction in each layer
-  Frac_air : [NLAYERS]real,
-
-  --- daily carbon flux to atmosphere from soil respiration
-  --- Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
-  dcflux_soil : real,
-
-  --- CH4 and CO2 stores in the soil layers - updated daily
-  ch4_store : real,
-  co2_store : real,
-
-  --- dissolved CO2 concentration in each layer [g CO2-C layer-1 d-1]
-  CO2_soil : [NLAYERS]real,
-  --- dissolved CO2 concentration in each layer yesterday [g CO2-C layer-1 d-1]
-  CO2_soil_yesterday : [NLAYERS]real,
-  --- daily CO2 production in each layer [g CO2-C layer-1 d-1]
-  CO2_soil_prod : [NLAYERS]real,
-  --- dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
-  CH4 : [NLAYERS]real,
-  --- dissolved CH4 concentration in each layer yesterday [g CH4-C layer-1 d-1]
-  CH4_yesterday : [NLAYERS]real,
-  --- daily CH4 production in each layer [g CH4-C layer-1 d-1]
-  CH4_prod : [NLAYERS]real,
-  --- daily CH4 oxidation in each layer [g CH4-C layer-1 d-1]
-  CH4_oxid : [NLAYERS]real,
-  --- CH4 which bubbles out [g CH4-C layer-1]
-  CH4_ebull_ind : [NLAYERS]real,
-  --- Volume of CH4 which bubbles out [m3]
-  CH4_ebull_vol : [NLAYERS]real,
-  --- gaseous CH4 concentration in each layer [g CH4-C layer-1 d-1]
-  CH4_gas : [NLAYERS]real,
-  --- dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
-  CH4_diss : [NLAYERS]real,
-  --- gaseous CH4 concentration in each layer [g CH4-C layer-1] yesterday
-  CH4_gas_yesterday : [NLAYERS]real,
-  --- dissolved CH4 concentration in each layer [g CH4-C layer-1] yesterday
-  CH4_diss_yesterday : [NLAYERS]real,
-  --- gaseous CH4 volume in each layer [m3]
-  CH4_gas_vol : [NLAYERS]real,
-  -- volumetric CH4 content [unitless]
-  CH4_vgc : [NLAYERS]real,
-  --- dissolved O2 concentration in each layer [mol O2 layer-1 d-1]
-  O2 : [NLAYERS]real,
-
-  --- layer water volume [m3]
-  volume_liquid_water : [NLAYERS]real,
-  --- layer water + ice volume [m3]
-  total_volume_water : [NLAYERS]real,
-  --- tiller area
-  tiller_area : [NLAYERS]real,
-
-
-  -- Gas diffusion variables:
-
-  --- gas transport velocity of O2 [m d-1]
-  k_O2 : real,
-  --- gas transport velocity of CO2 [m d-1]
-  k_CO2 : real,
-  --- gas transport velocity of CH4 [m d-1]
-  k_CH4 : real,
-  --- Equilibrium concentration of O2 [mol L-1]
-  Ceq_O2 : real,
-  --- Equilibrium concentration of CO2 [mol L-1]
-  Ceq_CO2 : real,
-  --- Equilibrium concentration of CH4 [mol L-1]
-  Ceq_CH4 : real,
-
-
----------------------------------------------------------------------------------/
--- CENTURY SOM pools and other variables
-
-  sompool : [NSOMPOOL]Sompool,
-
-  --- daily percolation (mm)
-  dperc : real,
-  --- fraction of decayed organic nitrogen leached each day,
-  orgleachfrac : real,
-  --- soil NH4 mass in pool (kgN/m2)
-  NH4_mass : real,
-  --- soil NO3 mass in pool (kgN/m2)
-  NO3_mass : real,
-  --- soil NH4 mass input (kgN/m2)
-  NH4_input : real,
-  --- soil NO3 mass input (kgN/m2)
-  NO3_input : real,
-  --- annual sum of nitrogen mineralisation
-  anmin : real,
-  --- annual sum of nitrogen immobilisation
-  animmob : real,
-  --- annual leaching from available nitrogen pool
-  aminleach : real,
-  --- annual leaching of organics from active nitrogen pool
-  aorgNleach : real,
-  --- total annual nitrogen fixation
-  anfix : real,
-  --- calculated annual mean nitrogen fixation
-  anfix_calc : real,
-  --- annual leaching of organics nitrogen from carbon pool
-  aorgCleach : real,
-
-  -- Variables for fast spinup of SOM pools
-
-  --- monthly fraction of available mineral nitrogen taken up
-  fnuptake_mean : [12]real,
-  --- monthly fraction of organic carbon/nitrogen leached
-  morgleach_mean : [12]real,
-  --- monthly fraction of available mineral nitrogen leached
-  mminleach_mean : [12]real,
-  --- annual nitrogen fixation
-  anfix_mean : real,
-
-  -- Solving Century SOM pools
-
-  --- years at which to begin documenting for calculation of Century equilibrium
-  solvesomcent_beginyr : int,
-  --- years at which to end documentation and start calculation of Century equilibrium
-  solvesomcent_endyr : int,
-
-  --- Cumulative litter pools for one year.
-  litterSolveSOM : LitterSolveSOM,
-
-  --TODO: this one is a vector in c++, but it's seemingly never initialized or used
-  --solvesom : []LitterSolveSOM,
-
-  --- stored NH4 deposition in snowpack
-  snowpack_NH4_mass : real,
-  --- stored NO3 deposition in snowpack
-  snowpack_NO3_mass : real,
-
-  --- pools of soil N species in transformation (nitrification & denitrifiacation)
-
-  --- soil NH4 mass in pool (kgN/m2)
-  -- NH4_mass : real,  -- total, definde above
-  NH4_mass_w : real,  -- wet proportion
-  NH4_mass_d : real,  -- dry...
-
-  --- soil NO3 mass in pool (kgN/m2)
-  -- NO3_mass : real, -- total, definde above
-  NO3_mass_w : real,
-  NO3_mass_d : real,
-  --- soil NO2 mass in pool (kgN/m2)
-  NO2_mass : real,
-  NO2_mass_w : real,
-  NO2_mass_d : real,
-  --- soil NO mass in pool (kgN/m2)
-  NO_mass : real,
-  NO_mass_w : real,
-  NO_mass_d : real,
-  --- soil NO mass in pool (kgN/m2)
-  N2O_mass : real,
-  N2O_mass_w : real,
-  N2O_mass_d : real,
-  --- soil N2 mass in pool (kgN/m2)
-  N2_mass : real,
-
-  -- soil pH
-  pH : real,  --TODO: pH - not used yet. Daily mean precip, based on annual average
-
-  -- soil labile carbon availability daily (kgC/m2/day)
-  labile_carbon : real,
-  labile_carbon_w : real,
-  labile_carbon_d : real
-}
-
 
 let Soil(soiltype : Soiltype) : Soil = {
   soiltype = soiltype,
@@ -2224,121 +1031,6 @@ let Soil(soiltype : Soiltype) : Soil = {
 
 -- TODO: There are many SOIL member functions in soil.cpp
 
-
-
-
---- Container for crop-specific data at patchpft level
-type cropphen_struct = {
-  --- latest sowing date
-  sdate : int,
-  --- sowing date of growing period ending in latest harvest this year
-  sdate_harv : int,
-  --- sowing dates of growing periods ending in the two latest harvests this year
-  sdate_harvest : [2]int,
-  --- sowing dates of growing periods starting this year
-  sdate_thisyear : [2]int,
-  --- number of sowings this year
-  nsow : int,
-  --- latest harvest date
-  hdate : int,
-  --- two latest harvest dates this year
-  hdate_harvest : [2]int,
-  --- last date for harvest
-  hlimitdate : int,
-  --- last day of heat unit sampling period, set in Crop_sowing_date_new()
-  hucountend : int,
-  --- number of harvests this year
-  nharv : int,
-  --- whether sdate_harvest[0] happened last year
-  sownlastyear : bool,
-  --- latest senescence start date this year
-  sendate : int,
-  --- latest beginning of intercropseason (2 weeks after the harvest date)
-  bicdate : int,
-  --- latest end of intercropseason (2 weeks before the sowing date)
-  eicdate : int,
-  --- number of growing days this growing period
-  growingdays : int,
-  --- number of growing days this year (used for wscal_mean calculation)
-  growingdays_y : int,
-  --- length of growingseason ending in last harvest
-  lgp : int,
-  --- base temp for heat unit calculation (°C)
-  tb : real,
-  --- number of vernalising days required
-  pvd : int,
-  --- number of accumulated vernalizing days
-  vdsum : int,
-  --- heat unit reduction factor due to vernalization [0-1]
-  vrf : real,
-  --- heat unit reduction factor due to photoperiodism [0-1]
-  prf : real,
-  --- potential heat units required for crop maturity (°Cd)
-  phu : real,
-  --- potential heat units that would have been used without dynamic phu calculation
-  phu_old : real,
-  --- heat unit sum aquired during last growing period (°Cd)
-  husum : real,
-  --- heat unit sum aquired durin sampling period, starting with sdate
-  husum_sampled : real,
-  --- this year's heat unit sum aquired from sdate to hucountend
-  husum_max : real,
-  --- running mean of recent past's husum_max
-  husum_max_10 : real,
-  --- number of heat units sampling years
-  nyears_hu_sample : int,
-  --- fraction of growing season [0-1] (husum/phu)
-  fphu : real,
-  --- fraction of growing season at latest harvest
-  fphu_harv : real,
-  --- whether in period of heat unit sampling
-  hu_samplingperiod : bool,
-  --- number of heat unit sampling days
-  hu_samplingdays : int,
-  --- harvest index today [0-1, >1 if below-ground ho], harvestable organ/above-ground C for above-ground harvestable organs, dependent on fphu, reduced by water stress
-  hi : real,
-  --- fraction of harvest index today
-  fhi : real,
-  --- phenology (fphu) contribution of fraction of harvest index today
-  fhi_phen : real,  --Phenology (fPHU) compoment of fhi
-  --- water stress contribution of fraction of harvest index today
-  fhi_water : real,
-  --- fraction of harvest index at latest harvest
-  fhi_harv : real,
-  --- sum of crop patch demand (patch.wdemand) during crop growing period, reset on harvest day
-  demandsum_crop : real,
-  --- sum of crop supply (patchpft.wsupply) during crop growing period, reset on harvest day
-  supplysum_crop : real,
-
-  --- whether inside crop/intercrop grass growing period
-  growingseason : bool,
-  --- whether yesterday was inside crop/intercrop grass growing period
-  growingseason_ystd : bool,
-  --- whether inside crop senescence
-  senescence : bool,
-  --- whether yesterday was inside crop senescence
-  senescence_ystd : bool,
-  --- whether inside intercrop crass growing period (main crop pft variable)
-  intercropseason : bool,
-
-  vdsum_alloc : real,
-  vd : real,
-
-  --- The fraction of the daily assimilates allocated to roots.
-  f_alloc_root : real,
-  --- The fraction of the daily assimilates allocated to leaves.
-  f_alloc_leaf : real,
-  --- The fraction of the daily assimilates allocated to harvestable organs, seeds.
-  f_alloc_horg : real,
-  --- The fraction of the daily assimilates allocated to stem.
-  f_alloc_stem : real,
-  --- Development stage from Wang & Engel 1998
-  dev_stage : real,
-  -- A variable holding the memory of whether this field was fertilised or not.
-  fertilised  : [3]bool
-}
-
-
 let cropphen_struct() : cropphen_struct = {
     sdate=(-1),
     sdate_harv=(-1),
@@ -2401,99 +1093,9 @@ let cropphen_struct() : cropphen_struct = {
   }
 
 
---/ State variables common to all individuals of a particular PFT in a particular patch
--- Used in individual and cohort modes only.--
-type Patchpft = {
-  -- MEMBER VARIABLES:
-  --/ id code (equal to value of member variable id in corresponding Pft object)
-  id : int,
-  --/ reference to corresponding Pft object in PFT list
-  pft : Pft,
-  --/ potential annual net assimilation (leaf-level net photosynthesis) at forest floor (kgC/m2/year)
-  anetps_ff : real,
-  --/ water stress parameter (0-1 range, 1=minimum stress)
-  wscal : real,
-  --/ running sum (converted to annual mean) for wscal
-  wscal_mean : real,
-  --/ potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)
-  anetps_ff_est : real,
-  --/ first-year value of anetps_ff_est
-  anetps_ff_est_initial : real,
-  --/ annual mean wscal averaged over establishment interval
-  wscal_mean_est : real,
-  --/ vegetation phenological state (fraction of potential leaf cover), updated daily
-  phen : real,
-  --/ annual sum of daily fractional leaf cover
-  -- equivalent number of days with full leaf cover
-  --  (reset on expected coldest day of year)
-  aphen : real,
-  --/ whether PFT can establish in this patch under current conditions
-  establish : bool,
-  --/ running total for number of saplings of this PFT to establish (cohort mode)
-  nsapling : real,
-  --/ leaf-derived litter for PFT on modelled area basis (kgC/m2)
-  litter_leaf : real,
-  --/ fine root-derived litter for PFT on modelled area basis (kgC/m2)
-  litter_root : real,
-  --/ remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
-  litter_sap : real,
-  --/ remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
-  litter_heart : real,
-  --/ litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
-  litter_repr : real,
-
-  --/ leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-  nmass_litter_leaf : real,
-  --/ root-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-  nmass_litter_root : real,
-  --/ remaining sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-  nmass_litter_sap : real,
-  --/ remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-  nmass_litter_heart : real,
-
-  --/ non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
-  gcbase : real,
-  --/ daily value of the above variable (mm/s)
-  gcbase_day : real,
-
-  --/ evapotranspirational "supply" function for this PFT today (mm/day)
-  wsupply : real,
-  wsupply_leafon : real,
-  --/ fractional uptake of water from each soil layer today
-  fwuptake : [NSOILLAYER]real,
-
-  --/ whether water-stress conditions for this PFT
-  wstress : bool,
-  --/ daily version of the above variable
-  wstress_day : bool,
-
-  --/ carbon depository for long-lived products like wood
-  harvested_products_slow : real,
-  --/ nitrogen depository for long-lived products like wood
-  harvested_products_slow_nmass : real,
-  --/ first and last day of crop sowing window, calculated in crop_sowing_patch() or Crop_sowing_date_new()
-  swindow : [2]int,
-  --/ daily value of water deficit, calculated in irrigated_water_uptake()
-  water_deficit_d : real,
-  --/ yearly sum of water deficit
-  water_deficit_y : real,
-
-  --/ Struct for crop-specific variables
-  cropphen : cropphen_struct,
-
-  -- INUNDATION STRESS TERMS:
-
-  --/ Number of days a month that the water table is above this PFT's wtp_max (updated on the first day of the month)
-  inund_count : int,
-  --/ [0,1] - a measure of the inundation stress. Daily photosynthesis is reduced by this factor.
-  inund_stress : real
-}
-
-
 -- Constructor: initialises id, pft and data members
-let Patchpft(i: int, p: Pft) : Patchpft = {
+let Patchpft(i: int) : Patchpft = {
   id = i,
-  pft = p,
 
   litter_leaf = 0.0,
   litter_root = 0.0,
@@ -2543,206 +1145,83 @@ let Patchpft(i: int, p: Pft) : Patchpft = {
   wstress_day=false
 }
 
+let Patch(i : int, s : Stand, st : Soiltype) : Patch = {
 
--- Stores data for a patch.
--- In cohort and individual modes, replicate patches are
---  required in each stand to accomodate stochastic variation, in population mode there
---  should be just one Patch object, representing average conditions for the entire
---  stand. A reference to the parent Stand object (defined below) is included as a
---  member variable.
+  fluxes = Fluxes(),
+  pfts = replicate npft (Patchpft(i)),
+  soil = Soil(st),
+  vegetation = map (\idx -> Individual(idx, pft, stand)) <| iota 2,
 
-type Patch = {
-
-    -- id code in range 0-npatch for patch
-    id : int,
-    -- reference to parent Stand object
-    stand: Stand,
-    -- list array [0...npft-1] of Patchpft objects (initialised in constructor)
-    pfts: [npft]Patchpft,
-    --ListArray_idin1<Patchpft,Pft> pft, -- In the c++ code, this was called "pft", even though it is multiple. Should be called "pfts".
-    -- vegetation for this patch
-    vegetation: Vegetation,
-    -- soil for this patch
-    soil: Soil,
-    -- fluxes for this patch
-    fluxes: Fluxes,
-    -- FPAR at top of grass canopy today
-    fpar_grass: real,
-    -- FPAR at soil surface today
-    fpar_ff: real,
-    -- mean growing season PAR at top of grass canopy (J/m2/day)
-    par_grass_mean: real,
-    -- number of days in growing season, estimated from mean vegetation leaf-on fraction
-    -- \see function fpar in canopy exchange module--
-    nday_growingseason: int,
-    -- total patch FPC
-    fpc_total: real,
-    -- whether patch was disturbed last year
-    disturbed: bool,
-    -- patch age (years since last disturbance)
-    age: int,
-    -- probability of fire this year (GlobFIRM)
-    fireprob: real,
-
-    -- BLAZE Fire line intensity (kW/m)
-    fire_line_intensity: real,
-
-    -- BLAZE fire related carbon fluxes
-    -- BLAZE-fire carbon flux: live wood to atmosphere (kgC/m2)
-    wood_to_atm: real,
-    -- BLAZE-fire carbon flux: leaves to atmosphere (kgC/m2)
-    leaf_to_atm: real,
-    -- BLAZE-fire carbon flux: leaves to litter (kgC/m2)
-    leaf_to_lit: real,
-    -- BLAZE-fire carbon flux: live wood to structural litter (kgC/m2)
-    wood_to_str: real,
-    -- BLAZE-fire carbon flux: live wood to fine woody debris (kgC/m2)
-    wood_to_fwd: real,
-    -- BLAZE-fire carbon flux: live wood to coarse woody debris (kgC/m2)
-    wood_to_cwd: real,
-    -- BLAZE-fire carbon flux: fine litter to atmosphere (kgC/m2)
-    litf_to_atm: real,
-    -- BLAZE-fire carbon flux: fine woody debris to atmosphere (kgC/m2)
-    lfwd_to_atm: real,
-    -- BLAZE-fire carbon flux: coarse woody debris to atmosphere (kgC/m2)
-    lcwd_to_atm: real,
-
-    -- Storage for averaging of different Fapars for biome mapping in SIMFIRE
-    -- SIMFIRE fapar: Grasses
-    avg_fgrass: [N_YEAR_BIOMEAVG]real,
-    -- SIMFIRE fapar: Needle-leaf tree
-    avg_fndlt: [N_YEAR_BIOMEAVG]real,
-    -- SIMFIRE fapar: Broad-leaf tree
-    avg_fbrlt: [N_YEAR_BIOMEAVG]real,
-    -- SIMFIRE fapar: Shrubs
-    avg_fshrb: [N_YEAR_BIOMEAVG]real,
-    -- SIMFIRE fapar: Total fapar
-    avg_ftot: [N_YEAR_BIOMEAVG]real,
-
-    -- whether management has started on this patch
-    managed: bool,
-    -- cutting intensity (initial percent of trees cut, further selection at individual level has to be done in a separate function)
-    man_strength: real,
-
-    managed_this_year: bool,
-    plant_this_year: bool,
-
-    -- DLE - the number of days over which wcont is averaged for this patch
-    -- i.e. those days for which daily temp > 5.0 degC--
-    growingseasondays: int,
-
-
-    -- Variables used by new hydrology (Dieter Gerten 2002-07)
-
-    -- interception by vegetation today on patch basis (mm)
-    intercep: real,
-    -- annual sum of AET (mm/year)
-    aaet: real,
-    -- annual sum of AET (mm/year) for each of the last five simulation years
-    --Historic<double, NYEARAAET> aaet_5, TODO FIXME
-    -- annual sum of soil evaporation (mm/year)
-    aevap: real,
-    -- annual sum of interception (mm/year)
-    aintercep: real,
-    -- annual sum of runoff (mm/year)
-    asurfrunoff: real,
-    -- annual sum of runoff (mm/year)
-    adrainrunoff: real,
-    -- annual sum of runoff (mm/year)
-    abaserunoff: real,
-    -- annual sum of runoff (mm/year)
-    arunoff: real,
-    -- water added to wetlands today (mm)
-    wetland_water_added_today: real,
-    -- annual sum of water added to wetlands (mm/year)
-    awetland_water_added: real,
-    -- annual sum of potential evapotranspiration (mm/year)
-    apet: real,
-
-    -- equilibrium evapotranspiration today, deducting interception (mm)
-    eet_net_veg: real,
-
-    -- transpirative demand for patch, patch vegetative area basis (mm/day)
-    wdemand: real,
-    -- daily average of the above variable (mm/day)
-    wdemand_day: real,
-    -- transpirative demand for patch assuming full leaf cover today
-    -- mm/day, patch vegetative area basis --
-    wdemand_leafon: real,
-    -- rescaling factor to account for spatial overlap between individuals/cohorts populations
-    fpc_rescale: real,
-
-    -- monthly AET (mm/month)
-    maet: [12]real,
-    -- monthly soil evaporation (mm/month)
-    mevap: [12]real,
-    -- monthly interception (mm/month)
-    mintercep: [12]real,
-    -- monthly runoff (mm/month)
-    mrunoff: [12]real,
-    -- monthly PET (mm/month)
-    mpet: [12]real,
-
-    -- daily nitrogen demand
-    ndemand: real,
-
-    -- annual nitrogen fertilization (kgN/m2/year)
-    anfert: real,
-    -- daily nitrogen fertilization (kgN/m2/day)
-    dnfert: real,
-
-    -- daily value of irrigation water (mm), set in irrigation(), derived from water_deficit_d
-    irrigation_d: real,
-    -- yearly sum of irrigation water (mm)
-    irrigation_y: real,
-
-    -- whether litter is to be sent to the soil today
-    is_litter_day: bool,
-    -- number of harvests and/or cover-crop killing or turnover events
-    nharv: int,
-    -- whether today is a harvest day and/or cover-crop killing or turnover day
-    isharvestday: bool
-}
-
---/ Container for variables common to individuals of a particular PFT in a stand.
--- Used in individual and cohort modes only
---
-type Standpft = {
-
-  -- MEMBER VARIABLES
-  id : int,
-  pft : Pft,
--- net C allocated to reproduction for this PFT in all patches of this stand this year (kgC/m2)
-  cmass_repr : real,
--- maximum value of Patchpft::anetps_ff for this PFT in this stand so far in the simulation (kgC/m2/year)
-  anetps_ff_max : real,
-
--- FPC sum for this PFT as average for stand
-  fpc_total : real,
-
--- Photosynthesis values for this PFT under non-water-stress conditions
-  photosynthesis_result : PhotosynthesisResult,
-
--- Whether this PFT is allowed to grow in this stand
-  active : bool,
--- Whether this PFT is planted in this stand
-  plant : bool,
--- Whether this PFT is allowed to establish (after planting) in this stand
-  reestab : bool,
-
--- Whether this PFT is irrigated in this stand
-  irrigated : bool,
--- sowing date specified in stand type or read from input file
-  sdate_force : int,
--- harvest date specified in stand type or read from input file
-  hdate_force : int
-  -- MEMBER FUNCTIONS
-
--- Constructor: initialises various data members
-}
-
-let Standpft(i : int, p : Pft) : Standpft {
   id = i,
+  age = 0,
+  disturbed = false,
+  managed = false,
+  man_strength = 0.0,
+  managed_this_year = false,
+  plant_this_year = false,
+  wdemand = 0.0,
+  wdemand_leafon = 0.0,
+
+  growingseasondays = 0,
+
+  fireprob = 0.0,
+  ndemand = 0.0,
+  dnfert = 0.0,
+  anfert = 0.0,
+  nharv = 0,
+
+  -- UNUSED? aaet_5 = replicate NYEARAAET realzero,
+
+  avg_fbrlt = replicate N_YEAR_BIOMEAVG realzero,
+  avg_fgrass = replicate N_YEAR_BIOMEAVG realzero,
+  avg_fndlt = replicate N_YEAR_BIOMEAVG realzero,
+  avg_fshrb = replicate N_YEAR_BIOMEAVG realzero,
+  avg_ftot = replicate N_YEAR_BIOMEAVG realzero,
+
+  -- FIXME unshared fields
+  aaet = nan,
+  abaserunoff = nan,
+  adrainrunoff = nan,
+  aevap = nan,
+  aintercep = nan,
+  apet = nan,
+  arunoff = nan,
+  asurfrunoff = nan,
+  awetland_water_added = nan,
+  eet_net_veg = nan,
+  fire_line_intensity = nan,
+  fpar_ff = nan,
+  fpar_grass = nan,
+  fpc_rescale = nan,
+  fpc_total = nan,
+  intercep = nan,
+  irrigation_d = nan,
+  irrigation_y = nan,
+  is_litter_day = false,
+  isharvestday = false,
+  lcwd_to_atm = nan,
+  leaf_to_atm = nan,
+  leaf_to_lit = nan,
+  lfwd_to_atm = nan,
+  litf_to_atm = nan,
+  maet = replicate 12 nan,
+  mevap = replicate 12 nan,
+  mintercep = replicate 12 nan,
+  mpet = replicate 12 nan,
+  mrunoff = replicate 12 nan,
+  nday_growingseason = intnan,
+  par_grass_mean = nan,
+  wdemand_day = nan,
+  wetland_water_added_today = nan,
+  wood_to_atm = nan,
+  wood_to_cwd = nan,
+  wood_to_fwd = nan,
+  wood_to_str = nan
+}
+
+
+let Standpft(i : int, p : Pft) : Standpft = {
+  idx = i,
   pft = p,
   anetps_ff_max = 0.0,
   active = !run_landcover,
@@ -2754,657 +1233,57 @@ let Standpft(i : int, p : Pft) : Standpft {
 }
 
 
---/ The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
--- There may be several stands of the same landcover type (but with different settings).
---
-type Stand = {
-  -- MEMBER VARIABLES
--- list array [0...npft-1] of Standpft (initialised in constructor)
-  pft : [npft]Standpft,
+let npatch : int = 15 --from global.ins -- TODO FIXME move this somewhere reasonable
 
--- A number identifying this Stand within the grid cell
-  id : int,
-
--- stand type id
-  stid : int,
-
--- pft id of main crop, updated during rotation
-  pftid : int,
-
--- current crop rotation item
-  current_rot : int,
--- number of days passed in current rotation item
-  ndays_inrotation : int,
--- Returns true if stand is in fallow (with cover crop grass)
-  infallow : bool,
--- Returns true if crop rotation item is to be updated today
-  isrotationday : bool,
--- Returns true if current crop management hydrology == irrigated, updated during rotation
-  isirrigated : bool,
--- Returns true if the stand's main crop pft intercrop==naturalgrass and a pft with isintercrop==true is in the pftlist.
-  hasgrassintercrop : bool,
--- gdd5-value at first intercrop grass growth
-  gdd5_intercrop : real,
-
--- old fraction of this stand relative to the gridcell before update
-  frac_old : real,
-
--- used during land cover change involving several calls to reveiving_stand_change()
--- Set to frac_old in reduce_stands(), then modified in donor_stand_change() and receiving_stand_change().
-  --
-  frac_temp : real,
--- fraction unavailable for transfer to other stand types
-  protected_frac : real,
--- net stand fraction change
-  frac_change : real,
--- gross fraction increase
-  gross_frac_increase : real,
--- gross fraction decrease
-  gross_frac_decrease : real,
--- fraction that has been cloned from another stand
-  cloned_fraction : real,
--- Returns true if this stand is cloned from another stand
-  cloned : bool,
--- pointer to array of fractions transferred from this stand to other stand types
-  double *transfer_area_st;
--- land cover origin of this stand
-  origin : landcovertype,
--- used for output from separate stands
-  anpp : real,
--- used for output from separate stands
-  cmass : real,
-
--- Seed for generating random numbers within this Stand
--- The reason why Stand has its own seed, rather than using for instance
-  -- a single global seed is to make it easier to compare results when using
-  -- different land cover types.
-  --
-  --  Randomness not associated with a specific stand, but rather a whole
-  --  grid cell should instead use the seed in the Gridcell class.
-  --
-  --  \see randfrac()
-  --
-  seed : int,
-
--- type of landcover
--- \see landcovertype
--- initialised in constructor
-  --
-  landcover : landcovertype,
-
--- The year when this stand was created.
--- Will typically be year zero unless running with dynamic
-  --  land cover.
-  --
-  --  Needed to set patchpft.anetps_ff_est_initial
-  --
-  first_year : int,
-  -- The year this stand was cloned from another stand
-  clone_year : int,
--- scaling factor for stands that have grown in area this year (old fraction/new fraction)
-  scale_LC_change : real
-}
-
-let Stand(i : int, st : Soiltype, landcoverX : landcovertype, npatch : int) : Stand =
-
-  -- MEMBER FUNCTIONS
-
--- Constructs a Stand
--- \param i         The id for the stand within the grid cell
-  --  \param gc        The parent grid cell
-  --  \param st        The soil type to be used within this Stand
-  --  \param landcover The type of landcover to use for this stand
-  --
-  Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcover, int no_patch = 0);
-
-  ~Stand();
-
--- Gives the fraction of this Stand relative to the whole grid cell
-  double get_gridcell_fraction() const;
-
--- Gives the fraction of this Stand relative to its land cover type; NB: unsafe to use within landcover_dynamics() !
-  double get_landcover_fraction() const;
-
--- Set the fraction of this Stand relative to the gridcell
-  void set_gridcell_fraction(double fraction);
-
--- Returns the number of patches in this Stand
-  unsigned int npatch() const { return nobj; }
-
--- Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland or other land cover
-  inline bool is_true_crop_stand() {
-    return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;  -- OK also for fallow (pftid always cropgreen)
+module StandM = {
+  --------------------------------------------------------------------------------
+  -- Implementation of Stand member functions
+  --------------------------------------------------------------------------------
+  let Stand(i : int,
+            --Gridcell* gc,
+            st : Soiltype,
+            landcover : landcovertype,
+            npatch_l : int,
+            date : Date) =
+    let num_patches =
+      if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE))  -- TODO: obey this comment! \/ make it global
+        then npatch -- use the global variable npatch for stands with stochastic events
+      else if npatch_l > 0 then npatch_l -- use patch number provided by calling function
+      else 1
+    let data = replicate num_patches Soiltype()
+    in
+    {id = i
+  --,gridcell=gc
+    ,soiltype=st
+    ,landcover=landcover
+    ,original=landcover
+    ,frac=1.0
+    ,pft = replicate npft Pft()
+    ,data=data,
+    first_year = date.year,
+    clone_year = (-1),
+    transfer_area_st = replicate nst realzero,
+    seed = 12345678,
+    stid = 0,
+    pftid = (-1),
+    current_rot = 0,
+    ndays_inrotation = 0,
+    infallow = false,
+    isrotationday = false,
+    isirrigated = false,
+    hasgrassintercrop = false,
+    gdd5_intercrop = 0.0,
+    frac = 1.0,
+    frac_old = 0.0,
+    frac_temp = 0.0,
+    protected_frac = 0.0,
+    frac_change = 0.0,
+    gross_frac_increase = 0.0,
+    gross_frac_decrease = 0.0,
+    cloned_fraction = 0.0,
+    cloned = false,
+    anpp = 0.0,
+    cmass = 0.0,
+    scale_LC_change = 1.0
   }
--- Moves crop rotation forward
-  void rotate();
--- Returns area transferred to other land cover during land cover change
-  double transfer_area_lc(landcovertype to);
--- Initiates new stand land cover settings
-  void init_stand_lu(StandType& st, double fraction);
--- Total stand carbon biomass and litter
-  double ccont(double scale_indiv = 1.0);
--- Total stand nitrogen biomass and litter
-  double ncont(double scale_indiv = 1.0);
--- Total stand carbon fluxes so far this year
-  double cflux();
--- Total stand nitrogen fluxes so far this year
-  double nflux();
--- Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
-  bool is_highlatitude_peatland_stand() const;
--- Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
-  bool is_true_wetland_stand() const;
-
--- Creates a duplicate stand with a new landcovertype
--- The new stand is added to this stand's gridcell.
---
---  \returns reference to the new stand
---/
-  Stand& clone(StandType& st, double fraction);
-
-  void serialize(ArchiveStream& arch);
-
--- Returns the Climate for this Stand
--- This function returns a const reference to prevent code which operates
-   *  on a stand basis to modify the climate and thereby affect other
-   *  stands.
-  --
-  const Climate& get_climate() const;
-
--- Returns the Gridcell containing this Stand
-  Gridcell& get_gridcell() const;
-
-private:
-
--- Pointer to parent object, could be a null pointer
--- Prefer to access the gridcell through get_gridcell(), even internally
---  within the Stand class.
---
-  Gridcell* gridcell;
-
--- Soil type to be used in this Stand
-  Soiltype& soiltype;
-
--- Fraction of this stand relative to the gridcell
--- used by crop stands; initialized in constructor to 1,
---  set in landcover_init()
-  double frac;
-};
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Implementation of Stand member functions
-////////////////////////////////////////////////////////////////////////////////
-
-Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int npatch)
- : id(i),
-   gridcell(gc),
-   soiltype(st),
-   landcover(landcoverX),
-   origin(landcoverX),
-   frac(1.0) {
-
-	// Constructor: initialises reference member of climate and
-	// builds list array of Standpft objects
-
-	if (landcover >= NLANDCOVERTYPES) {
-		fail("Unrecognized landcover type\n");
-	}
-
-	for (unsigned int p=0;p<pftlist.nobj;p++) {
-		pft.createobj(pftlist[p]);
-	}
-
-	unsigned int num_patches = 1;
-	if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE)) {
-		num_patches = ::npatch; // use the global variable npatch for stands with stochastic events
-	}
-	if (npatch > 0) {
-		num_patches = npatch;	// use patch number provided by calling function
-	}
-
-	for (unsigned int p=0;p<num_patches;p++) {
-		createobj(*this, soiltype);
-	}
-
-	first_year = date.year;
-	clone_year = -1;
-	transfer_area_st = new double[nst];
-	for(int i=0;i<nst;i++)
-		transfer_area_st[i] = 0.0;
-	seed = 12345678;
-
-	stid = 0;
-	pftid = -1;
-	current_rot = 0;
-	ndays_inrotation = 0;
-	infallow = false;
-	isrotationday = false;
-	isirrigated = false;
-	hasgrassintercrop = false;
-	gdd5_intercrop = 0.0;
-	frac = 1.0;
-	frac_old = 0.0;
-	frac_temp = 0.0;
-	protected_frac = 0.0;
-	frac_change = 0.0;
-	gross_frac_increase = 0.0;
-	gross_frac_decrease = 0.0;
-	cloned_fraction = 0.0;
-	cloned = false;
-	anpp = 0.0;
-	cmass = 0.0;
-	scale_LC_change = 1.0;
-}
-
-Stand::~Stand() {
-
-	if (transfer_area_st) {
-		delete[] transfer_area_st;
-	}
-}
-
-double Stand::get_gridcell_fraction() const {
-	return frac;
-}
-
-/// Initiation of stand variables when run_landcover==true
-/**
-  * Rules for which PFT:s are allowed to establish are set in the instruction file by the parameters landcover
-  * (allows all active PFT:s with the same landcovertype), naturalveg (allows none, natural grass or all natural pft:s)
-  * and intercrop ("naturalgrass" allows dedicated covercrop grass pft:s).
-  * If restrictpfts is true, further restriction of pft:s are specified in the management settings.
-  * Rules for reestablishment (after sowing or planting) are set by the parameter reestab, "none", "restricted" - only planted pft:s
-  */
-void Stand::init_stand_lu(StandType& st, double fraction) {
-
-	landcovertype lc = st.landcover;
-	landcover = lc;
-
-	stid = st.id;
-	set_gridcell_fraction(fraction);
-	frac_old = 0.0;
-	frac_change = fraction;
-	gross_frac_increase = fraction;
-
-	bool naturalveg = st.naturalveg == "ALL";
-	bool naturalgrass = st.naturalveg == "ALL" || st.naturalveg == "GRASSONLY";
-
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pftx = pftlist.getobj();
-
-		if(!st.restrictpfts && pftx.landcover == lc
-			|| !st.restrictpfts && naturalveg && pftx.landcover == NATURAL // Allow all natural pft:s to grow in e.g. forests
-			|| naturalgrass && pftx.landcover == NATURAL && pftx.lifeform == GRASS // Allow natural grass pft:s to grow in e.g. forests
-			|| pftx.landcover == lc && lc == FOREST && pftx.lifeform == GRASS) { // Always allow forest grass pft:s to grow in forests
-
-			pft[pftx.id].active = true;
-			pft[pftx.id].reestab = true;
-			// If restrictpfts = false, plant all tree pft:s after clearcut
-			if(pftx.lifeform == TREE)
-				pft[pftx.id].plant = true;
-		}
-		else {
-			pft[pftx.id].active = false;
-		}
-		pftlist.nextobj();
-	}
-
-	if(date.get_calendar_year() >= st.firstmanageyear) {
-		for(unsigned int i=0;i<npatch();i++)
-			(*this)[i].managed = true;
-	}
-
-	ManagementType& mt0 = st.get_management(0);
-	pftid = pftlist.getpftid(mt0.pftname);	// First main crop, will change during crop rotation
-	current_rot = 0;
-
-	if (mt0.hydrology == IRRIGATED) {
-		isirrigated = true;								// First main crop, may change during crop rotation
-		if (pftid >= 0)
-			pft[pftid].irrigated = true;
-	}
-
-	if (st.intercrop==NATURALGRASS && ifintercropgrass) {
-		hasgrassintercrop = true;
-
-		for (unsigned int i=0; i<pftlist.nobj; i++) {
-			if (pftlist[i].isintercropgrass)
-				pft[pftlist[i].id].active = true;
-		}
-	}
-
-	if(pftid > -1) {
-		if (!readNfert)
-			gridcell->pft[pftid].Nfert_read = mt0.nfert;
-		if (!readsowingdates)
-			pft[pftid].sdate_force = mt0.sdate;
-		if (!readharvestdates)
-			pft[pftid].hdate_force = mt0.hdate;
-	}
-
-	if(!readNfert_st)
-		gridcell->st[st.id].nfert = mt0.nfert;
-
-	if(!st.restrictpfts)
-		return;
-
-	// Set standpft- and patchpft-variables for active crops
-	for (int rot=0; rot<st.rotation.ncrops; rot++) {
-
-		ManagementType& mt = st.get_management(rot);
-
-		if(mt.planting_system == "MONOCULTURE") {
-
-			int id = pftlist.getpftid(mt.pftname);
-
-			if (id >=0) {
-
-				if(lc == CROPLAND) {
-
-					pft[id].active = true;
-
-					if (rot == 0) {
-						// Set crop cycle dates to default values only for first crop in a rotation.
-						for (unsigned int p = 0; p < nobj; p++) {
-
-							Gridcellpft& gcpft = get_gridcell().pft[id];
-							Patchpft& ppft = (*this)[p].pft[id];
-
-							ppft.set_cropphen()->sdate = gcpft.sdate_default;
-							ppft.set_cropphen()->hlimitdate = gcpft.hlimitdate_default;
-
-							if (pftlist[id].phenology == ANY)
-								ppft.set_cropphen()->growingseason = true;
-							else if (pftlist[id].phenology == CROPGREEN) {
-								ppft.set_cropphen()->eicdate = Date::stepfromdate(ppft.get_cropphen()->sdate, -15);
-							}
-						}
-					}
-				}
-				else if(rot == 0) {
-
-					// Only first tree rotation implemented; pft[id].active etc. has to be set anew in stand.crop_rotation()
-					pft[id].active = true;
-					pft[id].plant = true;
-					if(st.reestab == "RESTRICTED") {
-						pft[id].reestab = true;
-					}
-					else if(st.reestab == "ALL") {
-						pftlist.firstobj();
-						while (pftlist.isobj) {
-							Pft& pftx = pftlist.getobj();
-							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL) needs to be distinguished in the output
-							// 1. reestablishment by both forest and natural pfts
-//							if(pftx.landcover == lc || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//							if(pftx.landcover == lc && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 3. reestablishment only by natural pfts (when active)
-							if(pftx.landcover == lc && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-								pft[pftx.id].active = true;
-								pft[pftx.id].reestab = true;
-							}
-							pftlist.nextobj();
-						}
-					}
-				}
-			}
-			else if(!mt.fallow) {
-				dprintf("Warning: stand type %d pft %s not in pftlist !\n", stid, (char*)mt.pftname);;
-				break;
-			}
-		}
-		else if(mt.planting_system == "SELECTION") {
-
-			if(mt.selection != "") {
-				pftlist.firstobj();
-				while (pftlist.isobj) {
-					Pft& pftx = pftlist.getobj();
-
-					if(mt.pftinselection((const char*)pftx.name)) {
-
-						pft[pftx.id].active = true;
-						pft[pftx.id].reestab = true;
-						if(pftx.lifeform == TREE)
-							pft[pftx.id].plant = true;
-					}
-					else if(pftx.lifeform == TREE) {	// Whether grass is allowed is specified in the generic code above
-						pft[pftx.id].active = false;
-						if(st.reestab == "ALL") {
-							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL) needs to be distinguished in the output
-							// 1. reestablishment by both forest and natural pfts
-//							if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//							if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 3. reestablishment only by natural pfts (when active)
-							if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-								pft[pftx.id].active = true;
-								pft[pftx.id].reestab = true;
-							}
-						}
-					}
-					pftlist.nextobj();
-				}
-			}
-			else {
-				dprintf("Warning: stand type %d planting selection not defined !\n", stid);;
-				break;
-			}
-		}
-		else if(mt.planting_system != "") {
-
-			// planting systems (pft selections) defined here
-
-
-		}
-	}
-}
-
-void Stand::rotate() {
-
-	if (pftid >= 0 && stid >= 0) {
-
-		ndays_inrotation = 0;
-
-		int pftid_old = pftid;
-
-		current_rot = (current_rot + 1) % stlist[stid].rotation.ncrops;
-		ManagementType& mt = stlist[stid].get_management(current_rot);
-		pftid = pftlist.getpftid(mt.pftname);
-
-		// If fallow, use old pftid !
-		if(mt.fallow)
-			pftid = pftid_old;
-
-		Standpft& standpft = pft[pftid];
-
-		if (mt.hydrology == IRRIGATED) {
-			isirrigated = true;
-			standpft.irrigated = true;
-		}
-		else {
-			isirrigated = false;
-			standpft.irrigated = false;
-		}
-
-		if (!readNfert)
-			gridcell->pft[pftid].Nfert_read = mt.nfert;
-		if (!readsowingdates)
-			standpft.sdate_force = mt.sdate;
-		if (!readharvestdates)
-			standpft.hdate_force = mt.hdate;
-		if(!readNfert_st)
-			gridcell->st[stid].nfert = mt.nfert;
-	}
-}
-
-double Stand::transfer_area_lc(landcovertype to) {
-
-	double area = 0.0;
-
-	if (transfer_area_st) {
-
-		for (int j=0; j<nst; j++) {
-
-			if (stlist[j].landcover == to)
-				area += transfer_area_st[j];
-		}
-	}
-	return area;
-}
-
-double Stand::ccont(double scale_indiv) {
-
-	double ccont = 0.0;
-
-	for (unsigned int p = 0; p < nobj; p++)
-		ccont += (*this)[p].ccont(scale_indiv) / nobj;
-
-	return ccont;
-}
-
-double Stand::ncont(double scale_indiv) {
-
-	double ncont = 0.0;
-
-	for (unsigned int p = 0; p < nobj; p++)
-		ncont += (*this)[p].ncont(scale_indiv) / nobj;
-
-	return ncont;
-}
-
-double Stand::cflux() {
-
-	double cflux = 0.0;
-
-	for (unsigned int p = 0; p < nobj; p++)
-		cflux += (*this)[p].cflux() / nobj;
-
-	return cflux;
-}
-
-double Stand::nflux() {
-
-	double nflux = 0.0;
-
-	for (unsigned int p = 0; p < nobj; p++)
-		nflux += (*this)[p].nflux() / nobj;
-
-	return nflux;
-}
-
-/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
-bool Stand::is_highlatitude_peatland_stand() const {
-
-	double lat = gridcell->get_lat();
-
-	return landcover==PEATLAND && lat >= PEATLAND_WETLAND_LATITUDE_LIMIT;
-}
-
-/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
-bool Stand::is_true_wetland_stand() const {
-
-	double lat = gridcell->get_lat();
-
-	return landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT;
-}
-
-Stand& Stand::clone(StandType& st, double fraction) {
-
-	// Serialize this stand to an in-memory stream
-	std::stringstream ss;
-	ArchiveOutStream aos(ss);
-	serialize(aos);
-
-	// Create a new stand in the gridcell...
-	// NB: the patch number is always that of the old stand, even if the new stand is a pasture or crop stand
-	Stand& new_stand = gridcell->create_stand(st.landcover, nobj);
-	int new_seed = new_stand.seed;
-
-	// ...and deserialize to that stand
-	ArchiveInStream ais(ss);
-	new_stand.serialize(ais);
-
-	new_stand.clone_year = date.year;
-//	new_stand.seed = new_seed;	// ?
-
-	// Set land use settings for new stand
-	new_stand.init_stand_lu(st, fraction);
-
-	for (unsigned int p = 0; p < nobj; p++) {
-//		new_stand[p].age = 0;				// probably not what we want
-		new_stand[p].managed = false;		// or use value of mother stand ?
-	}
-
-	return new_stand;
-}
-
-double Stand::get_landcover_fraction() const {
-	if (get_gridcell().landcover.frac[landcover])
-		return frac / get_gridcell().landcover.frac[landcover];
-	else
-		return 0.0;
-}
-
-void Stand::set_gridcell_fraction(double fraction) {
-	frac = fraction;
-}
-
-void Stand::serialize(ArchiveStream& arch) {
-	if (arch.save()) {
-		for (unsigned int i = 0; i < pft.nobj; i++) {
-			arch & pft[i];
-		}
-
-		arch & nobj;
-		for (unsigned int k = 0; k < nobj; k++) {
-			arch & (*this)[k];
-		}
-	}
-	else {
-		pft.killall();
-		for (unsigned int i = 0; i < pftlist.nobj; i++) {
-			Standpft& standpft = pft.createobj(pftlist[i]);
-			arch & standpft;
-		}
-
-		killall();
-		unsigned int npatch;
-		arch & npatch;
-		for (unsigned int k = 0; k < npatch; k++) {
-			Patch& patch = createobj(*this, soiltype);
-			arch & patch;
-		}
-	}
-
-	arch & first_year
-		& clone_year
-		& frac
-		& stid
-		& pftid
-		& current_rot
-		& ndays_inrotation
-		& infallow
-		& isirrigated
-		& hasgrassintercrop
-		& gdd5_intercrop
-		& cloned
-		& origin
-		& landcover
-		& seed;
-}
-
-const Climate& Stand::get_climate() const {
-
-	// In this implementation all stands within a grid cell
-	// share the same climate. Note that this might not be
-	// true in all versions of LPJ-GUESS, some may have
-	// different climate per landcover type for instance.
-
-	return get_gridcell().climate;
-}
-
-Gridcell& Stand::get_gridcell() const {
-	assert(gridcell);
-	return *gridcell;
 }
