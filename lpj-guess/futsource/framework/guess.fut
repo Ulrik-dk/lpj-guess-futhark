@@ -64,6 +64,129 @@ let PhotosynthesisStresses() : PhotosynthesisStresses =
   }
 
 
+--- FIXME: This code was taken from weathergen.cpp!
+let WeatherGenState() : WeatherGenState =
+  {
+    q = replicate QSIZ 0,
+    carry = 362,
+    xcng  = 1236789,
+    xs    = 521288629, --default seed
+    indx  = QSIZ+1,
+    have  = false,
+    gamma_vals = replicate 2 realzero,
+    pday = replicate 2 false,
+    resid = replicate 4 realzero
+  }
+
+
+  --- constructor function: initialises gridcell member
+  -- takes Gridcell& gc
+let Climate(latitude : real) : Climate = {
+  aprec = 0.0,
+  aprec_lastyear = 0.0,
+  mtemp20 = replicate 12 realzero,
+  mprec20 = replicate 12 realzero,
+  mpet20 = replicate 12 realzero,
+  mpet_year = replicate 12 realzero,
+  mprec_pet20 = replicate 12 realzero,
+
+  mtemp_20 = replicate 20 (replicate 12 realzero),
+  mprec_20 = replicate 20 (replicate 12 realzero),
+  mpet_20 = replicate 20 (replicate 12 realzero),
+  mprec_pet_20 = replicate 20 (replicate 12 realzero),
+
+  mprec_petmin_20 = replicate 20 realzero,
+  mprec_petmax_20 = replicate 20 realzero,
+
+  mprec_petmin20=0.0,
+  mprec_petmax20=0.0,
+
+  seasonality=SEASONALITY_NO,
+  seasonality_lastyear=SEASONALITY_NO,
+  prec_seasonality=DRY,
+  prec_seasonality_lastyear=DRY,
+  prec_range=DRY,
+  prec_range_lastyear=DRY,
+  temp_seasonality=COLD,
+  temp_seasonality_lastyear=COLD,
+  biseasonal=false,
+
+  eet=0.0,
+
+  gdd0 = 0.0,
+  agdd0 = 0.0,
+
+  --- Initialises certain member variables
+  --- Should be called before Climate object is applied to a new grid cell */
+  --void initdrivers(double latitude) {
+  -- Futhark: Fuzed "initializer" with constructor
+  -- FIXME this might not be correct in practice, but its quick
+
+  mtemp_min_20 = replicate 20 realzero,
+  mtemp_max_20 = replicate 20 realzero,
+
+  mtemp_min20 = 0.0,
+  mtemp_max20 = 0.0,
+  mtemp = 0.0,
+  maxtemp = 0.0,
+  gdd5 = 0.0,
+  chilldays = 0,
+  ifsensechill = true,
+  atemp_mean = 0.0,
+
+  lat = latitude,
+
+  doneday = replicate Date_MAX_YEAR_LENGTH false,
+  sinelat = sin(latitude * DEGTORAD),
+  cosinelat = cos(latitude * DEGTORAD),
+
+  testday_temp = if (latitude >= 0) then 180 else 364,
+  testday_prec = if (latitude >= 0) then 364 else 180,
+  coldestday = if (latitude >= 0) then COLDEST_DAY_NHEMISPHERE else COLDEST_DAY_SHEMISPHERE,
+  adjustlat = if (latitude >= 0) then 0 else 181,
+
+  -- UNINITIALIZED
+
+  agdd5=nan,
+  avg_annual_rainfall=nan,
+  co2=nan,
+  cur_rainfall=nan,
+  daylength=nan,
+  daylength_save=replicate Date_MAX_YEAR_LENGTH nan,
+  days_since_last_rainfall=nan,
+  dprec_10=replicate 10 nan,
+  dtr=nan,
+  gtemp=nan,
+  hh=replicate Date_MAX_YEAR_LENGTH nan,
+  insol=nan,
+  instype=intnan,
+  kbdi=nan,
+  last_rainfall=nan,
+  mcarthur_forest_fire_index=nan,
+  months_ffdi=replicate 30 nan,
+  mtemp_max=nan,
+  mtemp_min=nan,
+  par=nan,
+  prec=nan,
+  qo=replicate Date_MAX_YEAR_LENGTH nan,
+  rad=nan,
+  relhum=nan,
+  sinehh=replicate Date_MAX_YEAR_LENGTH nan,
+  sprec_2=replicate 2 nan,
+  temp=nan,
+  tmax=nan,
+  tmin=nan,
+  u=replicate Date_MAX_YEAR_LENGTH nan,
+  u10=nan,
+  v=replicate Date_MAX_YEAR_LENGTH nan,
+  var_prec=nan,
+  var_temp=nan,
+  weathergenstate=WeatherGenState()
+}
+
+
+
+
 
 --------------------------------------------------------------------------------
 -- Implementation of Fluxes member functions
@@ -408,7 +531,6 @@ let init_cton_limits(this: Pft) : Pft =
 
   -- Max leaf C:N ratio
   let this = this with cton_leaf_max = this.cton_leaf_min * frac_mintomax
-
   -- Average leaf C:N ratio
   let this = this with cton_leaf_avr = avg_cton(this.cton_leaf_min, this.cton_leaf_max)
 
@@ -589,7 +711,7 @@ let cropindiv_struct() : cropindiv_struct = {
   nmass_ho_luc=nan
 }
 
-let Individual(i : int, p : Pft, stand : Stand) = {
+let Individual(i : int, p : Pft, stand: Stand) : Individual = {
   id = i,
   pft = p,
   --vegetation = v,
@@ -646,7 +768,7 @@ let Individual(i : int, p : Pft, stand : Stand) = {
   -- additional initialisation
   age               = 0.0,
   fpar              = 0.0,
-  aphen_raingreen   = 0,
+  aphen_raingreen   = 0i64,
   intercep          = 0.0,
   phen_mean         = 0.0,
   wstress           = false,
@@ -666,18 +788,42 @@ let Individual(i : int, p : Pft, stand : Stand) = {
   mon = replicate NMTCOMPOUNDS realzero,
   monstor = replicate NMTCOMPOUNDS realzero,
   dnpp              = 0.0,
-  cropindiv         = nan,
-  last_turnover_day = (-1),
+  last_turnover_day = (-1i64),
 
   --Stand& stand = vegetation.patch.stand,
 
   -- there is a case where it is not initialized, but we cant have that
-  cropland = (let newone = cropindiv_struct()
+  cropindiv = (let newone = cropindiv_struct()
               in if (stand.pftid == p.id)
               then newone with isprimarycrop = true
               else if (stand.hasgrassintercrop && p.isintercropgrass)
               then newone with isintercropgrass = true
-              else newone)
+              else newone),
+
+  --uninitialized:
+  aaet=nan,
+  aet=nan,
+  avmaxnlim=nan,
+  boleht=nan,
+  crownarea=nan,
+  daily_cmass_leafloss=nan,
+  daily_cmass_rootloss=nan,
+  daily_nmass_leafloss=nan,
+  daily_nmass_rootloss=nan,
+  fpar_leafon=nan,
+  gpterm=nan,
+  height=nan,
+  hondemand=nan,
+  lai_leafon_layer=nan,
+  ltor=nan,
+  nday_leafon=intnan,
+  nmass_heart_luc=nan,
+  nmass_leaf_luc=nan,
+  nmass_root_luc=nan,
+  nmass_sap_luc=nan,
+  nstore_labile_luc=nan,
+  nstore_longterm_luc=nan,
+  photosynthesis_result=PhotosynthesisResult()
 }
 
 
@@ -729,7 +875,7 @@ let Soiltype() : Soiltype = {
 }
 
 --- Override the default SOM years with 70-80% of the spin-up period length
-let updateSolveSOMvalues(this : Soiltype, nyrspinup : int) =
+let updateSolveSOMvalues(this : Soiltype, nyrspinup : int) : Soiltype =
   let this = this with solvesom_end = intFromReal (0.8 * (realFromInt nyrspinup))
   let this = this with solvesom_begin = intFromReal (0.7 * (realFromInt nyrspinup))
   in this
@@ -1094,8 +1240,9 @@ let cropphen_struct() : cropphen_struct = {
 
 
 -- Constructor: initialises id, pft and data members
-let Patchpft(i: int) : Patchpft = {
+let Patchpft(i: int, p: Pft) : Patchpft = {
   id = i,
+  pft = p,
 
   litter_leaf = 0.0,
   litter_root = 0.0,
@@ -1145,14 +1292,26 @@ let Patchpft(i: int) : Patchpft = {
   wstress_day=false
 }
 
-let Patch(i : int, s : Stand, st : Soiltype) : Patch = {
-
-  fluxes = Fluxes(),
-  pfts = replicate npft (Patchpft(i)),
-  soil = Soil(st),
-  vegetation = map (\idx -> Individual(idx, pft, stand)) <| iota 2,
-
+let Patch(i : int, s : Stand, st : Soiltype) : Patch =
+  let (_, patchpfts, individuals) = unzip3 <|
+    map (\i ->
+        let p = Pft()
+        let patchp = Patchpft(i, p)
+        let indv = Individual(i, p, s)
+        in (p, patchp, indv)
+      ) <| iota npft
+  in
+  {
   id = i,
+  --stand = s,
+
+  pfts = patchpfts,
+
+  vegetation = individuals,
+
+  soil = Soil(st),
+  fluxes = Fluxes(),
+
   age = 0,
   disturbed = false,
   managed = false,
@@ -1217,7 +1376,7 @@ let Patch(i : int, s : Stand, st : Soiltype) : Patch = {
   wood_to_cwd = nan,
   wood_to_fwd = nan,
   wood_to_str = nan
-}
+  }
 
 
 let Standpft(i : int, p : Pft) : Standpft = {
@@ -1229,61 +1388,66 @@ let Standpft(i : int, p : Pft) : Standpft = {
   reestab = false,
   irrigated = false,
   sdate_force = -1,
-  hdate_force = -1
+  hdate_force = -1,
+  -- uninitialized
+  cmass_repr=nan,
+  fpc_total=nan,
+  photosynthesis_result = PhotosynthesisResult()
 }
 
 
 let npatch : int = 15 --from global.ins -- TODO FIXME move this somewhere reasonable
 
-module StandM = {
-  --------------------------------------------------------------------------------
-  -- Implementation of Stand member functions
-  --------------------------------------------------------------------------------
-  let Stand(i : int,
-            --Gridcell* gc,
-            st : Soiltype,
-            landcover : landcovertype,
-            npatch_l : int,
-            date : Date) =
-    let num_patches =
-      if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE))  -- TODO: obey this comment! \/ make it global
-        then npatch -- use the global variable npatch for stands with stochastic events
-      else if npatch_l > 0 then npatch_l -- use patch number provided by calling function
-      else 1
-    let data = replicate num_patches Soiltype()
-    in
-    {id = i
-  --,gridcell=gc
-    ,soiltype=st
-    ,landcover=landcover
-    ,original=landcover
-    ,frac=1.0
-    ,pft = replicate npft Pft()
-    ,data=data,
-    first_year = date.year,
-    clone_year = (-1),
-    transfer_area_st = replicate nst realzero,
-    seed = 12345678,
-    stid = 0,
-    pftid = (-1),
-    current_rot = 0,
-    ndays_inrotation = 0,
-    infallow = false,
-    isrotationday = false,
-    isirrigated = false,
-    hasgrassintercrop = false,
-    gdd5_intercrop = 0.0,
-    frac = 1.0,
-    frac_old = 0.0,
-    frac_temp = 0.0,
-    protected_frac = 0.0,
-    frac_change = 0.0,
-    gross_frac_increase = 0.0,
-    gross_frac_decrease = 0.0,
-    cloned_fraction = 0.0,
-    cloned = false,
-    anpp = 0.0,
-    cmass = 0.0,
-    scale_LC_change = 1.0
-  }
+--------------------------------------------------------------------------------
+-- Implementation of Stand member functions
+--------------------------------------------------------------------------------
+let Stand(i : int,
+          --Gridcell* gc,
+          st : Soiltype,
+          landcover : landcovertype,
+          npatch_l : int,
+          date : Date) : Stand =
+  let num_patches =
+    if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE))  -- TODO: obey this comment! \/ make it global
+      then npatch -- use the global variable npatch for stands with stochastic events
+    else if npatch_l > 0 then npatch_l -- use patch number provided by calling function
+    else 1
+  let st = Soiltype()
+  let patches = map (\j -> Patch(j, i, st) ) <| iota num_patches 
+  let p = Pft()
+  in
+  {id = i
+--,gridcell=gc
+  ,soiltype=st
+  ,landcover=landcover
+  ,original=landcover
+  ,frac=1.0
+  ,pft = replicate npft p
+  ,data=patches
+  first_year = date.year,
+  clone_year = (-1),
+  transfer_area_st = replicate nst realzero,
+  seed = 12345678,
+  stid = 0,
+  pftid = (-1),
+  current_rot = 0,
+  ndays_inrotation = 0,
+  infallow = false,
+  isrotationday = false,
+  isirrigated = false,
+  hasgrassintercrop = false,
+  gdd5_intercrop = 0.0,
+  frac_old = 0.0,
+  frac_temp = 0.0,
+  protected_frac = 0.0,
+  frac_change = 0.0,
+  gross_frac_increase = 0.0,
+  gross_frac_decrease = 0.0,
+  cloned_fraction = 0.0,
+  cloned = false,
+  anpp = 0.0,
+  cmass = 0.0,
+  scale_LC_change = 1.0,
+  -- UNINITIALIZED
+  origin=nan
 }

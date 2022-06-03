@@ -234,6 +234,7 @@ let NO3 : n_pref_type = 2
 
 -- type Date
 type Date = { -- TODO
+  year : int,
   month : int,
   day : int
 }
@@ -273,7 +274,33 @@ type PhotosynthesisResult = {
 }
 
 
--- type WeatherGenState
+--- Class containing serializable variables for Weathergenerator GWGen
+---
+--Variables for the build-in random-generator and to keep track of whether past days
+--were rain days
+
+let QSIZ : int = 10
+type WeatherGenState = {
+	--- Random state variable q
+	q : [QSIZ]int,
+	--- Random state variable carry
+	carry : int,
+	--- Random state variable xcng
+	xcng : int,
+	--- Random state variable xs
+	xs : uint,
+	--- Random state variable indx
+	indx : int,
+	--- Random state variable have
+	have : bool,
+	--- Random state gamma
+	gamma_vals : [2]real,
+	--- Indicator for whether the recent two days were rein-days
+	pday : [2]bool,
+	--- Random state's residuals
+	resid : [4]real
+}
+
 
 
 -- This struct contains the environmental input to a photosynthesis calculation.
@@ -306,7 +333,266 @@ type PhotosynthesisStresses = {
  inund_stress: real
 }
 
--- type Climate
+
+
+
+--- The Climate for a grid cell
+--- Stores all static and variable data relating to climate parameters, as well as
+--  latitude, atmospheric CO2 concentration and daylength for a grid cell. Includes
+--  a reference to the parent Gridcell object (defined below). Initialised by a
+--  call to initdrivers.
+---
+type Climate = {
+
+  -- MEMBER VARIABLES
+  --- reference to parent Gridcell object
+  --Gridcell& gridcell,
+
+  --- values for randomisation in Weathergenerator GWGEN
+  weathergenstate : WeatherGenState,
+
+  --- mean air temperature today (deg C)
+  temp : real,
+
+  --- total daily net downward shortwave solar radiation today (J/m2/day)
+  rad : real,
+
+  --- total daily photosynthetically-active radiation today (J/m2/day)
+  par : real,
+
+  --- precipitation today (mm)
+  prec : real,
+
+  --- 10 m wind (km/h)
+  u10 : real,
+
+  --- rel. humidity (fract.)
+  relhum : real,
+
+  --- min and max daily temperature (deg C)
+  tmin : real,
+  tmax : real,
+
+  --- day length today (h)
+  daylength : real,
+
+  --- atmospheric ambient CO2 concentration today (ppmv)
+  co2 : real,
+
+  --- latitude (degrees : real, +=north, -=south)
+  lat : real,
+
+  --- Insolation today, see also instype
+  insol : real,
+
+  --- Type of insolation
+  --- This decides how to interpret the variable insol,
+  --  see also documentation for the insoltype enum.
+  instype : insoltype,
+
+  --- equilibrium evapotranspiration today (mm/day)
+  eet : real,
+
+  --- mean temperature for the last 31 days (deg C)
+  mtemp : real,
+
+  --- mean of lowest mean monthly temperature for the last 20 years (deg C)
+  mtemp_min20 : real,
+
+  --- mean of highest mean monthly temperature for the last 20 years (deg C)
+  mtemp_max20 : real,
+
+  --- highest mean monthly temperature for the last 12 months (deg C)
+  mtemp_max : real,
+
+  --- accumulated growing degree day sum on 5 degree base
+  --- reset when temperatures fall below 5 deg C */
+  gdd5 : real,
+
+  --- total gdd5 (accumulated) for this year (reset 1 January)
+  agdd5 : real,
+
+  --- accumulated growing degree day sum on 0 degree base (Wolf et al. 2008)
+  gdd0 : real,
+
+  --- total gdd0 (accumulated) for this year (reset 1 January)
+  agdd0 : real,
+
+  --- total gdd0 (accumulated) over each of the last 20 years
+  --- climate.agdd0_20.mean() gives the average total gdd0 (accumulated) over the last 20 years
+  --Historic<double, 20> agdd0_20 : real,
+
+  --- number of days with temperatures <5 deg C
+  --- reset when temperatures fall below 5 deg C,
+  --  maximum value is number of days in the year */
+  chilldays : int,
+
+  --- true if chill day count may be reset by temperature fall below 5 deg C
+  ifsensechill : bool,
+
+  --- Respiration response to today's air temperature incorporating damping of Q10
+  --  due to temperature acclimation (Lloyd & Taylor 1994)
+  --/
+  gtemp : real,
+
+  --- daily temperatures for the last 31 days (deg C)
+  --Historic<double, 31> dtemp_31 : real,
+
+  --- daily precipitation for the last 31 days (deg C)
+  --Historic<double, 31> dprec_31 : real,
+
+  --- daily eet for the last 31 days (deg C)
+  --Historic<double, 31> deet_31 : real,
+
+  --- minimum monthly temperatures for the last 20 years (deg C)
+  mtemp_min_20 : [20]real,
+
+  --- maximum monthly temperatures for the last 20 years (deg C)
+  mtemp_max_20 : [20]real,
+
+  --- minimum monthly temperature for the last 12 months (deg C)
+  mtemp_min : real,
+
+  --- mean of monthly temperatures for the last 12 months (deg C)
+  atemp_mean : real,
+
+
+  -- BLAZE
+  --- average annual rainfall (mm/a)
+  avg_annual_rainfall : real,
+  --- current sum of annual Rainfall (mm)
+  cur_rainfall : real,
+  --- Accumulated last rainfall (mm)
+  last_rainfall : real,
+  --- Days since last rainfall
+  days_since_last_rainfall : real,
+  --- Keetch-Byram-Drought-Index
+  kbdi : real,
+  --- McArthur forest fire index (FFDI)
+  mcarthur_forest_fire_index : real,
+  --- To keep track of running months daily FFDI
+  months_ffdi : [30]real,
+
+  -- Saved parameters used by function daylengthinsoleet
+
+  sinelat : real,
+  cosinelat : real,
+  qo : [Date_MAX_YEAR_LENGTH]real,
+  u : [Date_MAX_YEAR_LENGTH]real,
+  v : [Date_MAX_YEAR_LENGTH]real,
+  hh : [Date_MAX_YEAR_LENGTH]real,
+  sinehh : [Date_MAX_YEAR_LENGTH]real,
+  daylength_save : [Date_MAX_YEAR_LENGTH]real,
+  --- indicates whether saved values exist for this day
+  doneday : [Date_MAX_YEAR_LENGTH]bool,
+
+  --- diurnal temperature range, used in daily/monthly BVOC (deg C)
+  dtr : real,
+
+  -- containers for sub-daily values of temperature, short-wave downward
+  -- radiation, par, rad and gtemp (equivalent to temp, insol, par, rad and gtemp)
+  -- NB: units of these variable are the same as their daily counterparts,
+  -- i.e. representing daily averages (e.g. pars [J/m2/day])
+
+  -- FIXME: these are never initialized, and never used?
+  --- Sub-daily temperature (deg C) (\see temp)
+--  temps : []real,
+
+  --- Sub-daily insolation (\see insol)
+--  insols : []real,
+
+  --- Sub-daily PAR (\see par)
+--  pars : []real,
+
+  --- Sub-daily net downward shortwave solar radiation (\see rad)
+--  rads : []real,
+
+  --- Sub-daily respiration response (\see gtemp)
+--  gtemps : []real,
+
+  --- Variables used for crop sowing date or seasonality calculation
+
+  --- daily precipitations for the last 10 days (mm)
+  dprec_10 : [10]real,
+  --- daily 10 day-sums of precipitations for today and yesterday (mm)
+  sprec_2 : [2]real,
+  --- max temperature during the last test period
+  maxtemp : real,
+  --- summer day when we test last year's crossing of sowing temperature limits : real, NH:June 30(day 180), SH:Dec.31(day 364), set in getgridcell()
+  testday_temp : int,
+  --- last day of dry month when we test last year's crossing of sowing precipitation limits : real, NH:Dec.31(day 364), SH:June 30(day 180), set in getgridcell()
+  testday_prec : int,
+  --- date used for sowing if no frost or spring occured during the year between the testmonths : real, NH:14, SH:195, set in getgridcell()
+  coldestday : int,
+  --- used to adapt equations to hemisphere, set in getgridcell()
+  adjustlat : int,
+  --- accumulated monthly pet values for this year
+  mpet_year : [12]real,
+  --- past 20 years monthly temperature values
+  mtemp_20 : [20][12]real,
+  --- past 20 years monthly precipitation values
+  mprec_20 : [20][12]real,
+  --- past 20 years monthly PET values
+  mpet_20 : [20][12]real,
+  --- past 20 years monthly precipitation to PET ratios
+  mprec_pet_20 : [20][12]real,
+  --- past 20 years minimum of monthly precipitation to PET ratios
+  mprec_petmin_20 : [20]real,
+  --- past 20 years maximum of monthly precipitation to PET ratios
+  mprec_petmax_20 : [20]real,
+  --- 20-year running average monthly temperature values
+  mtemp20 : [12]real,
+  --- 20-year running average monthly precipitation values
+  mprec20 : [12]real,
+  --- 20-year running average monthly PET values
+  mpet20 : [12]real,
+  --- 20-year running average monthly precipitation to PET ratios
+  mprec_pet20 : [12]real,
+  --- 20-year running average of minimum monthly precipitation to PET ratios
+  mprec_petmin20 : real,
+  --- 20-year running average of maximum monthly precipitation to PET ratios
+  mprec_petmax20 : real,
+
+  --Historic<double, 20> hmtemp_20[12] : real,
+  --Historic<double, 20> hmprec_20[12] : real,
+  --Historic<double, 20> hmeet_20[12] : real,
+
+  --- seasonality type (SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALITY_TEMP, SEASONALITY_TEMPPREC)
+  seasonality : seasonality_type,
+  seasonality_lastyear : seasonality_type,
+
+  --- precipitation seasonality type (DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WET)
+  --- based on the extremes of the 20-year monthly means
+  --/
+  prec_seasonality : prec_seasonality_type,
+  prec_seasonality_lastyear : prec_seasonality_type,
+
+  --- precipitation range (DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WET)
+  --- based on the average of the 20-year monthly extremes
+  --/
+  prec_range : prec_seasonality_type,
+  prec_range_lastyear : prec_seasonality_type,
+
+  --- temperature seasonality (COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT)
+  temp_seasonality : temp_seasonality_type,
+  temp_seasonality_lastyear : temp_seasonality_type,
+
+  --- whether several months with precipitation maxima exists (remains to be implemented)
+  biseasonal : bool,
+
+  --- variation coefficient of 20-year mean monthly temperatures
+  var_prec : real,
+  --- variation coefficient of 20-year mean monthly precipitation to PET ratios
+  var_temp : real,
+
+  --- annual precipitation sum
+  aprec : real,
+  --- annual average precipitation (last year) (mm)
+  aprec_lastyear : real
+}
+
+
+
 
 --- Stores accumulated monthly and annual fluxes.
 -- This class handles the storage and accounting of fluxes for a single patch.
@@ -597,7 +883,7 @@ type Pft  = {
   -- Sykes et al 1996, Eqn 1
   -- gdd0 has one element for each possible value for number of chill days
 
-  ---- FIXME TODO HACK! comes from Date::MAX_YEAR_LENGTH+1
+  ---- FIXME TODO HACK! comes from Date_MAX_YEAR_LENGTH+1
   gdd0: [Date_MAX_YEAR_LENGTH_plusone]real,
 
   -- interception coefficient (unitless)
@@ -946,11 +1232,11 @@ type cropindiv_struct = {
 --/
 type Individual = {
   --- reference to Pft object containing static parameters for this individual
---Pft& pft,
+  pft : Pft,
   --- reference to Vegetation object to which this Individual belongs
 --Vegetation& vegetation,
   --- id code (0-based, sequential)
-  idx : int,
+  id : int,
   --- leaf C biomass on modelled area basis (kgC/m2)
   cmass_leaf : real,
   --- fine root C biomass on modelled area basis (kgC/m2)
@@ -1334,7 +1620,7 @@ type Soil = {
   wcont_evap : real,
 
   --- reference to parent Patch object
-  --patch : Patch, -- NOTE we dont do references in futhark
+  --patch : Patch, -- TODO circular definition
   --- reference to Soiltype object holding static parameters for this soil
   soiltype : Soiltype,
   --- the average wcont over the growing season, for each of the upper soil layers. Used in drought limited establishment.
@@ -1554,7 +1840,7 @@ type Soil = {
   -- volumetric water content MINUS the ice fraction. Updated daily.
   alwhc : [NSOILLAYER]real,
   -- Initial volumetric liquid water content. A fraction. Considers the entire
-  -- (awc + Fpwp) volumetric water cont;ent MINUS the ice fraction.
+  -- (awc + Fpwp) volumetric water cont,ent MINUS the ice fraction.
   alwhc_init : [NSOILLAYER]real,
 
 
@@ -1869,7 +2155,7 @@ type Patchpft = {
   --/ id code (equal to value of member variable id in corresponding Pft object)
   id : int,
   --/ reference to corresponding Pft object in PFT list
---  pft : Pft,
+  pft : Pft,
   --/ potential annual net assimilation (leaf-level net photosynthesis) at forest floor (kgC/m2/year)
   anetps_ff : real,
   --/ water stress parameter (0-1 range, 1=minimum stress)
@@ -1962,10 +2248,10 @@ type Patch = {
   -- id code in range 0-npatch for patch
   id : int,
   -- reference to parent Stand object
-  --stand: Stand,
+  --stand: Stand,  -- TODO becomes circular
   -- list array [0...npft-1] of Patchpft objects (initialised in constructor)
   pfts: [npft]Patchpft,
-  --ListArray_idin1<Patchpft,Pft> pft, -- In the c++ code, this was called "pft", even though it is multiple. Should be called "pfts".
+  --ListArray_idin1<Patchpft,Pft> pft,
   -- vegetation for this patch
   vegetation: [npft]Individual,
   -- soil for this patch
@@ -2154,7 +2440,9 @@ type Standpft = {
 --/ The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
 -- There may be several stands of the same landcover type (but with different settings).
 --
-type Stand = {
+type Stand [num_patches] = {
+  data : [num_patches]Soiltype,
+  original : int,
   -- MEMBER VARIABLES
 -- list array [0...npft-1] of Standpft (initialised in constructor)
   pft : [npft]Standpft,

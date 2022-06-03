@@ -1,0 +1,77 @@
+\section{Analysis}
+\subsection{Classes, structs and their logical relations}
+
+\subsubsection{Date}
+\subsubsection{Day}
+\subsubsection{MassBalance}
+Gridcell
+Individual
+Patch
+\subsubsection{PhotosynthesisResult}
+\subsubsection{WeatherGenState}
+\subsubsection{struct PhotosynthesisEnvironment}
+\subsubsection{struct PhotosynthesisStresses}
+\subsubsection{Climate}
+Gridcell
+WeatherGenState
+Historic
+
+\subsubsection{Fluxes}
+Parent Patch
+\subsubsection{ManagementType}
+\subsubsection{class ManagementTypelist : public ListArray_id<ManagementType>}
+
+\subsubsection{struct CropRotation}
+\subsubsection{StandType}
+CropRotation
+ManagementType
+
+\subsubsection{class StandTypelist : public ListArray_id<StandType> }
+\subsubsection{Pft}
+\subsubsection{class Pftlist : public ListArray_id<Pft>}
+\subsubsection{struct cropindiv_struct}
+\subsubsection{class Individual}
+contains Pft, Vegetation, PhotosynthesisResult
+
+\subsubsection{class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>}
+parent Patch
+
+\subsubsection{Soiltype}
+\subsubsection{Sompool}
+\subsubsection{struct LitterSolveSOM }
+\subsubsection{Soil}
+  Sompool array
+  litterSolveSOM array
+
+\subsubsection{struct cropphen_struct}
+\subsubsection{Patchpft}
+\subsubsection{Patch}
+ref to parent Stand
+contains list of PatchPfts
+Vegetation
+Soil
+Fluxes
+Climate?
+\subsubsection{Standpft}
+contains Pft
+PhotosynthesisResult
+\subsubsection{Stand : public ListArray_idin2<Patch,Stand,Soiltype>}
+StandPft, Pft
+parent Gridcell
+
+\subsubsection{Gridcellpft}
+Pft
+\subsubsection{Gridcellst}
+StandType
+\subsubsection{Landcover}
+\subsubsection{Gridcell}
+Climate
+Soiltype
+Landcover
+MassBalance
+\subsection{Functional heirarchy}
+\subsubsection{framework.cpp framework}
+receives CommandLineArguments
+generates model
+runs simulation - calls simulate\_day
+\subsubsection{framework.cpp simulate\_day}

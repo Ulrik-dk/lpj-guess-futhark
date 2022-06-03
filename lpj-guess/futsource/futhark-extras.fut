@@ -1,5 +1,6 @@
 type real = f64
 type int = i64
+type uint = u64
 
 let realzero : real = 0.0
 let Date_MAX_YEAR_LENGTH : int = 365
@@ -11,6 +12,8 @@ let exp(a: real) = pow(euler, a)
 let log10 = f64.log10
 let sqrt = f64.sqrt
 let abs = f64.abs
+let sin = f64.sin
+let cos = f64.cos
 
 let nan = f64.nan
 let intnan = i64.lowest --this may serve the purpose
@@ -26,3 +29,8 @@ type enum_type = i64
 
 
 let npft : i64 = 6 -- TODO: this is a dynamic global variable that should be aquired otherwise than this!
+
+-- from global.ins
+let run_landcover : bool = false
+--parameters.cpp?
+let disturb_pasture : bool = false
