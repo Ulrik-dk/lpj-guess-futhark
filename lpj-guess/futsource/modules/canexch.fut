@@ -381,10 +381,10 @@ let gpterm (adtmm: real, co2: real, lambda: real, daylength: real) : real =
 
 -- Determine CO2 in peatland water
 -- Updated daily
-let get_co2(p: Patch, climate: Climate, pft: Pft) : real =
-  if p.stand.is_highlatitude_peatland_stand() && pft.ismoss()
-    then p.soil.acro_co2
-    else climate.co2
+--let get_co2(p: Patch, climate: Climate, pft: Pft, stand: Stand) : real =
+--  if p.stand.is_highlatitude_peatland_stand() && pft.ismoss()
+--    then p.soil.acro_co2
+--    else climate.co2
 
 
 

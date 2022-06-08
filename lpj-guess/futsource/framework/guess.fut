@@ -217,7 +217,6 @@ let Fluxes() : Fluxes = {
   }
 
 
--- Forgive me for this, there is no other way of updating arrays in records.
 let report_flux_PerPFTFluxType(
     { annual_fluxes_per_pft
     , monthly_fluxes_patch
@@ -711,7 +710,12 @@ let cropindiv_struct() : cropindiv_struct = {
   nmass_ho_luc=nan
 }
 
-let Individual(i : int, p : Pft, stand: Stand) : Individual = {
+let Individual(i : int
+              ,p : Pft
+              ,stand_pftid : int
+              ,stand_hasgrassintercrop : bool
+            --,stand: Stand [num_patches]
+              ) : Individual = {
   id = i,
   pft = p,
   --vegetation = v,
@@ -794,9 +798,9 @@ let Individual(i : int, p : Pft, stand: Stand) : Individual = {
 
   -- there is a case where it is not initialized, but we cant have that
   cropindiv = (let newone = cropindiv_struct()
-              in if (stand.pftid == p.id)
+              in if (stand_pftid == p.id)
               then newone with isprimarycrop = true
-              else if (stand.hasgrassintercrop && p.isintercropgrass)
+              else if (stand_hasgrassintercrop && p.isintercropgrass)
               then newone with isintercropgrass = true
               else newone),
 
@@ -1292,17 +1296,17 @@ let Patchpft(i: int, p: Pft) : Patchpft = {
   wstress_day=false
 }
 
-let Patch(i : int, s : Stand, st : Soiltype) : Patch =
+let Patch(patch_id : int, stand_pftid : int, stand_hasgrassintercrop : bool, st : Soiltype) : Patch =
   let (_, patchpfts, individuals) = unzip3 <|
-    map (\i ->
+    map (\pft_id ->
         let p = Pft()
-        let patchp = Patchpft(i, p)
-        let indv = Individual(i, p, s)
+        let patchp = Patchpft(pft_id, p)
+        let indv = Individual(pft_id, p, stand_pftid, stand_hasgrassintercrop)
         in (p, patchp, indv)
       ) <| iota npft
   in
   {
-  id = i,
+  id = patch_id,
   --stand = s,
 
   pfts = patchpfts,
@@ -1401,35 +1405,40 @@ let npatch : int = 15 --from global.ins -- TODO FIXME move this somewhere reason
 --------------------------------------------------------------------------------
 -- Implementation of Stand member functions
 --------------------------------------------------------------------------------
-let Stand(i : int,
+
+let Stand [num_patches]
+          (stand_id : int,
           --Gridcell* gc,
           st : Soiltype,
+          --witness : [num_patches](),
+          --num_patches : int,
           landcover : landcovertype,
           npatch_l : int,
-          date : Date) : Stand =
-  let num_patches =
-    if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE))  -- TODO: obey this comment! \/ make it global
+          date : Date) : Stand [num_patches] =
+  let num_patches2 =
+    if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE))
       then npatch -- use the global variable npatch for stands with stochastic events
     else if npatch_l > 0 then npatch_l -- use patch number provided by calling function
     else 1
   let st = Soiltype()
-  let patches = map (\j -> Patch(j, i, st) ) <| iota num_patches 
-  let p = Pft()
+  let sp = Standpft(0, Pft())
+  let stand_pftid = (-1)
+  let patches = map (\patch_id -> Patch(patch_id, stand_pftid, false, st)) <| iota num_patches
   in
-  {id = i
+  {id = stand_id,
 --,gridcell=gc
-  ,soiltype=st
-  ,landcover=landcover
-  ,original=landcover
-  ,frac=1.0
-  ,pft = replicate npft p
-  ,data=patches
+  soiltype=st,
+  landcover=landcover,
+  original=landcover,
+  frac=1.0,
+  standpft = replicate npft sp,
+  data= map (\patch_id -> Patch(patch_id, stand_pftid, false, st)) <| iota num_patches,
   first_year = date.year,
   clone_year = (-1),
   transfer_area_st = replicate nst realzero,
   seed = 12345678,
   stid = 0,
-  pftid = (-1),
+  pftid = stand_pftid,
   current_rot = 0,
   ndays_inrotation = 0,
   infallow = false,
@@ -1449,5 +1458,5 @@ let Stand(i : int,
   cmass = 0.0,
   scale_LC_change = 1.0,
   -- UNINITIALIZED
-  origin=nan
-}
+  origin=intnan
+  }

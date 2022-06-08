@@ -2441,11 +2441,11 @@ type Standpft = {
 -- There may be several stands of the same landcover type (but with different settings).
 --
 type Stand [num_patches] = {
-  data : [num_patches]Soiltype,
+  data : [num_patches]Patch,
   original : int,
   -- MEMBER VARIABLES
 -- list array [0...npft-1] of Standpft (initialised in constructor)
-  pft : [npft]Standpft,
+  standpft : [npft]Standpft, -- this was called 'pft' in the c++ code, which is confusing
 
 -- A number identifying this Stand within the grid cell
   id : int,
