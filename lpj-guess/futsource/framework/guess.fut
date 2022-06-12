@@ -43,6 +43,19 @@ let PhotosynthesisResult() : PhotosynthesisResult =
     vmaxnlim    = 1.0
   }
 
+let MassBalance() : MassBalance = {
+	start_year = nyear_spinup,
+	ccont = 0.0,
+	ccont_zero = 0.0,
+	ccont_zero_scaled = 0.0,
+	cflux = 0.0,
+	cflux_zero = 0.0,
+	ncont = 0.0,
+	ncont_zero = 0.0,
+	ncont_zero_scaled = 0.0,
+	nflux = 0.0,
+	nflux_zero = 0.0
+}
 
 -- Constructs an empty result
 let PhotosynthesisEnvironment() : PhotosynthesisEnvironment =
@@ -81,7 +94,9 @@ let WeatherGenState() : WeatherGenState =
 
   --- constructor function: initialises gridcell member
   -- takes Gridcell& gc
-let Climate(latitude : real) : Climate = {
+let Climate(latitude : real, climate_id : int, gridcell_id : int) : Climate = {
+  gridcell_id = gridcell_id,
+  climate_id = climate_id,
   aprec = 0.0,
   aprec_lastyear = 0.0,
   mtemp20 = replicate 12 realzero,
@@ -217,6 +232,43 @@ let Fluxes() : Fluxes = {
   }
 
 
+let CropRotation() : CropRotation = {
+  ncrops = 0,
+  firstrotyear = 0
+}
+
+
+
+
+let ManagementType(managementtype_id : int) : ManagementType = {
+  managementtype_id = managementtype_id,
+  planting_system = planting_system_NONE,
+  harvest_system = harvest_system_NONE,
+--  pftname = "",
+--  selection = "",
+  nyears = 1.0,
+  hydrology = RAINFED,
+--    firr = 0.0,
+  sdate = -1,
+  hdate = -1,
+  nfert = (-1.0),
+  fallow = false,
+  multicrop = false
+}
+
+
+let StandType(standtype_id : int) : StandType = {
+  standtype_id = standtype_id,
+  intercrop = NOINTERCROP,
+  naturalveg = naturalvegNONE,
+  restrictpfts = false,
+  reestab = reestabALL,
+  firstmanageyear = 100000,
+  management = ManagementType(0),
+  landcover = NATURAL, --TODO FIXME: READ FROM FILE
+  rotation = CropRotation()
+}
+
 let report_flux_PerPFTFluxType(
     { annual_fluxes_per_pft
     , monthly_fluxes_patch
@@ -288,205 +340,207 @@ let get_annual_flux_PerPatchFluxType(this: Fluxes, flux_type: PerPatchFluxType) 
 let avg_cton (min: real, max: real) : real =
   2.0 / (1.0 / min + 1.0 / max)
 
+
+
+
 -- MEMBER FUNCTIONS
 -- Constructor (initialises array gdd0)
-let Pft() : Pft =
-  {
-    --std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0) -- value<0 signifies "unknown" see function phenology()
-    gdd0 = replicate Date_MAX_YEAR_LENGTH_plusone (-1.0),
-    nlim = false,
+let Pft(pft_id : int) : Pft = {
+  pft_id = pft_id,
+  --std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0) -- value<0 signifies "unknown" see function phenology()
+  gdd0 = replicate Date_MAX_YEAR_LENGTH_plusone (-1.0),
+  nlim = false,
 
-    root_beta = 0.0,
+  root_beta = 0.0,
 
-    drought_tolerance = 0.0, -- Default, means that the PFT will never be limited by drought.
-    res_outtake = 0.0,
-    harv_eff = 0.0,
-    harv_eff_ic = 0.0,
-    turnover_harv_prod = 1.0,  -- default 1 year turnover time
+  drought_tolerance = 0.0, -- Default, means that the PFT will never be limited by drought.
+  res_outtake = 0.0,
+  harv_eff = 0.0,
+  harv_eff_ic = 0.0,
+  turnover_harv_prod = 1.0,  -- default 1 year turnover time
 
-    isintercropgrass = false,
-    ifsdautumn = false,
-    maxtemp_sowing = 60,
-    sdatenh = -1,
-    sdatesh = -1,
-    lgp_def = 190,
-    hlimitdatenh = -1,
-    hlimitdatesh = -1,
-    tb = -999.9,
-    trg = -999.9,
-    pvd = -1,
-    psens = -1.0,
-    pb = -1.0,
-    vern_lag=0,
-    ps = -1.0,
-    phu = -1.0,
-    phu_red_spring_sow = 1.0,
-    fphusen = -1.0,
-    shapesenescencenorm = false,
-    flaimaxharvest = -1.0,
-    laimax = 0.0,
-    aboveground_ho = true,
-    frootstart = 0.0,
-    frootend = 0.0,
-    forceautumnsowing = 0,
+  isintercropgrass = false,
+  ifsdautumn = false,
+  maxtemp_sowing = 60,
+  sdatenh = -1,
+  sdatesh = -1,
+  lgp_def = 190,
+  hlimitdatenh = -1,
+  hlimitdatesh = -1,
+  tb = -999.9,
+  trg = -999.9,
+  pvd = -1,
+  psens = -1.0,
+  pb = -1.0,
+  vern_lag=0,
+  ps = -1.0,
+  phu = -1.0,
+  phu_red_spring_sow = 1.0,
+  fphusen = -1.0,
+  shapesenescencenorm = false,
+  flaimaxharvest = -1.0,
+  laimax = 0.0,
+  aboveground_ho = true,
+  frootstart = 0.0,
+  frootend = 0.0,
+  forceautumnsowing = 0,
 
-    fertrate = (0.0,1.0),
-    fertdates = (0,30),
+  fertrate = (0.0,1.0),
+  fertdates = (0,30),
 
-    fert_stages = (0.5, 0.9),
-    fertilised = (false, false),
+  fert_stages = (0.5, 0.9),
+  fertilised = (false, false),
 
-    N_appfert = 0.0,
+  N_appfert = 0.0,
 
-    T_vn_min=0.0,
-    T_vn_opt=0.0,
-    T_vn_max=0.0,
-    T_veg_min=0.0,
-    T_veg_opt=0.0,
-    T_veg_max=0.0,
-    T_rep_min=0.0,
-    T_rep_opt=0.0,
-    T_rep_max=0.0,
+  T_vn_min=0.0,
+  T_vn_opt=0.0,
+  T_vn_max=0.0,
+  T_veg_min=0.0,
+  T_veg_opt=0.0,
+  T_veg_max=0.0,
+  T_rep_min=0.0,
+  T_rep_opt=0.0,
+  T_rep_max=0.0,
 
-    a1=0.0,
-    b1=0.0,
-    c1=0.0,
-    d1=0.0,
-    a2=0.0,
-    b2=0.0,
-    c2=0.0,
-    d2=0.0,
-    a3=0.0,
-    b3=0.0,
-    c3=0.0,
-    d3=0.0,
+  a1=0.0,
+  b1=0.0,
+  c1=0.0,
+  d1=0.0,
+  a2=0.0,
+  b2=0.0,
+  c2=0.0,
+  d2=0.0,
+  a3=0.0,
+  b3=0.0,
+  c3=0.0,
+  d3=0.0,
 
-    photo = (0.0, 0.0, 0.0),
+  photo = (0.0, 0.0, 0.0),
 
-    ----- THE FOLLOWING WERE NOT DEFINED IN THE ORIGINAL CONSTRUCTOR
+  ----- THE FOLLOWING WERE NOT DEFINED IN THE ORIGINAL CONSTRUCTOR
 
-    alphar = nan,
-    crownarea_max = nan,
-    cton_leaf_avr = nan,
-    cton_leaf_max = nan,
+  alphar = nan,
+  crownarea_max = nan,
+  cton_leaf_avr = nan,
+  cton_leaf_max = nan,
 
-    cton_leaf_min = nan,
-    cton_root = nan,
-    cton_root_avr = nan,
-    cton_root_max = nan,
+  cton_leaf_min = nan,
+  cton_root = nan,
+  cton_root_avr = nan,
+  cton_root_max = nan,
 
-    cton_sap = nan,
-    cton_sap_avr = nan,
-    cton_sap_max = nan,
-    cton_stem_avr = nan,
+  cton_sap = nan,
+  cton_sap_avr = nan,
+  cton_sap_max = nan,
+  cton_stem_avr = nan,
 
-    cton_stem_max = nan,
-    dev_rate_rep = nan,
-    dev_rate_veg = nan,
-    emax = nan,
-    eps_iso = nan,
+  cton_stem_max = nan,
+  dev_rate_rep = nan,
+  dev_rate_veg = nan,
+  emax = nan,
+  eps_iso = nan,
 
-    eps_mon = replicate NMTCOMPOUNDS nan,
-    est_max = nan,
-    fireresist = nan,
-    fnstorage = nan,
-    ga = nan,
-    gdd0_max = nan,
+  eps_mon = replicate NMTCOMPOUNDS nan,
+  est_max = nan,
+  fireresist = nan,
+  fnstorage = nan,
+  ga = nan,
+  gdd0_max = nan,
 
-    gdd0_min = nan,
-    gdd5min_est = nan,
-    gmin = nan,
-    greff_min = nan,
-    harvest_slow_frac = nan,
+  gdd0_min = nan,
+  gdd5min_est = nan,
+  gmin = nan,
+  greff_min = nan,
+  harvest_slow_frac = nan,
 
-    has_aerenchyma = false,
-    himin = nan,
-    hiopt = nan,
-    intc = nan,
-    id = -1,
-    inund_duration = -1,
+  has_aerenchyma = false,
+  himin = nan,
+  hiopt = nan,
+  intc = nan,
+  inund_duration = -1,
 
-    k_allom1 = nan,
-    k_allom2 = nan,
-    k_allom3 = nan,
-    k_chilla = nan,
-    k_chillb = nan,
-    k_chillk = nan,
+  k_allom1 = nan,
+  k_allom2 = nan,
+  k_allom3 = nan,
+  k_chilla = nan,
+  k_chillb = nan,
+  k_chillk = nan,
 
-    k_latosa = nan,
-    k_rp = nan,
-    kest_bg = nan,
-    kest_pres = nan,
-    kest_repr = nan,
-    km_volume = nan,
+  k_latosa = nan,
+  k_rp = nan,
+  kest_bg = nan,
+  kest_pres = nan,
+  kest_repr = nan,
+  km_volume = nan,
 
-    lambda_max = nan,
-    landcover = URBAN,
-    leaflong = nan,
-    leafphysiognomy = NOLEAFTYPE,
-    lifeform = NOLIFEFORM,
+  lambda_max = nan,
+  landcover = URBAN,
+  leaflong = nan,
+  leafphysiognomy = NOLEAFTYPE,
+  lifeform = NOLIFEFORM,
 
-    litterme = nan,
-    longevity = nan,
-    ltor_max = nan,
-    max_snow = nan,
-    min_snow = nan,
-    name = -1,
+  litterme = nan,
+  longevity = nan,
+  ltor_max = nan,
+  max_snow = nan,
+  min_snow = nan,
+  name = -1,
 
-    ndays_ramp_phu = nan,
-    nupscoeff = nan,
-    nuptoroot = nan,
-    parff_min = nan,
-    pathway = C4,
+  ndays_ramp_phu = nan,
+  nupscoeff = nan,
+  nuptoroot = nan,
+  parff_min = nan,
+  pathway = C4,
 
-    phengdd5ramp = nan,
-    phenology = CROPGREEN,
-    phu_calc_lin = false,
-    phu_calc_quad = false,
+  phengdd5ramp = nan,
+  phenology = CROPGREEN,
+  phu_calc_lin = false,
+  phu_calc_quad = false,
 
-    phu_interc = nan,
-    phu_max = nan,
-    phu_min = nan,
-    pstemp_high = nan,
-    pstemp_low = nan,
+  phu_interc = nan,
+  phu_max = nan,
+  phu_min = nan,
+  pstemp_high = nan,
+  pstemp_low = nan,
 
-    pstemp_max = nan,
-    pstemp_min = nan,
-    regen_cmass_heart = nan,
-    regen_cmass_leaf = nan,
+  pstemp_max = nan,
+  pstemp_min = nan,
+  regen_cmass_heart = nan,
+  regen_cmass_leaf = nan,
 
-    regen_cmass_root = nan,
-    regen_cmass_sap = nan,
-    reprfrac = nan,
-    respcoeff = nan,
+  regen_cmass_root = nan,
+  regen_cmass_sap = nan,
+  reprfrac = nan,
+  respcoeff = nan,
 
-    rootdist = replicate NSOILLAYER nan,
-    sd_adjust = false,
-    sd_adjust_par1 = nan,
-    sd_adjust_par2 = nan,
+  rootdist = replicate NSOILLAYER nan,
+  sd_adjust = false,
+  sd_adjust_par1 = nan,
+  sd_adjust_par2 = nan,
 
-    sd_adjust_par3 = nan,
-    seas_iso = false,
-    selection = -1,
-    sla = nan,
-    storfrac_mon = replicate NMTCOMPOUNDS nan,
+  sd_adjust_par3 = nan,
+  seas_iso = false,
+  selection = -1,
+  sla = nan,
+  storfrac_mon = replicate NMTCOMPOUNDS nan,
 
-    tcmax_est = nan,
-    tcmin_est = nan,
-    tcmin_surv = nan,
-    tempautumn = nan,
-    tempspring = nan,
+  tcmax_est = nan,
+  tcmin_est = nan,
+  tcmin_surv = nan,
+  tempautumn = nan,
+  tempspring = nan,
 
-    turnover_leaf = nan,
-    turnover_root = nan,
-    turnover_sap = nan,
-    twmin_est = nan,
+  turnover_leaf = nan,
+  turnover_root = nan,
+  turnover_sap = nan,
+  twmin_est = nan,
 
-    twminusc = nan,
-    wooddens = nan,
-    wscal_min = nan,
-    wtp_max = nan
-  }
+  twminusc = nan,
+  wooddens = nan,
+  wscal_min = nan,
+  wtp_max = nan
+}
 
 -- Calculates SLA given leaf longevity
 let initsla(this: Pft) : Pft =
@@ -710,14 +764,21 @@ let cropindiv_struct() : cropindiv_struct = {
   nmass_ho_luc=nan
 }
 
-let Individual(i : int
-              ,p : Pft
+let Individual(individual_id : int
+              ,gridcell_id : int
+              ,patch_id : int
+              ,stand_id : int
+              ,pft_id : int
               ,stand_pftid : int
               ,stand_hasgrassintercrop : bool
+              ,pft_isintercropgrass : bool
             --,stand: Stand [num_patches]
               ) : Individual = {
-  id = i,
-  pft = p,
+  individual_id = individual_id,
+  pft_id = pft_id,
+  gridcell_id = gridcell_id,
+  patch_id = patch_id,
+  stand_id = stand_id,
   --vegetation = v,
   anpp              = 0.0,
   fpc               = 0.0,
@@ -798,9 +859,9 @@ let Individual(i : int
 
   -- there is a case where it is not initialized, but we cant have that
   cropindiv = (let newone = cropindiv_struct()
-              in if (stand_pftid == p.id)
+              in if (stand_pftid == pft_id)
               then newone with isprimarycrop = true
-              else if (stand_hasgrassintercrop && p.isintercropgrass)
+              else if (stand_hasgrassintercrop && pft_isintercropgrass)
               then newone with isintercropgrass = true
               else newone),
 
@@ -831,7 +892,8 @@ let Individual(i : int
 }
 
 
-let Soiltype() : Soiltype = {
+let Soiltype(soiltype_id : int) : Soiltype = {
+  soiltype_id = soiltype_id,
   solvesom_end = SOLVESOM_END,
   solvesom_begin = SOLVESOM_BEGIN,
   organic_frac = 0.02,
@@ -916,7 +978,7 @@ let add_litter({clitter, nlitter} : *LitterSolveSOM, cvalue : real, nvalue : rea
   }
 
 let Soil(soiltype : Soiltype) : Soil = {
-  soiltype = soiltype,
+  soiltype_id = soiltype.soiltype_id,
 
   -- Initialises certain member variables
   alag = 0.0,
@@ -1244,9 +1306,14 @@ let cropphen_struct() : cropphen_struct = {
 
 
 -- Constructor: initialises id, pft and data members
-let Patchpft(i: int, p: Pft) : Patchpft = {
-  id = i,
-  pft = p,
+let Patchpft(gridcell_id: int, patch_id: int, stand_id: int, patchpft_id: int, pft_id: int) : Patchpft = {
+
+  gridcell_id = gridcell_id,
+  stand_id = stand_id,
+  patch_id = patch_id,
+
+  patchpft_id = patchpft_id,
+  pft_id = pft_id,
 
   litter_leaf = 0.0,
   litter_root = 0.0,
@@ -1296,25 +1363,33 @@ let Patchpft(i: int, p: Pft) : Patchpft = {
   wstress_day=false
 }
 
-let Patch(patch_id : int, stand_pftid : int, stand_hasgrassintercrop : bool, st : Soiltype) : Patch =
+let Patch(gridcell_id: int
+         ,stand_id: int
+         ,patch_id : int
+         ,stand_pftid : int
+         ,stand_hasgrassintercrop : bool
+         ,st : Soiltype)
+         : Patch =
   let (_, patchpfts, individuals) = unzip3 <|
-    map (\pft_id ->
-        let p = Pft()
-        let patchp = Patchpft(pft_id, p)
-        let indv = Individual(pft_id, p, stand_pftid, stand_hasgrassintercrop)
-        in (p, patchp, indv)
+    map (\i ->
+        let pft_id = 0
+        let pft = Pft(pft_id)
+        let patchpft = Patchpft(gridcell_id, patch_id, stand_id, i, pft_id)
+        let individual = Individual(i, gridcell_id, patch_id, stand_id, pft_id, stand_pftid, stand_hasgrassintercrop, pft.isintercropgrass)
+        in (pft, patchpft, individual)
       ) <| iota npft
   in
-  {
-  id = patch_id,
-  --stand = s,
+{
+  gridcell_id = gridcell_id,
+  stand_id = stand_id,
+  patch_id = patch_id,
 
-  pfts = patchpfts,
+  --pfts = patchpfts,
 
-  vegetation = individuals,
+  --vegetation = individuals,
 
-  soil = Soil(st),
-  fluxes = Fluxes(),
+  --soil = Soil(st),
+  --fluxes = Fluxes(),
 
   age = 0,
   disturbed = false,
@@ -1383,9 +1458,13 @@ let Patch(patch_id : int, stand_pftid : int, stand_hasgrassintercrop : bool, st 
   }
 
 
-let Standpft(i : int, p : Pft) : Standpft = {
-  idx = i,
-  pft = p,
+let Standpft(gridcell_id: int, stand_id: int, standpft_id: int, pft_id : int) : Standpft = {
+  gridcell_id = gridcell_id,
+  stand_id = stand_id,
+
+  standpft_id = standpft_id,
+  pft_id = pft_id,
+
   anetps_ff_max = 0.0,
   active = !run_landcover,
   plant = false,
@@ -1406,57 +1485,143 @@ let npatch : int = 15 --from global.ins -- TODO FIXME move this somewhere reason
 -- Implementation of Stand member functions
 --------------------------------------------------------------------------------
 
-let Stand [num_patches]
-          (stand_id : int,
-          --Gridcell* gc,
-          st : Soiltype,
+let Stand(stand_id : int,
+          gridcell_id: int,
+          soiltype_id : int,
+          standtype_id : int,
           --witness : [num_patches](),
           --num_patches : int,
           landcover : landcovertype,
           npatch_l : int,
-          date : Date) : Stand [num_patches] =
-  let num_patches2 =
+          date : Date) : ([]Patch, []Standpft, Stand) =
+  let num_patches =
     if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE))
       then npatch -- use the global variable npatch for stands with stochastic events
     else if npatch_l > 0 then npatch_l -- use patch number provided by calling function
     else 1
-  let st = Soiltype()
-  let sp = Standpft(0, Pft())
-  let stand_pftid = (-1)
-  let patches = map (\patch_id -> Patch(patch_id, stand_pftid, false, st)) <| iota num_patches
-  in
-  {id = stand_id,
---,gridcell=gc
-  soiltype=st,
-  landcover=landcover,
-  original=landcover,
-  frac=1.0,
-  standpft = replicate npft sp,
-  data= map (\patch_id -> Patch(patch_id, stand_pftid, false, st)) <| iota num_patches,
-  first_year = date.year,
-  clone_year = (-1),
-  transfer_area_st = replicate nst realzero,
-  seed = 12345678,
-  stid = 0,
-  pftid = stand_pftid,
-  current_rot = 0,
-  ndays_inrotation = 0,
-  infallow = false,
-  isrotationday = false,
-  isirrigated = false,
-  hasgrassintercrop = false,
-  gdd5_intercrop = 0.0,
+  let st = Soiltype(soiltype_id)
+  let pft_id = (-1)
+  let stand_pftid = pft_id
+  let patches = map (\patch_id -> Patch(gridcell_id, stand_id, patch_id, stand_pftid, false, st)) <| iota num_patches
+  let standpfts = map (\standpft_id -> Standpft(gridcell_id, stand_id, standpft_id, standpft_id)) <| iota npft
+  in (patches, standpfts, {
+    pft_id = pft_id,
+    num_patches = num_patches,
+    standtype_id = standtype_id,
+    gridcell_id = gridcell_id,
+    stand_id = stand_id,
+    soiltype_id=soiltype_id,
+    landcover=landcover,
+    original=landcover,
+    frac=1.0,
+    --standpft = standpfts,
+    --data=patches,
+    first_year = date.year,
+    clone_year = (-1),
+    transfer_area_st = replicate nst realzero,
+    seed = 12345678,
+    --stid = 0,
+    current_rot = 0,
+    ndays_inrotation = 0,
+    infallow = false,
+    isrotationday = false,
+    isirrigated = false,
+    hasgrassintercrop = false,
+    gdd5_intercrop = 0.0,
+    frac_old = 0.0,
+    frac_temp = 0.0,
+    protected_frac = 0.0,
+    frac_change = 0.0,
+    gross_frac_increase = 0.0,
+    gross_frac_decrease = 0.0,
+    cloned_fraction = 0.0,
+    cloned = false,
+    anpp = 0.0,
+    cmass = 0.0,
+    scale_LC_change = 1.0,
+    -- UNINITIALIZED
+    origin=intnan
+  })
+
+
+let Landcover() : Landcover = {
+
+  updated = false,
+
+  acflux_harvest_slow = 0.0,
+  acflux_landuse_change = 0.0,
+  anflux_harvest_slow = 0.0,
+  anflux_landuse_change = 0.0,
+
+  frac = replicate NLANDCOVERTYPES realzero,
+  frac_old = replicate NLANDCOVERTYPES realzero,
+  frac_change = replicate NLANDCOVERTYPES realzero,
+  acflux_harvest_slow_lc = replicate NLANDCOVERTYPES realzero,
+  acflux_landuse_change_lc = replicate NLANDCOVERTYPES realzero,
+  anflux_harvest_slow_lc = replicate NLANDCOVERTYPES realzero,
+  anflux_landuse_change_lc = replicate NLANDCOVERTYPES realzero,
+
+  frac_transfer = replicate NLANDCOVERTYPES (replicate NLANDCOVERTYPES realzero),
+  primary_frac_transfer = replicate NLANDCOVERTYPES (replicate NLANDCOVERTYPES realzero),
+
+  expand_to_new_stand = map (\i -> (i == NATURAL || i == FOREST)) <| iota NLANDCOVERTYPES,
+
+  pool_to_all_landcovers = replicate NLANDCOVERTYPES false, --from a donor landcover, alt.c
+  pool_from_all_landcovers = replicate NLANDCOVERTYPES false --to a receptor landcover, alt.a
+}
+
+--/ Constructs a Gridcellpft object
+--  \param i   The id for this object
+--  \param p   A reference to the Pft for this Gridcellpft
+--/
+let Gridcellpft(gridcellpft_id: int, gridcell_id : int, pft_id : int) : Gridcellpft = {
+  gridcellpft_id = gridcellpft_id,
+  pft_id = pft_id,
+  addtw = 0.0,
+  Km = 0.0,
+
+  autumnoccurred=false,
+  springoccurred=false,
+  vernstartoccurred=false,
+  vernendoccurred=false,
+  first_autumndate=(-1),
+  first_autumndate20=(-1),
+  last_springdate=(-1),
+  last_springdate20=(-1),
+  last_verndate=(-1),
+  last_verndate20=(-1),
+  first_autumndate_20 = replicate 20 (-1),
+  last_springdate_20 = replicate 20 (-1),
+  last_verndate_20 = replicate 20 (-1),
+  sdate_default=(-1),
+  sdate_force=(-1),
+  hdate_force=(-1),
+  Nfert_read=(-1),
+  Nfert_man_read=(-1),
+  sdatecalc_temp=(-1),
+  sdatecalc_prec=(-1),
+  hlimitdate_default=(-1),
+  wintertype=false,
+  swindow = replicate 2 (-1),
+  sowing_restriction = false,
+  --
+  swindow_irr = replicate 2 (-1)
+}
+
+--/ Constructs a Gridcellst object
+--  \param i   The id for this object
+--  \param s   A reference to the StandType for this Gridcellst
+--/
+let Gridcellst(gridcellst_id : int, standtype_id : int) : Gridcellst = {
+  gridcellst_id = gridcellst_id,
+  standtype_id = standtype_id,
+  frac = 1.0,
   frac_old = 0.0,
-  frac_temp = 0.0,
+  frac_old_orig = 0.0,
   protected_frac = 0.0,
   frac_change = 0.0,
   gross_frac_increase = 0.0,
   gross_frac_decrease = 0.0,
-  cloned_fraction = 0.0,
-  cloned = false,
-  anpp = 0.0,
-  cmass = 0.0,
-  scale_LC_change = 1.0,
-  -- UNINITIALIZED
-  origin=intnan
-  }
+  nstands = 0,
+  nfert = (-1.0)
+}

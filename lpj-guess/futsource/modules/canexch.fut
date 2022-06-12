@@ -84,7 +84,6 @@ let lookup_kc = LookupQ10(2.1, 30.0)
 --void fpar(Patch& patch) {
 
 
-
 let alphaa(pft : Pft) =
   if (pft.phenology == CROPGREEN) then
     if ifnlim then ALPHAA_CROP_NLIM else ALPHAA_CROP
@@ -192,7 +191,6 @@ let vmax(b : real,
 -- Never place new call parameters in the proper photosynthesis() function header, instead
 -- place new parameters insided the structs PhotosynthesisEnvironment and PhotosynthesisStresses,
 -- or in PhotosynthesisResult if it is a result.
---/
 
 let photosynthesis(ps_env : PhotosynthesisEnvironment,
                    ps_stresses : PhotosynthesisStresses,
@@ -201,7 +199,6 @@ let photosynthesis(ps_env : PhotosynthesisEnvironment,
                    nactive : real,
                    vm : real)
                    : PhotosynthesisResult =
-
   -- NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
   -- the formulation of low-temperature inhibition coefficient tscal (tstress LPJF).
   -- The function adopted here draws down metabolic activity in approximately the
@@ -529,8 +526,181 @@ let assimilation_wstress
   let lambda = xmid
   in (phot_result, lambda)
 
---void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
+---------------------------------------------------------------------------------------
+-- AUTOTROPHIC RESPIRATION
+-- Internal function (do not call directly from framework)
+
+let respiration( gtemp_air : real,  gtemp_soil : real,  lifeform : lifeformtype,
+   respcoeff : real,  cton_sap : real,  cton_root : real,
+   cmass_sap : real,  cmass_root_today : real,  assim : real) : real =
+
+  -- DESCRIPTION
+  -- Calculation of daily maintenance and growth respiration for individual with
+  -- specified life form, phenological state, tissue C:N ratios and daily net
+  -- assimilation, given current air and soil temperatures.
+  -- Sitch et al. (2000), Lloyd & Taylor (1994), Sprugel et al (1996).
+
+  -- NOTE: leaf respiration is not calculated here, but included in the calculation
+  -- of net assimilation (function production above) as a proportion of rubisco
+  -- capacity (Vmax).
+
+  -- INPUT PARAMETERS
+  -- gtemp_air  = respiration temperature response incorporating damping of Q10
+  --              response due to temperature acclimation (Eqn 11, Lloyd & Taylor
+  --              1994) Eqn B2 below
+  -- gtemp_soil = as gtemp_air given soil temperature
+  -- lifeform   = PFT life form class (TREE or GRASS)
+  -- respcoeff  = PFT respiration coefficient
+  -- cton_sap   = PFT sapwood C:N ratio
+  -- cton_root  = PFT root C:N ratio
+  -- phen       = vegetation phenological state (fraction of potential leaf cover)
+  -- cmass_sap  = sapwood C biomass on grid cell area basis (kgC/m2)
+  -- cmass_root = fine root C biomass on grid cell area basis (kgC/m2)
+  -- assim      = net assimilation on grid cell area basis (kgC/m2/day)
+
+  -- OUTPUT PARAMETER
+  -- resp       = sum of maintenance and growth respiration on grid cell area basis
+  --              (kgC/m2/day)
+
+  -- guess2008 - following a comment by Annett Wolf, the following parameter value was changed:
+  -- const double K=0.0548 -- OLD value
+  let K : real = 0.095218 in  -- NEW parameter value in respiration equations
+  -- See the comment after Eqn (4) below.
+
+  --double resp_sap    -- sapwood respiration (kg/m2/day)
+  --double resp_root   -- root respiration (kg/m2/day)
+  --double resp_growth -- growth respiration (kg/m2/day)
+
+  -- Calculation of maintenance respiration components for each living tissue:
+  --
+  -- Based on the relations
+  --
+  -- (A) Tissue respiration response to temperature
+  --     (Sprugel et al. 1996, Eqn 7)
+  --
+  --     (A1) Rm = 7.4e-7 * N * f(T)
+  --     (A2) f(T) = EXP (beta * T)
+  --
+  --       where Rm   = tissue maintenance respiration rate in mol C/sec
+  --             N    = tissue nitrogen in mol N
+  --             f(T) = temperature response function
+  --             beta = ln Q10 / 10
+  --             Q10  = change in respiration rate with a 10 K change
+  --                    in temperature
+  --             T    = tissue absolute temperature in K
+  --
+  -- (B) Temperature response of soil respiration across ecosystems
+  --     incorporating damping of Q10 response due to temperature acclimation
+  --     (Lloyd & Taylor 1994, Eqn 11)
+  --
+  --     (B1) R = R10 * g(T)
+  --     (B2) g(T) = EXP [308.56 * (1 / 56.02 - 1 / (T - 227.13))]
+  --
+  --       where R    = respiration rate
+  --             R10  = respiration rate at 10 K
+  --             g(T) = temperature response function at 10 deg C
+  --             T    = soil absolute temperature in K
+  --
+  -- Mathematical derivation:
+  --
+  -- For a tissue with C:N mass ratio cton, and C mass, c_mass, N concentration
+  -- in mol given by
+  --  (1) N = c_mass / cton / atomic_mass_N
+  -- Tissue respiration in gC/day given by
+  --  (2) R = Rm * atomic_mass_C * seconds_per_day
+  -- From (A1), (1) and (2),
+  --  (3) R = 7.4e-7 * c_mass / cton / atomic_mass_N * atomic_mass_C
+  --          * seconds_per_day * f(T)
+  -- Let
+  --  (4) k = 7.4e-7 * atomic_mass_C / atomic_mass_N * seconds_per_day
+  --        = 0.0548
+
+  -- guess2008 - there is an ERROR here, spotted by Annett Wolf
+  -- If we calculate the respiration at 20 degC using g(T) and compare it to
+  -- Sprugel's eqn 3, for 1 mole tissue N, say, we do NOT get the same result with this
+  -- k value. This is because g(T) = 1 at 10 degC, not 20 degC. Changing k from 0.0548
+  -- to 0.095218 gives exactly the same results as Sprugel at 20 degC. The scaling factor
+  -- 7.4e-7 used here is taken from Sprugel's eqn. (7), but they used f(T), not g(T), and
+  -- these are defined on different bases.
+
+  -- from (3), (4)
+  --  (5) R = k * c_mass / cton * f(T)
+  -- substituting ecosystem temperature response function g(T) for f(T) (Eqn B2),
+  --  (6) R = k * c_mass / cton * g(T)
+  -- incorporate PFT-specific respiration coefficient to model acclimation
+  -- of respiration rates to average (temperature) conditions for PFT (Ryan 1991)
+  --  (7) R_pft = respcoeff_pft * k * c_mass / cton * g(T)
+
+  if (lifeform == TREE) then
+
+    -- Sapwood respiration (Eqn 7)
+
+    let resp_sap = respcoeff * K * cmass_sap / cton_sap * gtemp_air
+
+    -- Root respiration (Eqn 7)
+    -- Assumed that root phenology follows leaf phenology
+
+    let resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil
+
+    -- Growth respiration = 0.25 ( GPP - maintenance respiration)
+
+    let resp_growth = (assim - resp_sap - resp_root) * 0.25
+
+    -- guess2008 - disallow negative growth respiration
+    -- (following a comment (060823) from Annett Wolf)
+    let resp_growth = if (resp_growth < 0.0) then 0.0 else resp_growth
+
+    -- Total respiration is sum of maintenance and growth respiration
+
+    in resp_sap + resp_root + resp_growth
+  else if (lifeform == GRASS || lifeform == MOSS) then
+
+    -- Root respiration
+    let resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil
+
+    -- Growth respiration (see above)
+
+    let resp_growth = (assim - resp_root) * 0.25
+
+    -- guess2008 - disallow negative growth respiration
+    -- (following a comment (060823) from Annett Wolf)
+    let resp_growth = if (resp_growth < 0.0) then 0.0 else resp_growth
+    -- Total respiration (see above)
+    in resp_root + resp_growth
+  else nan --else fail ("Canopy exchange function respiration: unknown life form")
+
 --void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day) {
+
 --void forest_floor_conditions(Patch& patch) {
+
 --void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
+
+
+--type GlobalData = {
+--    pfts : []Pft,
+--    standtypes: []StandType,
+--    managementtypes : []ManagementType,
+--    soultypes: []Soiltype,
+
+--    --gridcells : []Gridcell
+--    climate: []Climate,
+--    weathergenstate: []WeatherGenState,
+--    landcover: []Landcover,
+--    massbalance: []MassBalance,
+--
+----    gridcellsts: [][]Gridcellst,
+----    gridcellpfts: [][]Gridcellpft,
+
+--    stands: [][]Stand,
+--    standpfts : [][][]Standpft,
+--    patches : [][][]Patch,
+--    patchpfts : [][][][]Patchpft,
+
+--    individuals : [][][][]Individual
+--}
+
+--let canopy_exchange(patch : Patch, climate : Climate, individuals : [][][]Individuals) : Patch =
+
+--  let vegetation : []Individual = individuals[patch.gridcell_id, patch.stand_id, patch.patch_id]
+--  in patch
 --void canopy_exchange(Patch& patch, Climate& climate) {

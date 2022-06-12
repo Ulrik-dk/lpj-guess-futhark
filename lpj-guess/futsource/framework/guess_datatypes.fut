@@ -240,7 +240,22 @@ type Date = { -- TODO
 }
 
 -- type Day
--- type MassBalance
+
+
+type MassBalance = {
+  start_year : int,
+  ccont : real,
+  ccont_zero : real,
+  ccont_zero_scaled : real,
+  cflux : real,
+  cflux_zero : real,
+
+  ncont : real,
+  ncont_zero : real,
+  ncont_zero_scaled : real,
+  nflux : real,
+  nflux_zero : real
+}
 
 
 -- This struct contains the result of a photosynthesis calculation.
@@ -281,24 +296,24 @@ type PhotosynthesisResult = {
 
 let QSIZ : int = 10
 type WeatherGenState = {
-	--- Random state variable q
-	q : [QSIZ]int,
-	--- Random state variable carry
-	carry : int,
-	--- Random state variable xcng
-	xcng : int,
-	--- Random state variable xs
-	xs : uint,
-	--- Random state variable indx
-	indx : int,
-	--- Random state variable have
-	have : bool,
-	--- Random state gamma
-	gamma_vals : [2]real,
-	--- Indicator for whether the recent two days were rein-days
-	pday : [2]bool,
-	--- Random state's residuals
-	resid : [4]real
+  --- Random state variable q
+  q : [QSIZ]int,
+  --- Random state variable carry
+  carry : int,
+  --- Random state variable xcng
+  xcng : int,
+  --- Random state variable xs
+  xs : uint,
+  --- Random state variable indx
+  indx : int,
+  --- Random state variable have
+  have : bool,
+  --- Random state gamma
+  gamma_vals : [2]real,
+  --- Indicator for whether the recent two days were rein-days
+  pday : [2]bool,
+  --- Random state's residuals
+  resid : [4]real
 }
 
 
@@ -346,7 +361,9 @@ type Climate = {
 
   -- MEMBER VARIABLES
   --- reference to parent Gridcell object
-  --Gridcell& gridcell,
+  climate_id: int,
+
+  gridcell_id: int,
 
   --- values for randomisation in Weathergenerator GWGEN
   weathergenstate : WeatherGenState,
@@ -607,97 +624,97 @@ type PerPFTFluxType = enum_type
 
 
 --- Fluxes stored as totals for the whole patch
-  --- Carbon flux to atmosphere from burnt vegetation and litter (kgC/m2)
-  let FIREC : PerPatchFluxType = 0
-  --- Carbon flux to atmosphere from soil respiration (kgC/m2)
-  let SOILC : PerPatchFluxType = 1
-  --- Flux from atmosphere to vegetation associated with establishment (kgC/m2)
-  let ESTC : PerPatchFluxType = 2
-  --- Flux to atmosphere from consumed harvested products (kgC/m2)
-  let HARVESTC : PerPatchFluxType = 3
-  --- Flux from atmosphere to vegetation associated with sowing (kgC/m2)
-  let SEEDC : PerPatchFluxType = 4
-  --- Flux from atmosphere to vegetation associated with manure addition (kgC/m2)
-  let MANUREC : PerPatchFluxType = 5
-  --- Flux to vegetation associated with manure addition (kgN/m2)
-  let MANUREN : PerPatchFluxType = 6
-  --- Flux to vegetation associated with N addition (kgN/m2)
-  let NFERT : PerPatchFluxType = 7
-  --- Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
-  let HARVESTN : PerPatchFluxType = 8
-  --- Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
-  let SEEDN : PerPatchFluxType = 9
-  --- NH3 flux to atmosphere from fire
-  let NH3_FIRE : PerPatchFluxType = 10
-  --- NOx flux to atmosphere from fire
-  let NOx_FIRE : PerPatchFluxType = 11
-  --- N2O flux to atmosphere from fire
-  let N2O_FIRE : PerPatchFluxType = 12
-  --- N2 flux to atmosphere from fire
-  let N2_FIRE : PerPatchFluxType = 13
-  ------ Soil N transformation -----
-  --- NH3 flux from soil (ntransform)
-  let NH3_SOIL : PerPatchFluxType = 14
-  --- NO flux from soil (ntransform)
-  let NO_SOIL : PerPatchFluxType = 15
-  --- N2O flux in soil (ntransform)
-  let N2O_SOIL : PerPatchFluxType = 16
-  --- N2 flux from soil (ntransform)
-  let N2_SOIL : PerPatchFluxType = 17
-  --- DOC flux from soil (ntransform)
-  let DOC_FLUX : PerPatchFluxType = 18
-  --- Net nitrification (ntransform)
-  let NET_NITRIF : PerPatchFluxType = 19
-  --- Net denitrification (ntransform)
-  let NET_DENITRIF : PerPatchFluxType = 20
-  --- Gross nitrification (ntransform)
-  let GROSS_NITRIF : PerPatchFluxType = 21
-  --- Gross denitrification (ntransform)
-  let GROSS_DENITRIF : PerPatchFluxType = 22
-  --- Reproduction costs
-  let REPRC : PerPatchFluxType = 23
-  --- Total (i.e. CH4C_DIFF + CH4C_PLAN + CH4C_EBUL) CH4 flux to atmosphere from peatland soils (gC/m2).
-  let CH4C : PerPatchFluxType = 24
-  --- Diffused CH4 flux to atmosphere from peatland soils (gC/m2).
-  let CH4C_DIFF : PerPatchFluxType = 25
-  --- Plant-mediated CH4 flux to atmosphere from peatland soils (gC/m2).
-  let CH4C_PLAN : PerPatchFluxType = 26
-  --- CH4 flux to atmosphere from peatland soils due to ebullition (gC/m2).
-  let CH4C_EBUL : PerPatchFluxType = 27
-  --- Number of types must be last
-  let NPERPATCHFLUXTYPES : PerPatchFluxType = 28
+--- Carbon flux to atmosphere from burnt vegetation and litter (kgC/m2)
+let FIREC : PerPatchFluxType = 0
+--- Carbon flux to atmosphere from soil respiration (kgC/m2)
+let SOILC : PerPatchFluxType = 1
+--- Flux from atmosphere to vegetation associated with establishment (kgC/m2)
+let ESTC : PerPatchFluxType = 2
+--- Flux to atmosphere from consumed harvested products (kgC/m2)
+let HARVESTC : PerPatchFluxType = 3
+--- Flux from atmosphere to vegetation associated with sowing (kgC/m2)
+let SEEDC : PerPatchFluxType = 4
+--- Flux from atmosphere to vegetation associated with manure addition (kgC/m2)
+let MANUREC : PerPatchFluxType = 5
+--- Flux to vegetation associated with manure addition (kgN/m2)
+let MANUREN : PerPatchFluxType = 6
+--- Flux to vegetation associated with N addition (kgN/m2)
+let NFERT : PerPatchFluxType = 7
+--- Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
+let HARVESTN : PerPatchFluxType = 8
+--- Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
+let SEEDN : PerPatchFluxType = 9
+--- NH3 flux to atmosphere from fire
+let NH3_FIRE : PerPatchFluxType = 10
+--- NOx flux to atmosphere from fire
+let NOx_FIRE : PerPatchFluxType = 11
+--- N2O flux to atmosphere from fire
+let N2O_FIRE : PerPatchFluxType = 12
+--- N2 flux to atmosphere from fire
+let N2_FIRE : PerPatchFluxType = 13
+------ Soil N transformation -----
+--- NH3 flux from soil (ntransform)
+let NH3_SOIL : PerPatchFluxType = 14
+--- NO flux from soil (ntransform)
+let NO_SOIL : PerPatchFluxType = 15
+--- N2O flux in soil (ntransform)
+let N2O_SOIL : PerPatchFluxType = 16
+--- N2 flux from soil (ntransform)
+let N2_SOIL : PerPatchFluxType = 17
+--- DOC flux from soil (ntransform)
+let DOC_FLUX : PerPatchFluxType = 18
+--- Net nitrification (ntransform)
+let NET_NITRIF : PerPatchFluxType = 19
+--- Net denitrification (ntransform)
+let NET_DENITRIF : PerPatchFluxType = 20
+--- Gross nitrification (ntransform)
+let GROSS_NITRIF : PerPatchFluxType = 21
+--- Gross denitrification (ntransform)
+let GROSS_DENITRIF : PerPatchFluxType = 22
+--- Reproduction costs
+let REPRC : PerPatchFluxType = 23
+--- Total (i.e. CH4C_DIFF + CH4C_PLAN + CH4C_EBUL) CH4 flux to atmosphere from peatland soils (gC/m2).
+let CH4C : PerPatchFluxType = 24
+--- Diffused CH4 flux to atmosphere from peatland soils (gC/m2).
+let CH4C_DIFF : PerPatchFluxType = 25
+--- Plant-mediated CH4 flux to atmosphere from peatland soils (gC/m2).
+let CH4C_PLAN : PerPatchFluxType = 26
+--- CH4 flux to atmosphere from peatland soils due to ebullition (gC/m2).
+let CH4C_EBUL : PerPatchFluxType = 27
+--- Number of types must be last
+let NPERPATCHFLUXTYPES : PerPatchFluxType = 28
 
 --- Fluxes stored per pft
-  --- NPP (kgC/m2)
-  let NPP : PerPFTFluxType = 0
-  --- GPP (kgC/m2)
-  let GPP : PerPFTFluxType = 1
-  --- Autotrophic respiration (kgC/m2)
-  let RA : PerPFTFluxType = 2
-  --- Isoprene (mgC/m2)
-  let ISO : PerPFTFluxType = 3
-  --- Monoterpene (mgC/m2)
-  let MT_APIN : PerPFTFluxType = 4
-  let MT_BPIN : PerPFTFluxType = 5
-  let MT_LIMO : PerPFTFluxType = 6
-  let MT_MYRC : PerPFTFluxType = 7
-  let MT_SABI : PerPFTFluxType = 8
-  let MT_CAMP : PerPFTFluxType = 9
-  let MT_TRIC : PerPFTFluxType = 10
-  let MT_TBOC : PerPFTFluxType = 11
-  let MT_OTHR : PerPFTFluxType = 12
-  --- Number of types must be last
-  let NPERPFTFLUXTYPES : PerPFTFluxType = 13
+--- NPP (kgC/m2)
+let NPP : PerPFTFluxType = 0
+--- GPP (kgC/m2)
+let GPP : PerPFTFluxType = 1
+--- Autotrophic respiration (kgC/m2)
+let RA : PerPFTFluxType = 2
+--- Isoprene (mgC/m2)
+let ISO : PerPFTFluxType = 3
+--- Monoterpene (mgC/m2)
+let MT_APIN : PerPFTFluxType = 4
+let MT_BPIN : PerPFTFluxType = 5
+let MT_LIMO : PerPFTFluxType = 6
+let MT_MYRC : PerPFTFluxType = 7
+let MT_SABI : PerPFTFluxType = 8
+let MT_CAMP : PerPFTFluxType = 9
+let MT_TRIC : PerPFTFluxType = 10
+let MT_TBOC : PerPFTFluxType = 11
+let MT_OTHR : PerPFTFluxType = 12
+--- Number of types must be last
+let NPERPFTFLUXTYPES : PerPFTFluxType = 13
 
 -- emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 
-  let NH3_FIRERATIO : real = 0.005
-  let NOx_FIRERATIO : real = 0.237
-  let N2O_FIRERATIO : real = 0.036
-  let N2_FIRERATIO  : real = 0.722
+let NH3_FIRERATIO : real = 0.005
+let NOx_FIRERATIO : real = 0.237
+let N2O_FIRERATIO : real = 0.036
+let N2_FIRERATIO  : real = 0.722
 
-  --- Reference to patch to which this Fluxes object belongs
-  --Patch& patch, --FUTHARK: ID instead of pointer? What is it used for?
+--- Reference to patch to which this Fluxes object belongs
+--Patch& patch, --FUTHARK: ID instead of pointer? What is it used for?
 
 
 type Fluxes = {
@@ -721,8 +738,109 @@ type Fluxes = {
 
 }
 
--- type CropRotation
--- type StandType
+
+type planting_system_type = enum_type
+let planting_system_NONE : planting_system_type = 0
+let MONOCULTURE : planting_system_type = 1
+let SELECTION : planting_system_type = 2
+
+type harvest_system_type = enum_type
+let harvest_system_NONE : harvest_system_type = 0
+let CLEARCUT : harvest_system_type = 1
+let CONTINUOUS : harvest_system_type = 2
+
+
+--- Storage class of crop management information for one rotation period for a stand type, read from the instruction file.
+type ManagementType = {
+  --- id code (should be zero based and sequential, 0...nst-1)
+  managementtype_id : int,
+  --- name of management type
+  --xtring name,
+
+  --- type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
+  planting_system : planting_system_type,
+  --- type of harvest system ("", "CLEARCUT", "CONTINUOUS")
+  harvest_system : harvest_system_type,
+  --- name of crop pft
+  --xtring pftname,
+  --- identifier of pft selection
+  --xtring selection,
+  --- Rotation period in years
+  nyears : real,
+  --- hydrology (RAINFED,IRRIGATED)
+  hydrology : hydrologytype,
+  --- irrigation efficiency
+--  double firr,
+  --- forced sowing date, unless sdate_force read from file
+  sdate : int,
+  --- forced harvest date, unless hdate_force read from file
+  hdate : int,
+  --- Nitrogen fertilisation amount, unless Nfert_read read from file
+  nfert : real,
+  --- Whether grass is grown in fallow
+  fallow : bool,
+  --- Double cropping of one crop (e.g. rice)
+  multicrop : bool
+}
+
+
+
+
+
+
+type CropRotation = {
+  ncrops : int,
+  firstrotyear : int
+}
+
+type naturalvegType = enum_type
+let naturalvegNONE : naturalvegType = 0
+let GRASSONLY : naturalvegType = 1
+let naturalvegALL : naturalvegType = 2
+
+type reestabType = enum_type
+let reestabNONE : reestabType = 0
+let RESTRICTED : reestabType = 1
+let reestabALL : reestabType = 2
+
+--- Stand type class for storing both static parameters, read from the instruction file,
+--  and dynamic variables, updated in landcover_change()
+--  Active stand types are stored in the stlist analogous to the pftlist.
+type StandType = {
+  --- id code (should be zero based and sequential, 0...nst-1)
+  standtype_id : int,
+  --- name of stand type
+  --name : xtring,
+
+  --- specifies type of landcover
+  -- \see landcovertype */
+  landcover : landcovertype,  -- specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
+  --- Rotation information, read from the instruction file
+  rotation : CropRotation,
+  --- Management struct (static)
+  management : ManagementType,
+  --- Management types in a rotation cycle
+  --xtring mtnames[NROTATIONPERIODS_MAX],
+  --- First management year: sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
+  -- \this currently only applies for stands with wood havest */
+  firstmanageyear : int,
+
+  --- intercrop (NOINTERCROP,NATURALGRASS)
+  intercrop : intercroptype,
+  --- whether natural pft:s are allowed to grow in stand type
+  naturalveg : naturalvegType, -- "", "GRASSONLY", "ALL"
+  -- whether only pft:s defined in management are allowed (plus intercrop or naturalveg/grass)
+  restrictpfts : bool,
+  --- whether planted pft:s or all active pft:s are allowed to established after planting in a forest stand ("", "RESTRICTED", "ALL")
+  reestab : reestabType
+}
+
+
+
+
+
+
+
 let nst : i64 = 5 -- num possible StandTypes
 
 -- Holds static functional parameters for a plant functional type (PFT).
@@ -735,7 +853,7 @@ let nst : i64 = 5 -- num possible StandTypes
 type Pft  = {
   -- MEMBER VARIABLES
   -- id code (should be zero based and sequential, 0...npft-1)
-  id: int,
+  pft_id: int,
   -- name of PFT
   name: xtring,
   -- life form (tree or grass)
@@ -1232,11 +1350,14 @@ type cropindiv_struct = {
 --/
 type Individual = {
   --- reference to Pft object containing static parameters for this individual
-  pft : Pft,
-  --- reference to Vegetation object to which this Individual belongs
+  pft_id : int,
+  --- reference to Vegetation object to which this Individual belongs - unnecessary, since Vegetation and its parent - Patch - are one-to-one.
 --Vegetation& vegetation,
+  gridcell_id : int,
+  stand_id :  int,
+  patch_id :  int,
   --- id code (0-based, sequential)
-  id : int,
+  individual_id : int,
   --- leaf C biomass on modelled area basis (kgC/m2)
   cmass_leaf : real,
   --- fine root C biomass on modelled area basis (kgC/m2)
@@ -1457,6 +1578,7 @@ type Individual = {
 --  (see below).
 
 type Soiltype = {
+  soiltype_id : int,
 
   awc : [NSOILLAYER]real,
   --- fixed available water holding capacity of the standard Gerten soil layers [0=upper, 1 = lower] (mm)
@@ -1622,7 +1744,7 @@ type Soil = {
   --- reference to parent Patch object
   --patch : Patch, -- TODO circular definition
   --- reference to Soiltype object holding static parameters for this soil
-  soiltype : Soiltype,
+  soiltype_id : int,
   --- the average wcont over the growing season, for each of the upper soil layers. Used in drought limited establishment.
   awcont_upper : real,
   --- daily water content in upper soil layer for each day of year
@@ -2153,9 +2275,12 @@ type cropphen_struct = {
 type Patchpft = {
   -- MEMBER VARIABLES:
   --/ id code (equal to value of member variable id in corresponding Pft object)
-  id : int,
+  gridcell_id : int,
+  stand_id : int,
+  patch_id : int,
+  patchpft_id : int,
   --/ reference to corresponding Pft object in PFT list
-  pft : Pft,
+  pft_id : int,
   --/ potential annual net assimilation (leaf-level net photosynthesis) at forest floor (kgC/m2/year)
   anetps_ff : real,
   --/ water stress parameter (0-1 range, 1=minimum stress)
@@ -2246,18 +2371,18 @@ type Patchpft = {
 
 type Patch = {
   -- id code in range 0-npatch for patch
-  id : int,
-  -- reference to parent Stand object
-  --stand: Stand,  -- TODO becomes circular
-  -- list array [0...npft-1] of Patchpft objects (initialised in constructor)
-  pfts: [npft]Patchpft,
-  --ListArray_idin1<Patchpft,Pft> pft,
-  -- vegetation for this patch
-  vegetation: [npft]Individual,
+  gridcell_id : int,
+  stand_id : int,
+  patch_id : int,
+
+  -- use patch_id to access the array of Patchpft in the global state record
+  --pfts: [npft]Patchpft,
+  -- use patch_id to access the array of Individual in the global state record
+  --vegetation: [npft]Individual,
   -- soil for this patch
-  soil: Soil,
+  --soil_id: Soil,
   -- fluxes for this patch
-  fluxes: Fluxes,
+  --fluxes: Fluxes,
   -- FPAR at top of grass canopy today
   fpar_grass: real,
   -- FPAR at soil surface today
@@ -2406,8 +2531,10 @@ type Patch = {
 type Standpft = {
 
   -- MEMBER VARIABLES
-  idx : int,
-  pft : Pft,
+  gridcell_id : int,
+  standpft_id : int,
+  stand_id : int,
+  pft_id : int,
 -- net C allocated to reproduction for this PFT in all patches of this stand this year (kgC/m2)
   cmass_repr : real,
 -- maximum value of Patchpft::anetps_ff for this PFT in this stand so far in the simulation (kgC/m2/year)
@@ -2440,21 +2567,24 @@ type Standpft = {
 --/ The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
 -- There may be several stands of the same landcover type (but with different settings).
 --
-type Stand [num_patches] = {
-  data : [num_patches]Patch,
-  original : int,
+type Stand = {
+  --data : [num_patches]Patch,
   -- MEMBER VARIABLES
 -- list array [0...npft-1] of Standpft (initialised in constructor)
-  standpft : [npft]Standpft, -- this was called 'pft' in the c++ code, which is confusing
+  --standpft : [npft]Standpft, -- this was called 'pft' in the c++ code, which is confusing
 
 -- A number identifying this Stand within the grid cell
-  id : int,
+  original : landcovertype,
+  stand_id : int,
+  gridcell_id : int,
+
+  num_patches : int, -- since Patches is aggressively _______, in order to ensure regularity, use this field to avoid using those extras
 
 -- stand type id
-  stid : int,
+  standtype_id : int,
 
 -- pft id of main crop, updated during rotation
-  pftid : int,
+  pft_id : int,
 
 -- current crop rotation item
   current_rot : int,
@@ -2536,11 +2666,283 @@ type Stand [num_patches] = {
   --gridcellIdx : int,
 
   -- Soil type to be used in this Stand
-  soiltype : Soiltype,
+  soiltype_id : int,
 
   -- Fraction of this stand relative to the gridcell
   -- used by crop stands, initialized in constructor to 1,
   --  set in landcover_init()
   frac : real
+
+}
+
+
+
+--/ Storage of land cover fraction data and some land cover change-related pools and fluxes
+type Landcover = {
+  --/ The fractions of the different land cover types.
+  --  landcoverfrac is read in from land cover input file or from
+  --  instruction file in getlandcover().
+  --/
+  frac : [NLANDCOVERTYPES]real,
+
+  --/ The land cover fractions from the previous year
+  --  Used to keep track of the changes when running with dynamic
+  --  land cover.
+  --/
+  frac_old : [NLANDCOVERTYPES]real,
+
+  frac_change : [NLANDCOVERTYPES]real,
+
+  --/ Transfer matrices
+  frac_transfer : [NLANDCOVERTYPES][NLANDCOVERTYPES]real,
+  primary_frac_transfer : [NLANDCOVERTYPES][NLANDCOVERTYPES]real,
+
+  --/ Whether the land cover fractions changed for this grid cell this year
+  --  \see landcover_dynamics
+  --/
+  updated : bool,
+
+  --/ Gridcell-level C flux from slow harvested products
+  acflux_harvest_slow : real,
+
+  --/ Gridcell-level C flux from harvest associated with landcover change
+  acflux_landuse_change : real,
+
+  --/ Gridcell-level N flux from slow harvested products
+  anflux_harvest_slow : real,
+
+  --/ Gridcell-level N flux from harvest associated with landcover change
+  anflux_landuse_change : real,
+
+  --/ Landcover-level C flux from slow harvested products (donating landcover)
+  acflux_harvest_slow_lc : [NLANDCOVERTYPES]real,
+
+  --/ Landcover-level C flux from harvest associated with landcover change (donating landcover)
+  acflux_landuse_change_lc : [NLANDCOVERTYPES]real,
+
+  --/ Landcover-level N flux from slow harvested products (donating landcover)
+  anflux_harvest_slow_lc : [NLANDCOVERTYPES]real,
+
+  --/ Landcover-level N flux from harvest associated with landcover change (donating landcover)
+  anflux_landuse_change_lc : [NLANDCOVERTYPES]real,
+
+  --/ Which landcover types create new stands when area increases.
+  expand_to_new_stand : [NLANDCOVERTYPES]bool,
+
+  --/ Whether to pool all transferred land from a donor landcover (overrides different landcover targets of different stand types and stands in a landcover)
+  pool_to_all_landcovers : [NLANDCOVERTYPES]bool,
+
+  --/ Whether to pool transferred land to a receptor landcover (crop and pasture stands to new natural stand: pool!)
+  pool_from_all_landcovers : [NLANDCOVERTYPES]bool
+}
+
+
+
+--/ State variables common to all individuals of a particular PFT in a GRIDCELL.
+type Gridcellpft = {
+  -- MEMBER VARIABLES
+  --/ A number identifying this object within its list array
+  gridcellpft_id : int,
+
+  --/ A reference to the Pft object for this Gridcellpft
+  pft_id : int,
+
+  --/ annual degree day sum above threshold damaging temperature
+  --  used in calculation of heat stess mortality, Sitch et al 2000, Eqn 55
+  --/
+  addtw : real,
+
+  --/ Michaelis-Menten kinetic parameters
+  --  Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002)
+  --/
+  Km : real,
+
+  --/Crop-specific variables:
+  --/ whether the daily temperature has fallen below the autumn temperature limit (tempautumn) this year
+  autumnoccurred : bool,
+  --/ whether the daily temperature has risen above the spring temperature limit (tempspring) this year
+  springoccurred : bool,
+  --/ whether the daily temperature has fallen below the vernalization limit (trg) this year
+  vernstartoccurred : bool,
+  --/ whether the daily temperature rises over the vernalization limit (trg) this year
+  vernendoccurred : bool,
+  --/ first day when temperature fell below the autumn temperature limit (tempautumn) this year
+  first_autumndate : int,
+  --/ 20-year mean
+  first_autumndate20 : int,
+  --/ memory of the last 20 years' values
+  first_autumndate_20 : [20]int,
+  --/ last day when temperature rose above the spring temperature limit (tempspring) this year
+  last_springdate : int,
+  --/ 20-year mean
+  last_springdate20 : int,
+  --/ memory of the last 20 years' values
+  last_springdate_20 : [20]int,
+  --/ last day when temperature has fallen below the vernilisation temperature limit (trg) this year (if vernstartoccurred==true)
+  last_verndate : int,
+  --/ 20-year mean
+  last_verndate20 : int,
+  --/ memory of the last 20 years' values
+  last_verndate_20 : [20]int,
+  --/ default sowing date (pft.sdatenh/sdatesh)
+  sdate_default : int,
+  --/ calculated sowing date from temperature limits
+  sdatecalc_temp : int,
+  --/ calculated sowing date from precipitation limits
+  sdatecalc_prec : int,
+  --/ sowing date from input file
+  sdate_force : int,
+  --/ harvest date from input file
+  hdate_force : int,
+  --/ N fertilization from input file
+  Nfert_read : real,
+  --/ Manure N fertilization from input file
+  Nfert_man_read : real,
+  --/ default harvest date (pft.hlimitdatenh/hlimitdatesh)
+  hlimitdate_default : int,
+  --/ whether autumn sowing is either calculated or prescribed
+  wintertype : bool,
+  --/ first and last day of crop sowing window, calculated in calc_sowing_windows()
+  swindow : [2]int,
+  --/ first and last day of crop sowing window for irrigated crops, calculated in calc_sowing_windows()
+  swindow_irr : [2]int,
+  --/ temperature limits precludes crop sowing
+  sowing_restriction : bool
+}
+
+--/ State variables common to all individuals of a particular STANDTYPE in a GRIDCELL.
+type Gridcellst = {
+  -- MEMBER VARIABLES
+  --/ A number identifying this object within its list array
+  gridcellst_id : int,
+
+  --/ A reference to the StandType object for this Gridcellst
+  standtype_id : int,
+
+  --/ fraction of this stand type relative to the gridcell
+  frac : real,
+  --/ old fraction of this stand type relative to the gridcell before update
+  frac_old : real,
+  --/ original input value of old fraction of this stand type before rescaling
+  frac_old_orig : real,
+  --/ fraction unavailable for transfer to other stand types
+  protected_frac : real,
+
+  --/ net fraction change
+  frac_change : real,
+  --/ gross fraction increase
+  gross_frac_increase : real,
+  --/ gross fraction decrease
+  gross_frac_decrease : real,
+
+  -- current number of stands of this stand type
+  nstands : int,
+
+  nfert : real
+}
+
+--/ The Gridcell class corresponds to a modelled locality or grid cell.
+--- Member variables include an object of type Climate (holding climate, insolation and
+--  CO2 data), a object of type Soiltype (holding soil static parameters) and a list
+--  array of Stand objects. Soil objects (holding soil state variables) are associated
+--  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
+--  locality or grid cell.
+--/
+type Gridcell = {
+
+  --inherited data: should be accessed in the global Stand array, using this Gridcell_id
+
+  -- MEMBER VARIABLES
+  --/ climate, insolation and CO2 for this grid cell
+  climate_id : int,
+
+  --/ soil static parameters for this grid cell
+  soiltype_id : int,
+
+  --/ landcover fractions and landcover-specific variables
+  landcover_id : int,
+
+  --/ list array [0...npft-1] of Gridcellpft (initialised in constructor)
+  gridcellpft_id : int,
+
+  --/ list array [0...nst-1] of Gridcellst (initialised in constructor)
+  gridcellst_id : int,
+
+  --/ object for keeping track of carbon and nitrogen balance
+  massbalance_id : int,
+
+  -- SIMFIRE
+  --/ the region index to chosose from set of optimisations
+  simfire_region : int,
+  --/ timeseries of population density from the Hyde 3.1 dataset (inhabitants/ha)
+  hyde31_pop_density : [57]real,
+  --/ current year's population density (inhabitants/ha)
+  pop_density : real,
+  --/ tuning factor for available litter
+  k_tun_litter : real,
+  --/ maximum annual Nesterov Index
+  max_nesterov : real,
+  --/ current Nexterov index
+  cur_nesterov : real,
+  --/ Monthly max Nexterov index (to keep track of running year)
+  monthly_max_nesterov : [12]real,
+  --/ biome classification used in SIMFIRE
+  simfire_biome : int,
+  --/ Average maximum annual fAPAR (over avg_interv_fpar years)
+  ann_max_fapar : real,
+  --/ Average maximum annual fAPAR of recent years
+  recent_max_fapar : [AVG_INTERVAL_FAPAR]real,
+  --/ maximum fapar of running year so far
+  cur_max_fapar : real,
+  --/ monthly fire risk (factor describing local monthly fire climatology)
+  monthly_fire_risk : [12]real,
+  --/ current burned area from SIMFIRE (fract.)
+  burned_area : real,
+  --/ accumulated burned area from SIMFIRE for tstep < 1a (fract.)
+  burned_area_accumulated : real,
+  --/ Simple tracker to check whether at least one patch has enough fuel to burn
+  can_burn : int,
+  --/ annual burned area from SIMFIRE (fract.)
+  annual_burned_area : real,
+  --/ monthly burned area from SIMFIRE (fract.)
+  monthly_burned_area : [12]real,
+
+  -- Nitrogen deposition
+  --/ annual NH4 deposition (kgN/m2/year)
+  aNH4dep : real,
+  --/ annual NO3 deposition (kgN/m2/year)
+  aNO3dep : real,
+  --/ daily NH4 deposition (kgN/m2)
+  dNH4dep : real,
+  --/ daily NO3 deposition (kgN/m2)
+  dNO3dep : real,
+
+  --/ Seed for generating random numbers within this Gridcell
+  --  The reason why Gridcell has its own seed, rather than using for instance
+  --  a single global seed is to make it easier to compare results when for
+  --  instance changing the order in which the simulation proceeds. It also
+  --  gets serialized together with the rest of the Gridcell state to make it
+  --  possible to get exactly identical results after a restart.
+  --
+  --  \see randfrac()
+  --/
+  seed : int, -- long
+
+  -- MEMBER FUNCTIONS
+
+  --/ Creates a new Stand in this grid cell
+  --Stand& create_stand(landcovertype lc, int no_patch = 0),
+
+  --/ Creates new stand and initiates land cover settings when run_landcover==true
+  --Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0),
+
+
+
+
+  --/ Longitude for this grid cell
+  lon : real,
+
+  --/ Latitude for this grid cell
+  lat : real
 
 }

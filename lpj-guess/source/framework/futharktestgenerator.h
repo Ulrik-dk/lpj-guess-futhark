@@ -49,6 +49,13 @@ void dec_real(std::ostringstream& oss,
   oss << "  let " << var << " : " << real_string << " = " << val << endl;
 }
 
+void dec_enum(std::ostringstream& oss,
+              const std::string& var,
+              const int val
+              ){
+  oss << "  let " << var << " : " << "enum_type" << " = " << val << endl;
+}
+
 void dec_bool(std::ostringstream& oss,
               const std::string& var,
               const bool val
@@ -76,7 +83,7 @@ void init_obj(std::ostringstream& oss,
               const std::string& object,
               const std::string& object_gen
               ) {
-  oss << "  let " << object << " = " << object_gen << "()" << endl;
+  oss << "  let " << object << " = " << object_gen << endl;
   }
 
 void obj_with_fields(std::ostringstream& oss,

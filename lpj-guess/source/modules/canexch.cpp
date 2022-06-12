@@ -508,7 +508,7 @@ double alphaa(const Pft& pft) {
 
 		string pft_fields_values[] =
 	    {"phenology", to_string(pft.phenology)};
-	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 1);
+	  obj_with_fields(oss, "pft", "Pft(0)", pft_fields_values, 1);
 
 	  finish_input(oss, "pft");
 
@@ -835,7 +835,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	      "fpar", to_string(ps_env.get_fpar()),
 	      "par", to_string(ps_env.get_par()),
 	      "daylength", to_string(ps_env.get_daylength())};
-	  obj_with_fields(oss, "ps_env", "PhotosynthesisEnvironment", ps_env_fields_values, 5);
+	  obj_with_fields(oss, "ps_env", "PhotosynthesisEnvironment()", ps_env_fields_values, 5);
 
 
 	  string ps_stresses_fields_values[] =
@@ -843,7 +843,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	      "moss_ps_limit", to_string(ps_stresses.get_moss_ps_limit()),
 	      "graminoid_ps_limit", to_string(ps_stresses.get_graminoid_ps_limit()),
 	      "inund_stress", to_string(ps_stresses.get_inund_stress())};
-	  obj_with_fields(oss, "ps_stresses", "PhotosynthesisStresses", ps_stresses_fields_values, 4);
+	  obj_with_fields(oss, "ps_stresses", "PhotosynthesisStresses()", ps_stresses_fields_values, 4);
 
 
 	  string pft_fields_values[] =
@@ -855,7 +855,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
         "phenology", to_string(pft.phenology),
         "lambda_max", to_string(pft.lambda_max),
         "lifeform", to_string(pft.lifeform)};
-	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 8);
+	  obj_with_fields(oss, "pft", "Pft(0)", pft_fields_values, 8);
 
 	  dec_real(oss, "lambda", lambda);
 	  dec_real(oss, "nactive", nactive);
@@ -2329,7 +2329,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
         "phenology", to_string(pft.phenology),
         "lambda_max", to_string(pft.lambda_max),
         "lifeform", to_string(pft.lifeform)};
-	  obj_with_fields(oss, "pft", "Pft", pft_fields_values, 8);
+	  obj_with_fields(oss, "pft", "Pft(0)", pft_fields_values, 8);
 
 		dec_real(oss, "co2", co2);
 		dec_real(oss, "temp", temp);
@@ -2509,6 +2509,30 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		resp = resp_root + resp_growth;
 	}
 	else fail ("Canopy exchange function respiration: unknown life form");
+
+	if(FIRST_TIME_HERE){
+
+		ostringstream oss;
+		init_oss(oss);
+
+		dec_real(oss, "gtemp_air", gtemp_air);
+		dec_real(oss, "gtemp_soil", gtemp_soil);
+		dec_enum(oss, "lifeform", lifeform);
+		dec_real(oss, "respcoeff", respcoeff);
+		dec_real(oss, "cton_sap", cton_sap);
+		dec_real(oss, "cton_root", cton_root);
+		dec_real(oss, "cmass_sap", cmass_sap);
+		dec_real(oss, "cmass_root_today", cmass_root_today);
+		dec_real(oss, "assim", assim);
+
+		finish_input(oss, "(gtemp_air, gtemp_soil, lifeform, respcoeff, cton_sap, cton_root, cmass_sap, cmass_root_today, assim)");
+
+		string res_fields_values[] =
+	    {"resp", "resp", to_string(resp)};
+	  gen_entry_point_tests(oss, "respiration", "resp", res_fields_values, 1);
+
+		gen_test_file(oss, "respiration");
+	}
 }
 
 /// Net Primary Productivity
