@@ -44,17 +44,17 @@ let PhotosynthesisResult() : PhotosynthesisResult =
   }
 
 let MassBalance() : MassBalance = {
-	start_year = nyear_spinup,
-	ccont = 0.0,
-	ccont_zero = 0.0,
-	ccont_zero_scaled = 0.0,
-	cflux = 0.0,
-	cflux_zero = 0.0,
-	ncont = 0.0,
-	ncont_zero = 0.0,
-	ncont_zero_scaled = 0.0,
-	nflux = 0.0,
-	nflux_zero = 0.0
+  start_year = nyear_spinup,
+  ccont = 0.0,
+  ccont_zero = 0.0,
+  ccont_zero_scaled = 0.0,
+  cflux = 0.0,
+  cflux_zero = 0.0,
+  ncont = 0.0,
+  ncont_zero = 0.0,
+  ncont_zero_scaled = 0.0,
+  nflux = 0.0,
+  nflux_zero = 0.0
 }
 
 -- Constructs an empty result
@@ -348,11 +348,24 @@ let get_monthly_flux_PerPFTFluxType(this: Fluxes, flux_type: PerPFTFluxType, mon
 let get_monthly_flux_PerPatchFluxType(this: Fluxes, flux_type: PerPatchFluxType, month: int) : real =
   this.monthly_fluxes_patch[month,flux_type]
 
--- I dont trust this function -Ulrik
+let istruecrop_or_intercropgrass(indiv: Individual, pft : Pft) : bool =
+	(pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || indiv.cropindiv.isintercropgrass))
+
+let Individual_report_flux_PerPFTFluxType(this: *Fluxes, alive: bool, istruecrop_or_intercropgrass: bool, flux_type : PerPFTFluxType, value : real, date : Date, pft_id : int) =
+  if (alive || istruecrop_or_intercropgrass) then
+    report_flux_PerPFTFluxType(copy this, flux_type, pft_id, value, date)
+  else this
+
+let Individual_report_flux_PerPatchFluxType(this: *Fluxes, alive: bool, istruecrop_or_intercropgrass: bool, flux_type : PerPFTFluxType, value : real, date : Date) =
+  if (alive || istruecrop_or_intercropgrass) then
+    report_flux_PerPatchFluxType(copy this, flux_type, value, date)
+  else this
+
+
+
 --let get_annual_flux_PerPFTFluxType_pft_id(this: Fluxes, flux_type: PerPFTFluxType, pft_id: int) : real =
 --  this.annual_fluxes_per_pft[pft_id][flux_type]
 
--- its unfortunate that the indices are ordered as they are
 let get_annual_flux_PerPFTFluxType(this: Fluxes, flux_type: PerPFTFluxType) : real =
   reduce (+) realzero <| (transpose this.annual_fluxes_per_pft)[flux_type]
 
@@ -361,7 +374,6 @@ let get_annual_flux_PerPatchFluxType(this: Fluxes, flux_type: PerPatchFluxType) 
 
 let avg_cton (min: real, max: real) : real =
   2.0 / (1.0 / min + 1.0 / max)
-
 
 
 
@@ -791,13 +803,13 @@ let cropindiv_struct() : cropindiv_struct = {
 
 -- Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
 let is_highlatitude_peatland_stand(this: Stand, gridcell : Gridcell) : bool =
-	let lat : real = gridcell.lat
-	in this.landcover==PEATLAND && lat >= PEATLAND_WETLAND_LATITUDE_LIMIT
+  let lat : real = gridcell.lat
+  in this.landcover==PEATLAND && lat >= PEATLAND_WETLAND_LATITUDE_LIMIT
 
 -- Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
 let is_true_wetland_stand(this: Stand, gridcell : Gridcell) : bool =
   let lat : real = gridcell.lat
-	in this.landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT
+  in this.landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT
 
 
 let Individual(individual_id : int
@@ -1400,6 +1412,24 @@ let Patchpft(gridcell_id: int, patch_id: int, stand_id: int, patchpft_id: int, p
   wstress_day=false
 }
 
+let diurnal(this : Date) : bool =
+  this.subdaily > 1
+
+
+--- Constructs beginning of the day period (the only one in daily mode)
+let Day(date : Date) : Day = {
+  isstart = true,
+  isend = !diurnal(date),
+  period = 0
+}
+
+--- Advances to the next sub-daily period
+let next(this : Day, date: Date) : Day = {
+  period = this.period+1,
+  isstart = false,
+  isend = this.period+1 == date.subdaily - 1
+}
+
 let Patch(gridcell_id: int
          ,stand_id: int
          ,patch_id : int
@@ -1407,7 +1437,7 @@ let Patch(gridcell_id: int
          ,stand_hasgrassintercrop : bool
          ,st : Soiltype)
          : Patch =
-  let (_, patchpfts, individuals) = unzip3 <|
+  let (_, _, _) = unzip3 <| -- TODO FIXME return these for global the masterobject
     map (\i ->
         let pft_id = 0
         let pft = Pft(pft_id)
@@ -1426,7 +1456,7 @@ let Patch(gridcell_id: int
   --vegetation = individuals,
 
   --soil = Soil(st),
-  --fluxes = Fluxes(),
+  fluxes = Fluxes(),
 
   age = 0,
   disturbed = false,

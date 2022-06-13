@@ -239,47 +239,47 @@ let NO3 : n_pref_type = 2
 --  and timing information, assuming init has been called to initialise the
 --  object, and next() has been called at the end of each simulation day.
 type Date = {
-	--- Maximum number of days in an LPJ-GUESS simulation year
-	--- The standard version doesn't yet support leap years. */
-	MAX_YEAR_LENGTH : int,
+  --- Maximum number of days in an LPJ-GUESS simulation year
+  --- The standard version doesn't yet support leap years. */
+  MAX_YEAR_LENGTH : int,
 
-	--- number of days in each month (0=January - 11=December)
-	ndaymonth : [12]int,
+  --- number of days in each month (0=January - 11=December)
+  ndaymonth : [12]int,
 
-	--- julian day of year (0-364 : int, 0=Jan 1)
-	day : int,
+  --- julian day of year (0-364 : int, 0=Jan 1)
+  day : int,
 
-	--- day of current month (0=first day)
-	dayofmonth : int,
+  --- day of current month (0=first day)
+  dayofmonth : int,
 
-	--- month number (0=January - 11=December)
-	month : int,
+  --- month number (0=January - 11=December)
+  month : int,
 
-	--- year since start of simulation (0=first simulation year)
-	year : int,
+  --- year since start of simulation (0=first simulation year)
+  year : int,
 
-	--- number of subdaily periods in a day (to be set in IO module)
-	subdaily : int,
+  --- number of subdaily periods in a day (to be set in IO module)
+  subdaily : int,
 
-	--- julian day for middle day of each month
-	middaymonth : [12]int,
+  --- julian day for middle day of each month
+  middaymonth : [12]int,
 
-	--- true if last year of simulation, false otherwise
-	islastyear : bool,
+  --- true if last year of simulation, false otherwise
+  islastyear : bool,
 
-	--- true if last month of year, false otherwise
-	islastmonth : bool,
+  --- true if last month of year, false otherwise
+  islastmonth : bool,
 
-	--- true if last day of month, false otherwise
-	islastday : bool,
+  --- true if last day of month, false otherwise
+  islastday : bool,
 
-	--- true if middle day of month, false otherwise
-	ismidday : bool,
+  --- true if middle day of month, false otherwise
+  ismidday : bool,
 
-	--- The calendar year corresponding to simulation year 0
-	first_calendar_year : int,
+  --- The calendar year corresponding to simulation year 0
+  first_calendar_year : int,
 
-	nyear : int
+  nyear : int
 }
 -- type Day
 
@@ -1381,6 +1381,15 @@ type cropindiv_struct = {
   isintercropgrass : bool
 }
 
+--- Object describing sub-daily periods
+type Day = {
+  --- Whether sub-daily period first/last within day (both true in daily mode)
+  isstart : bool,
+  isend : bool,
+  --- Ordinal number of the sub-daily period [0, date.subdaily)
+  period : int
+}
+
 --- A vegetation individual.
 --- In population mode this is the average individual of a PFT population,
 --  in cohort mode: the average individual of a cohort,
@@ -2424,7 +2433,7 @@ type Patch = {
   -- soil for this patch
   --soil_id: Soil,
   -- fluxes for this patch
-  --fluxes: Fluxes,
+  fluxes: Fluxes,
   -- FPAR at top of grass canopy today
   fpar_grass: real,
   -- FPAR at soil surface today

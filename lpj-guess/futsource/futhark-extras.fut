@@ -2,6 +2,8 @@ type real = f64
 type int = i64
 type uint = u64
 
+let ifbvoc : int = 0
+
 let realzero : real = 0.0
 let Date_subdaily : int = 1 -- get this somewhere else
 let Date_MAX_YEAR_LENGTH : int = 365
@@ -29,7 +31,7 @@ let intFromReal = i64.f64
 type enum_type = i64
 
 
-let npft : i64 = 6 -- TODO: this is a dynamic global variable that should be aquired otherwise than this!
+let npft : int = 6 -- TODO: this is a dynamic global variable that should be aquired otherwise than this!
 
 -- from global.ins
 let run_landcover : bool = false

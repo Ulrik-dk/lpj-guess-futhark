@@ -6,7 +6,7 @@ open import "../framework/guess"
 open import "../modules/q10"
 open import "../futhark-extras"
 --#include "bvoc.h"
-open import "../framework/ncompete"
+--open import "../framework/ncompete"
 --#include <assert.h>
 -------------------------------------PART FROM .h--------------------------------------
 -- Constants for photosynthesis calculations
@@ -40,7 +40,7 @@ let ALPHAA_NLIM : real = 0.65 -- Same as ALPHAA above but chosen to give pools a
 let ALPHAA_CROP : real = 0.7      -- Value for crops without N limitation.
 let ALPHAA_CROP_NLIM : real = 0.9  -- Value for crops with N limitation
 -- Lambert-Beer extinction law (Prentice et al 1993 Monsi & Saeki 1953)
-let lambertbeer (lai : real) = exp(-0.5 * lai)
+let lambertbeer (lai : real) : real = exp(-0.5 * lai)
 -------------------------------------PART FROM .cpp------------------------------------
 -- leaf nitrogen (kgN/kgC) not associated with photosynthesis
 -- (value given by Haxeltine & Prentice 1996b)---
@@ -54,9 +54,9 @@ let lookup_ko = LookupQ10(1.2, 3.0e4)
 let lookup_kc = LookupQ10(2.1, 30.0)
 --void interception(Patch& patch,Climate& climate) {
 --------------------------------------------------------------------------------------/
--- FPAR
 -- Internal function - not intended to be called by framework
-let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft]Pft, date : Date) =
+let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft]Pft, date : Date)
+  : (Patch, Vegetation) =
   -- DESCRIPTION
   -- Calculates daily fraction of incoming PAR (FPAR) taken up by individuals in a
   -- particular patch over their projective areas, given current leaf phenological
@@ -92,7 +92,7 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
   --       plai(z) = summed leaf-area index for leaves of all individuals, above
   --                 canopy depth z, taking account of current phenological status
   let VSTEP : real = 2.0 -- width of vertical layers for canopy-area integration (m)
-  let PHEN_GROWINGSEASON = 0.5
+  let PHEN_GROWINGSEASON : real = 0.5
     -- minimum expected vegetation leaf-on fraction for growing season
   --double plai -- cumulative leaf-area index (LAI) for patch (m2 leaf/m2 ground)
   --double plai_leafon
@@ -279,7 +279,10 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
         in indiv
       else (indiv)
       ) vegetation
-    let fpar_tree_total : real = reduce 0.0 (+) <| map (\i -> if pfts[pfts[indiv.pft_id]_id].lifeform==TREE then i.fpar else 0.0) vegetation
+    let fpar_tree_total : real =
+      reduce 0.0 (+) <| map
+        (\i -> if pfts[pfts[indiv.pft_id]_id].lifeform==TREE then i.fpar else 0.0
+        ) vegetation
     -- Save grass canopy FPAR and update mean growing season grass canopy PAR
     -- Growing season defined here as days when mean vegetation leaf-on fraction
     -- exceeds 50% and we're in the light half of the year (daylength >= 11).
@@ -291,23 +294,24 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
     let patch = patch with fpar_grass=fpar_grass
     let par_grass = fpar_grass * climate.par
     let patch =
-    if (date.day==0) then
-      let patch = patch with par_grass_mean = 0.0
-      let patch = patch with nday_growingseason = 0
-      in patch
-    else patch
+        if (date.day==0) then
+          let patch = patch with par_grass_mean = 0.0
+          let patch = patch with nday_growingseason = 0
+          in patch
+        else patch
     let patch =
-    if (phen_veg > PHEN_GROWINGSEASON && climate.daylength >= 11.0) then
-      let patch = patch with par_grass_mean = patch.par_grass_mean + par_grass
-      let patch = patch with nday_growingseason = patch.nday_growingseason + 1
-      in patch
-    else patch
+        if (phen_veg > PHEN_GROWINGSEASON && climate.daylength >= 11.0) then
+          let patch = patch with par_grass_mean = patch.par_grass_mean + par_grass
+          let patch = patch with nday_growingseason = patch.nday_growingseason + 1
+          in patch
+        else patch
     -- Convert from sum to mean on last day of year
     let patch =
-    if (date.islastday && date.islastmonth && patch.nday_growingseason) then
-      patch with par_grass_mean = patch.par_grass_mean / realFromInt patch.nday_growingseason
-    else patch
+        if (date.islastday && date.islastmonth && patch.nday_growingseason) then
+          patch with par_grass_mean = patch.par_grass_mean / realFromInt patch.nday_growingseason
+        else patch
     in (patch, vegetation)
+
 let alphaa(pft : Pft) =
   if (pft.phenology == CROPGREEN) then
     if ifnlim then ALPHAA_CROP_NLIM else ALPHAA_CROP
@@ -590,7 +594,8 @@ let get_moss_wtp_limit(pft : Pft, stand : Stand, soil : Soil, gridcell : Gridcel
 ---Vmax is calculated on a daily scale (w/ daily averages of temperature and par)
 ---Subdaily values calculated if needed
  --
-let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Standpft, ppfts : [npft]Patchpft, pfts : [npft]Pft) =
+let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Standpft, ppfts : [npft]Patchpft, pfts : [npft]Pft)
+  : (Vegetation, [npft]Standpft, [npft]Patchpft) =
   --ps_stress.no_stress() --TODO: is this just the default constructor?
   -- If this is the first patch, calculate no-stress assimilation for
   -- each Standpft, assuming FPAR=1. This is then later used in
@@ -646,8 +651,7 @@ let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Stan
       in indiv
       else indiv
   ) vegetation
-  in (vegetation)
-
+  in (vegetation, spfts, ppfts)
 --- Calculates individual fnuptake based on surface of fine root
 --- Calculates individual fraction nitrogen uptake based on surface of fine root
 --- Roots are cone formed with height == radius.
@@ -657,7 +661,6 @@ let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Stan
 ---
 let nitrogen_uptake_strength(indiv : Individual) : real =
   pow(max(0.0, indiv.cmass_root_today()) * pfts[indiv.pft_id].nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv
-
 --- Individual nitrogen uptake fraction
 --- Determining individual nitrogen uptake as a fraction of its nitrogen demand.
 --- \see ncompete
@@ -729,16 +732,16 @@ let nstore_usage(vegetation : Vegetation) : Vegetation =
       in indiv
       -- photosynthesis will not be nitrogen stresses
   ) vegetation
-
 --/ Nitrogen demand
 --- Determines nitrogen demand based on vmax for leaves.
 --  Roots and sap wood nitrogen concentration follows leaf
 --  nitrogen concentration.
 --  Also determines individual nitrogen uptake capability
 --/
-let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : Soil, pfts : [nptf]Pft) =
---  Gridcell& gridcell = patch.stand.get_gridcell()
---  Soil& soil = patch.soil
+let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : Soil, pfts : [nptf]Pft)
+  : (Patch, Vegetation) =
+  --  Gridcell& gridcell = patch.stand.get_gridcell()
+  --  Soil& soil = patch.soil
   --/ daily nitrogen demand for patch (kgN/m2)
   let patch = patch with ndemand = 0.0
   -- soil available mineral nitrogen (kgN/m2)
@@ -860,7 +863,8 @@ let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : 
 --- If nitrogen supply is not able to meet demand it will lead
 --  to down-regulation of vmax resulting in lower photosynthesis
 --/
-let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetation, soil : Soil, pfts : [npft]Pft, ppfts : [nptf]Patchpft) =
+let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetation, soil : Soil, pfts : [npft]Pft, ppfts : [nptf]Patchpft)
+  : Vegetation =
   -- Supply function for nitrogen and determination of nitrogen stress leading
   -- to down-regulation of vmax.
   -- Nitrogen within projective cover of all individuals
@@ -1015,7 +1019,7 @@ let wdemand(patch : Patch, climate : Climate, vegetation : Vegetation, day : Day
 --- Soil water supply at the roots available to meet the transpirational demand
 --  Fundamentally, water stress = supply < demand
 --/
-let aet_water_stress(patch : Patch, stand: Stand, vegetation : Vegetation, day : Day, pfts : [npft]Pft, spfts : [npft]Standpft, ppfts : [npft]Patchpft) =
+let aet_water_stress(patch : Patch, stand: Stand, vegetation : Vegetation, day : Day, pfts : [npft]Pft, spfts : [npft]Standpft, ppfts : [npft]Patchpft) : (Vegetation, [npft]Patchpft)  =
   -- Supply function for evapotranspiration and determination of water stress leading
   -- to down-regulation of stomatal conductance. Actual evapotranspiration determined
   -- as smaller of supply and transpirative demand (see function demand).
@@ -1091,82 +1095,87 @@ let aet_water_stress(patch : Patch, stand: Stand, vegetation : Vegetation, day :
 
   -- Calculate / transfer supply to individuals
   let vegetation = map(\indiv ->
-
-  vegetation.firstobj()
-  while (vegetation.isobj) {
-    Individual& indiv = vegetation.getobj()
-    Patchpft& ppft = patch.pft[pfts[indiv.pft_id].id]
-    if (day.isstart) {
-      indiv.aet = 0
-      if (date.day == 0)
-        indiv.aaet = 0.0
-    }
-    indiv.wstress = ppft.wstress
-    if (indiv.alive) {
-      if (indiv.wstress) {
-        indiv.aet += ppft.wsupply
-      }
-      else {
-        indiv.aet += negligible(indiv.phen) ? 0.0 : patch.wdemand
-      }
-    }
-    if (day.isend) {
-      indiv.aet *= indiv.fpc / date.subdaily
-    }
-    if (day.isend) {
-      indiv.aaet += indiv.aet
-    }
-    vegetation.nextobj()
+    let ppft : Patchpft = patchpfts[indiv.pft_id]
+    let indiv =
+      if (day.isstart) then
+        let indiv = indiv with aet = 0 in
+        if (date.day == 0) then
+          indiv with aaet = 0.0
+        else indiv
+      else indiv
+    let indiv = indiv with wstress = ppft.wstress
+    let indiv =
+      if (indiv.alive) then
+        if (indiv.wstress) then
+          indiv with aet = indiv.aet + ppft.wsupply
+        else indiv
+      else
+        indiv with aet = indiv.aet + if negligible(indiv.phen) then 0.0 else patch.wdemand
+    let indiv = indiv with aet =
+      if (day.isend) then
+        indiv.aet * indiv.fpc / date.subdaily
+      else aet
+    let indiv = indiv with aaet =
+      if (day.isend) then
+        indiv.aaet + indiv.aet
+      else indiv.aaet
+    in indiv
   ) vegetation
-  in (vegetation, ppfts, pfts)
-}
+  in (vegetation, ppfts)
 
 
 --/ Water scalar
-void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
+let water_scalar(stand : Stand, patch : Patch, vegetation : Vegetation, day : Day, ppfts : [npft]Patchpft, pfts : [nptf]Pft)
+  : [nptf]Pft =
   -- Derivation of daily and annual versions of water scalar (wscal, omega)
   -- Daily version is used to determine leaf onset and abscission for raingreen PFTs.
   -- Annual version determines relative allocation to roots versus leaves for
   -- subsequent year
-  for (int p=0 p<npft p++) {
+  let (p, ppfts) =
+  loop (p, ppfts)
+    = (0, ppfts)
+  while (p<npft) do
     -- Retrieve next patch PFT
-    Patchpft& ppft = patch.pft[p]
-    if (!patch.stand.pft[p].active)
-      continue
-    if (day.isstart) {
-      ppft.wscal = 0
-      if (date.day == 0) {
-        ppft.wscal_mean = 0
-        if (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass)
-          ppft.cropphen->growingdays_y=0
-      }
-    }
-    -- Calculate patch PFT water scalar value
-    if (!negligible(patch.wdemand_leafon)) {
-      ppft.wscal += min(1.0, ppft.wsupply_leafon/patch.wdemand_leafon)
-    }
-    else {
-      ppft.wscal += 1.0
-    }
-    if (day.isend) {
-      ppft.wscal /= (double)date.subdaily
-      if (patch.stand.landcover!=CROPLAND                    --natural, urban, pasture, forest and peatland stands
-          || ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) {  --normal grass growth
-        ppft.wscal_mean += ppft.wscal
-        -- Convert from sum to mean on last day of year
-        if (date.islastday && date.islastmonth) {
-          ppft.wscal_mean /= date.year_length()
-        }
-      }
-      else if (ppft.cropphen->growingseason                  -- true crops and cover-crop grass
-          || ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
-          || ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
-        ppft.cropphen->growingdays_y++
-        ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y
-      }
-    }
-  }
-}
+    let ppft : Patchpft = ppfts[p] in
+    if (!patch.stand.pft[p].active) then (p+1, ppfts) else
+    let pft = pfts[p]
+    let ppft =
+      if (day.isstart) then
+        let ppft = ppft with wscal = 0 in
+          if (date.day == 0) then
+            let ppft = ppft with wscal_mean = 0 in
+              if (pft.phenology==CROPGREEN || pft.isintercropgrass) then
+                ppft with cropphen = cropphen with growingdays_y = 0
+              else ppft
+          else ppft
+      else ppft
+    let ppft = ppft with wscal =
+      -- Calculate patch PFT water scalar value
+      if (!negligible(patch.wdemand_leafon)) then
+        ppft.wscal + min(1.0, ppft.wsupply_leafon/patch.wdemand_leafon)
+      else
+        ppft.wscal + 1.0
+
+    let ppft =
+      if (day.isend) then
+        let ppft = ppft with wscal = ppft.wscal / realFromInt date.subdaily in
+        if (stand.landcover!=CROPLAND --natural, urban, pasture, forest and peatland stands
+            || pft.phenology==ANY && ppft_pft_id==stand.pft_id) then --normal grass growth
+          let ppft = ppft with wscal_mean = ppft.wscal_mean + ppft.wscal
+          in
+            -- Convert from sum to mean on last day of year
+            if (date.islastday && date.islastmonth) then
+              ppft with wscal_mean = ppft.wscal_mean / date.year_length()
+            else ppft
+          else if (ppft.cropphen.growingseason -- true crops and cover-crop grass
+              || ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen.hdate
+              || ppft.pft.isintercropgrass && date.day == patch.pft[stand.pft_id].cropphen.eicdate) then
+            let ppft = ppft with cropphen = ppft.cropphen with growingdays_y = ppft.cropphen.growingdays_y+1
+            let ppft = ppft with wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen.growingdays_y
+            in ppft
+          else ppft
+      else ppft
+  in ppfts
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)
 let assimilation_wstress
@@ -1380,7 +1389,13 @@ let respiration( gtemp_air : real,  gtemp_soil : real,  lifeform : lifeformtype,
 --/ Net Primary Productivity
 --- Includes BVOC calculations \see bvoc.cpp
 --/
-void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day) {
+let npp( patch : Patch
+       , climate : Climate
+       , vegetation : Vegetation
+       , day : Day
+       , pfts : [npft]Pft
+       , spfts : [npft]Standpft)
+       : (Patch, Vegetation) =
   -- Determination of daily NPP. Leaf level net assimilation calculated for non-
   -- water-stressed individuals (i.e. with fully-open stomata) using base value
   -- from function demand (above) for water-stressed individuals using base value
@@ -1389,204 +1404,219 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
   -- assimilation wstress above). The latter uses the PFT-specific base value for
   -- conductance from function aet_water_stress (above).
   -- Plant respiration obtained by a call to function respiration (above).
-  double par, temp, assim, resp, lambda, rad, gtemp
-  double hours = 24      -- diurnal "daylength" to convert to daily units
-  if (date.diurnal()) {
-    par   = climate.pars[day.period]
-    temp  = climate.temps[day.period]
-    rad   = climate.rads[day.period]
-    gtemp = climate.gtemps[day.period]
-  }
-  else {
-    par   = climate.par
-    temp  = climate.temp
-    hours = climate.daylength
-    rad   = climate.rad
-    gtemp = climate.gtemp
-  }
-  vegetation.firstobj()
-  while (vegetation.isobj) {
-    Individual& indiv = vegetation.getobj()
-    -- For this individual ...
-    -- Retrieve PFT and patch PFT
-    Pft& pft = pfts[indiv.pft_id]
-    Patchpft& ppft = patch.pft[pft.id]
-    --Don't do calculations for crops outside their growingseason
-    if (!indiv.growingseason()) {
-      indiv.dnpp : real = 0.0
-      vegetation.nextobj()
-      continue
-    }
-    double pftco2 = get_co2(patch, climate, pft)
-    double inund_stress = get_inund_stress(patch, ppft)
-    double graminoid_wtp_limit = get_graminoid_wtp_limit(patch, pft)
-    double moss_wtp_limit = get_moss_wtp_limit(patch, pft)
-    PhotosynthesisResult phot = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis
-    if (indiv.wstress) {
-      -- Water stress - derive assimilation by simultaneous solution
-      -- of light- and conductance-based equations of photosynthesis
-      assimilation_wstress(pft, pftco2, temp, par, hours, indiv.fpar, indiv.fpc,
-        ppft.gcbase, phot.vm, phot, lambda,
-        indiv.nactive / indiv.nextin, ifnlim, moss_wtp_limit, graminoid_wtp_limit, inund_stress)
-    }
-    assim = phot.net_assimilation()
-    if (ifbvoc) {
-      PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis
-      bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day)
-    }
-    -- Calculate autotrophic respiration
-    double cmass_root
-    if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
-      cmass_root = 0.0
+  let (par, temp, hours, rad, gtemp) =
+    if (date.diurnal()) then
+      (climate.pars[day.period]
+      ,climate.temps[day.period]
+      ,24-- diurnal "daylength" to convert to daily units
+      ,climate.rads[day.period]
+      ,climate.gtemps[day.period])
     else
-      cmass_root = indiv.cmass_root_today()
-    -- Static root and sap wood C:N ratio if no N limitation
-    -- to not let N affect respiration for C only version of model
-    double cton_sap, cton_root
-    if (ifnlim) {
-      cton_sap = indiv.cton_sap()
-      cton_root = indiv.cton_root()
-    }
-    else {
-      cton_sap = pft.cton_sap_avr
-      cton_root = pft.cton_root_avr
-    }
-    respiration(gtemp, patch.soil.gtemp, pfts[indiv.pft_id].lifeform,
-      pfts[indiv.pft_id].respcoeff, cton_sap, cton_root,
-      indiv.cmass_sap, cmass_root, assim, resp)
-    -- Convert to averages for this period for accounting purposes
-    assim /= date.subdaily
-    resp /= date.subdaily
-    -- Update accumulated annual NPP and daily vegetation-atmosphere flux
-    indiv.dnpp = assim - resp
-    indiv.anpp += indiv.dnpp
-    indiv.report_flux(Fluxes::NPP, indiv.dnpp)
-    indiv.report_flux(Fluxes::GPP, assim)
-    indiv.report_flux(Fluxes::RA, resp)
-    if (indiv.lai_today() > indiv.mlai_max[date.month])
-      indiv.mlai_max[date.month] = indiv.lai_today()
-    if (day.isend) {
-      indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month]
-    }
-    vegetation.nextobj()
-  }
-}
+      (climate.par
+      ,climate.temp
+      ,climate.daylength
+      ,climate.rad
+      ,climate.gtemp)
+
+  let (vegetation, argpile) = unzip <| map (\indiv ->
+    -- For this individual ...
+    let pft : Pft = pfts[indiv.pft_id]
+    let ppft : Patchpft = ppfts[pft.pft_id]
+    --Don't do calculations for crops outside their growingseason
+    in if (!indiv.growingseason()) then (indiv with dnpp = 0.0, (false, false, 0, 0, 0, 0.0, 0.0, 0.0, date, 0))
+    else
+      let pftco2 : real = get_co2(patch, climate, pft)
+      let inund_stress : real = get_inund_stress(patch, ppft)
+      let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft)
+      let moss_wtp_limit : real = get_moss_wtp_limit(patch, pft)
+      let phot : PhotosynthesisResult = if date.diurnal() then indiv.phots[day.period] else indiv.photosynthesis
+      let (phot, lambda) =
+        if (indiv.wstress) then
+          -- Water stress - derive assimilation by simultaneous solution
+          -- of light- and conductance-based equations of photosynthesis
+          assimilation_wstress(pft, pftco2, temp, par, hours, indiv.fpar, indiv.fpc,
+            ppft.gcbase, phot.vm, phot, lambda,
+            indiv.nactive / indiv.nextin, ifnlim, moss_wtp_limit, graminoid_wtp_limit, inund_stress)
+        else (phot, lambda)
+      let assim = phot.net_assimilation()
+      --if (ifbvoc) { --TODO FIXME: this is false in global.ins, so it is omitted here for now
+      --  PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis
+      --  bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day)
+      --}
+      -- Calculate autotrophic respiration
+      let cmass_root =
+        if (indiv.cropindiv && indiv.cropindiv.isintercropgrass && indiv.phen == 0.0) then
+          0.0
+        else
+          indiv.cmass_root_today()
+      -- Static root and sap wood C:N ratio if no N limitation
+      -- to not let N affect respiration for C only version of model
+      let (cton_sap, cton_root) =
+        if (ifnlim) then
+          (indiv.cton_sap(), indiv.cton_root())
+        else
+          (pft.cton_sap_avr, pft.cton_root_avr)
+
+      let (X) = respiration(gtemp, soil.gtemp, pfts[indiv.pft_id].lifeform,
+                            pfts[indiv.pft_id].respcoeff, cton_sap, cton_root,
+                            indiv.cmass_sap, cmass_root, assim, resp)
+      -- Convert to averages for this period for accounting purposes
+      let assim = assim / date.subdaily
+      let resp = resp / date.subdaily
+      -- Update accumulated annual NPP and daily vegetation-atmosphere flux
+      let indiv = indiv with dnpp = assim - resp
+      let indiv = indiv with anpp = indiv.anpp + indiv.dnpp
+
+      let alive : bool = indiv.alive
+      let itoicg : bool = istruecrop_or_intercropgrass indiv pft
+      let pft_id = indiv.pft_id
+
+      -- report fluxes reduction extracted from map, see below
+
+      let indiv =
+        if (indiv.lai_today() > indiv.mlai_max[date.month]) then
+          indiv with mlai_max = indiv.mlai_max with [date.month] = indiv.lai_today()
+        else indiv
+
+      let indiv =
+        if (day.isend) then
+          indiv with mlai = mlai with [date.month] = indiv.mlai[date.month] + indiv.lai_today() / realFromInt date.ndaymonth[date.month]
+        else indiv
+      in (indiv, (alive, itoicg, NPP, GPP, RA, indiv.dnpp, assim, resp, date, pft_id))
+    ) vegetation
+
+  let patch =
+    reduce patch (\patch (alive, itoicg, NPP, GPP, RA, dnpp, assim, resp, date, pft_id) ->
+      let fluxes = patch.fluxes
+      let fluxes = Individual_report_flux_PerPFTFluxType(fluxes, alive, itoicg, NPP, indiv.dnpp, date, pft_id)
+      let fluxes = Individual_report_flux_PerPFTFluxType(fluxes, alive, itoicg, GPP, assim, date, pft_id)
+      let fluxes = Individual_report_flux_PerPFTFluxType(fluxes, alive, itoicg, RA, resp, date, pft_id)
+      let patch = patch with fluxes = fluxes
+      in patch
+    )  argpile
+
+  in (patch, vegetation)
 --/ Forest-floor conditions
 --- Called in cohort/individual mode (not population mode) to quantify growth
 --  conditions at the forest floor for each PFT
 --  Calculates net assimilation at top of grass canopy (or at soil surface if
 --  there is none).
 --/
-void forest_floor_conditions(Patch& patch) {
-  const Climate& climate = patch.get_climate()
-  double lambda      -- not used here
-  PhotosynthesisResult phot
-  for (int p=0 p<npft p++) {
-    Patchpft& ppft = patch.pft[p]
-    Standpft& spft = patch.stand.pft[p]
-    if (!spft.active) {
-      continue
-    }
-    Pft& pft = spft.pft
-    -- peatland limits on photosynthesis
-    double pftco2 = get_co2(patch, patch.stand.get_gridcell().climate, pft)
-    double inund_stress = get_inund_stress(patch, ppft)
-    double graminoid_wtp_limit = get_graminoid_wtp_limit(patch, pft)
-    double moss_wtp_limit = get_moss_wtp_limit(patch, pft)
-    -- Initialise net photosynthesis sum on first day of year
-    if (date.day == 0) {
-      ppft.anetps_ff = 0.0
-    }
-    if (patch.stand.landcover != CROPLAND || pft.phenology != CROPGREEN && ppft.cropphen->growingseason) {
-      double assim = 0
-      if (ppft.wstress_day) {
-        --PhotosynthesisStresses ps_stress
-        --ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft))
-        assimilation_wstress(pft, pftco2, climate.temp, climate.par,
-          climate.daylength, patch.fpar_grass * ppft.phen, 1., ppft.gcbase_day,
-          spft.photosynthesis.vm, phot, lambda, 1.0, false,
-          moss_wtp_limit, graminoid_wtp_limit, inund_stress)
-        assim = phot.net_assimilation()
-      }
-      else {
-        assim = spft.photosynthesis.net_assimilation() * ppft.phen * patch.fpar_grass
-      }
-      -- Accumulate annual value
-      ppft.anetps_ff += assim
-    }
-    if (date.islastmonth && date.islastday) {
-      -- Avoid negative ppft.anetps_ff
-      ppft.anetps_ff = max(0.0, ppft.anetps_ff)
-      if (ppft.anetps_ff > spft.anetps_ff_max) {
-        spft.anetps_ff_max = ppft.anetps_ff
-      }
-    }
-  }
-}
+let forest_floor_conditions(stand: Stand, patch : Patch, climate : Climate, spfts : [npft]Standpft, ppfts : [npft]Patchpft, pfts : [npft]Pft)
+  : ([npft]Patchpft, [npft]Standpft) =
+  --double lambda      -- not used here
+  let phot : PhotosynthesisResult = PhotosynthesisResult()
+  let (ppfts, spfts, p) =
+  loop (ppfts, spfts, p)
+    = (ppfts, spfts, 0)
+  while (p<npft) do
+    let ppft : Patchpft = ppfts[p]
+    let spft : Standpft = spfts[p]
+    in if (!spft.active) then (ppfts, spfts, p+1) else
+      let pft : Pft = pfts[spft.pft_id]
+      -- peatland limits on photosynthesis
+      let pftco2 : real = get_co2(patch, climate, pft) -- was patch.stand.get_gridcell().climate
+      let inund_stress : real = get_inund_stress(patch, ppft)
+      let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft)
+      let moss_wtp_limit : real = get_moss_wtp_limit(patch, pft)
+      -- Initialise net photosynthesis sum on first day of year
+      let ppft =
+        if (date.day == 0) then
+          ppft with anetps_ff = 0.0
+        else ppft
+
+      let ppft =
+        if (patch.stand.landcover != CROPLAND || pft.phenology != CROPGREEN && ppft.cropphen.growingseason) then
+          let assim =
+            if (ppft.wstress_day) then
+              --PhotosynthesisStresses ps_stress
+              --ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft))
+              let (phot_result, lambda) =
+                                assimilation_wstress(pft, pftco2, climate.temp, climate.par,
+                                  climate.daylength, patch.fpar_grass * ppft.phen, 1.0, ppft.gcbase_day,
+                                  spft.photosynthesis.vm, phot, lambda, 1.0, false,
+                                  moss_wtp_limit, graminoid_wtp_limit, inund_stress)
+              in phot.net_assimilation()
+            else spft.photosynthesis.net_assimilation() * ppft.phen * patch.fpar_grass
+          -- Accumulate annual value
+          in ppft with anetps_ff = ppft.anetps_ff + assim
+        else ppft
+
+      let (ppft, spft) =
+        if (ppfts, spfts)(date.islastmonth && date.islastday) then
+          -- Avoid negative ppft.anetps_ff
+          let ppft = ppft with anetps_ff = max(0.0, ppft.anetps_ff)
+          let spft =
+            if (ppft.anetps_ff > spft.anetps_ff_max) then
+              spft with anetps_ff_max = ppft.anetps_ff
+            else spft
+          in (ppft, spft)
+        else (ppft, spft)
+    in (ppfts with [p] = ppft, spfts with [p] = spft, p+1)
+  in (ppfts, spfts)
+
 --/ Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
-void leaf_senescence(Vegetation& vegetation) {
-  if (!(vegetation.patch.stand.is_true_crop_stand() && ifnlim)) {
-    return
-  }
-  vegetation.firstobj()
-  while (vegetation.isobj) {
-    Individual& indiv = vegetation.getobj()
+let leaf_senescence(stand: Stand, patch: Patch, vegetation: Vegetation, ppfts: [npft]Patchpft) : Vegetation =
+  -- FIXME when you know returntype if (!(stand.is_true_crop_stand() && ifnlim)) { return }
+
+  let vegetation = map (\indiv ->
     -- Age dependent N retranslocation, Sec. 2.1.3 Olin 2015
-    if (indiv.patchpft().cropphen->dev_stage > 1.0) {
-      const double senNr = 0.1
-      double senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (pfts[indiv.pft_id].cton_leaf_max))
-      -- Senescence is not done during spinup
-      if (date.year > nyear_spinup && senN > 0) {
-        indiv.nmass_leaf -= senN
-        indiv.cropindiv->nmass_agpool += senN
-      }
-    }
-    double r = 0.0
+    let indiv =
+      if (ppfts[indiv.pft_id].cropphen.dev_stage > 1.0) then
+        let senNr = 0.1
+        let senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (pfts[indiv.pft_id].cton_leaf_max))
+        in
+        -- Senescence is not done during spinup
+        if (date.year > nyear_spinup && senN > 0) then
+          let indiv = indiv with nmass_leaf = indiv.nmass_leaf - senN
+          let indiv = indiv with cropindiv = indiv.cropindiv with nmass_agpool = indiv.cropindiv.nmass_agpool + senN
+          in indiv
+        else indiv
+      else indiv
+
+    let r =
     -- N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
-    if (indiv.cmass_leaf_today() > 0.0) {
-      double Ln = indiv.lai_nitrogen_today()
-      double Lnld = indiv.lai_today()
-      r = (Lnld - min(Lnld, Ln))/pfts[indiv.pft_id].sla/10.0
-    }
+      if (indiv.cmass_leaf_today() > 0.0) then
+        let Ln : real = indiv.lai_nitrogen_today()
+        let Lnld : real = indiv.lai_today()
+        in (Lnld - min(Lnld, Ln))/pfts[indiv.pft_id].sla/10.0
+      else 0.0
     -- No senescence during the initial growing period
-    if (indiv.patchpft().cropphen->fphu < 0.05) {
-      indiv.daily_cmass_leafloss = 0.0
-    }
-    else {
-      indiv.daily_cmass_leafloss = max(0.0, r)
-    }
-    indiv.daily_nmass_leafloss = 0.0
-    vegetation.nextobj()
-  }
-}
---/ Initiate required variables for the module
-void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
-  if (date.day == 0) {
-    vegetation.firstobj()
-    while (vegetation.isobj) {
-      Individual& indiv = vegetation.getobj()
-      indiv.anpp           = 0.0
-      indiv.leafndemand    = 0.0
-      indiv.rootndemand    = 0.0
-      indiv.sapndemand     = 0.0
-      indiv.storendemand   = 0.0
-      indiv.hondemand      = 0.0
-      indiv.nday_leafon    = 0
-      indiv.avmaxnlim      = 1.0
-      indiv.cton_leaf_aavr = 0.0
-      if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf))
-        indiv.cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf
+    let indiv = indiv with daily_cmass_leafloss =
+      if (ppfts[indiv.pft_id].cropphen.fphu < 0.05) then
+        0.0
       else
-        indiv.cton_leaf_aopt = pfts[indiv.pft_id].cton_leaf_max
-       for (int m=0 m<12 m++) {
-        indiv.mlai[m] = 0.0
-        indiv.mlai_max[m] = 0.0
-      }
-      vegetation.nextobj()
-    }
-  }
-  patch.wdemand_day = 0
-}
+        max(0.0, r)
+    let indiv = indiv with daily_nmass_leafloss = 0.0
+    in indiv
+    ) vegetation
+  in vegetation
+
+--/ Initiate required variables for the module
+let init_canexch(patch : Patch, climate : Climate, vegetation : Vegetation, date : Date) : (Patch, Vegetation) =
+  let vegetation =
+    if (date.day == 0) then
+      map (\indiv ->
+        let indiv = indiv with anpp = 0.0
+        let indiv = indiv with leafndemand = 0.0
+        let indiv = indiv with rootndemand = 0.0
+        let indiv = indiv with sapndemand = 0.0
+        let indiv = indiv with storendemand = 0.0
+        let indiv = indiv with hondemand = 0.0
+        let indiv = indiv with nday_leafon = 0
+        let indiv = indiv with avmaxnlim = 1.0
+        let indiv = indiv with cton_leaf_aavr = 0.0
+        in
+        if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf)) then
+          indiv with cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf
+        else
+          let indiv = indiv with cton_leaf_aopt = pfts[indiv.pft_id].cton_leaf_max
+          let indiv = indiv with mlai = replicate 12 realzero
+          let indiv = indiv with mlai_max = replicate 12 realzero
+          in indiv
+      ) vegetation
+    else vegetation
+  in (patch with wdemand_day = 0, vegetation)
 --type GlobalData = {
 --    pfts : [npft]Pft,
 --    standtypes: []StandType,
@@ -1616,7 +1646,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 --  following update of leaf phenology and soil temperature and prior to update
 --  of soil water.
 ---
-void canopy_exchange(Patch& patch, Climate& climate) {
+let canopy_exchange(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft]Pft, date : Date, spfts: [npft]Standpft, npfts: [npft]Patchpft) : (Patch, Vegetation, [npft]Standpft, [npft]Patchpft) =
   -- NEW ASSUMPTIONS CONCERNING FPC AND FPAR (Ben Smith 2002-02-20)
   -- FPAR = average individual fraction of PAR absorbed on patch basis today,
   --        including effect of current leaf phenology (this differs from previous
@@ -1628,27 +1658,33 @@ void canopy_exchange(Patch& patch, Climate& climate) {
   --        (FPC was previously equal to summed crown area as a fraction of patch
   --        area in cohort/individual mode)
   -- Retrieve Vegetation and Climate objects for this patch
-  Vegetation& vegetation = patch.vegetation
   -- Initial no-stress canopy exchange processes
-  init_canexch(patch, climate, vegetation)
+  let (patch, vegetation) = init_canexch(patch, climate, vegetation)
   -- Canopy exchange processes
-  fpar(patch)
+  let (patch, vegetation) = fpar(patch, vegetation, climate, pfts, date)
   -- Calculates no-stress daily values of photosynthesis and gpterm
-  photosynthesis_nostress(patch, climate)
+  let (vegetation, spfts, ppfts) = photosynthesis_nostress(patch, climate, spfts ,ppfts, pfts)
   -- Nitrogen demand
-  ndemand(patch, vegetation)
+  let (vegetation, patch) = ndemand(patch, vegetation, gridcell , soil , pfts)
   -- Nitrogen stress
-  vmax_nitrogen_stress(patch, climate, vegetation)
+  let vegetation = vmax_nitrogen_stress(patch, climate, vegetation)
   -- Only these processes are affected in diurnal mode
-  for (Day day day.period != date.subdaily day.next()) {
-    wdemand(patch, climate, vegetation, day)
-    aet_water_stress(patch, vegetation, day)
-    water_scalar(patch, vegetation, day)
-    npp(patch, climate, vegetation, day)
-  }
-  leaf_senescence(vegetation)
+  let day = Day(date)
+
+  let (patch, vegetation, ppfts, pfts, _) =
+  loop (patch, vegetation, ppfts, pfts, day) =
+       (patch, vegetation, ppfts, pfts, Day(date))
+  while(day.period != date.subdaily) do
+    let (patch, vegetation) = wdemand(patch, climate, vegetation, day)
+    let (vegetation, ppfts) = aet_water_stress(patch, stand, vegetation, day, pfts, spfts, ppfts)
+
+    let pfts = water_scalar(stand, patch, vegetation, day, ppfts, pfts)
+    let (patch, vegetation) = npp(patch, climate, vegetation, day, pfts, spfts)
+    in (patch, vegetation, ppfts, pfts, day.next())
+
+  let vegetation = leaf_senescence(stand, patch, vegetation, ppfts)
   -- Forest-floor conditions
-  forest_floor_conditions(patch)
+  let (ppfts, spfts) = forest_floor_conditions(stand, patch, climate, spfts, ppfts, pfts)
   -- Total potential evapotranspiration for patch (mm, patch basis)
   -- is a sum of: (1) potential transpirative demand of the vegetation
   -- (2) evaporation of canopy-intercepted precipitation and
@@ -1657,8 +1693,8 @@ void canopy_exchange(Patch& patch, Climate& climate) {
   --     and non-vegetated.
   -- This value is only diagnostic, it is not to be used in further calculations.
   -- Correct value should use daily value of patch.demand_leafon.
-  double pet_patch = patch.wdemand_day * patch.fpc_total + patch.intercep +
+  let pet_patch : real = patch.wdemand_day * patch.fpc_total + patch.intercep +
         climate.eet * PRIESTLEY_TAYLOR * max(1.0-patch.fpc_total, 0.0)
-  patch.apet += pet_patch
-  patch.mpet[date.month] += pet_patch
-}
+  let patch = patch with apet = patch.apet + pet_patch
+  let patch = patch with mpet = patch.mpet with [date.month] = patch.mpet[date.month] + pet_patch
+  in (patch, vegetation, spfts, ppfts)
