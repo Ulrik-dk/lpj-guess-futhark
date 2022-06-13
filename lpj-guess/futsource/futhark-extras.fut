@@ -4,6 +4,8 @@ type uint = u64
 
 let ifbvoc : int = 0
 
+let vegmode : bool = true
+
 let realzero : real = 0.0
 let Date_subdaily : int = 1 -- get this somewhere else
 let Date_MAX_YEAR_LENGTH : int = 365

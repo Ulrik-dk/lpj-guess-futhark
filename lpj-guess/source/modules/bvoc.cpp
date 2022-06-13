@@ -54,7 +54,7 @@ void initbvoc(){
 	PhotosynthesisResult phot;
 
 	PhotosynthesisEnvironment ps_env;
-					
+
 	PhotosynthesisStresses ps_stress;
 	ps_stress.no_stress(); // No limits in the initialization of BVOC calculations
 
@@ -107,7 +107,7 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	// phot      = non-water-stressed photosynthesis
 
   	int im;
-	
+
 	const double tcstor_s = 80;     // time constant for monoterpene storage under standard temp
 	const double tcstor_max = 365;  // maximum time constant for monoterpene storage (d)
 	const double tcstor_min = 2;    // minimum time constant for monoterpene storage (d)
@@ -118,7 +118,7 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	double rmonstor[NMTCOMPOUNDS];  // rate of monoterpene storage
 
 	if(adtmm>0){
-	
+
 		double f_co2 = CO2/co2;                                     // CO2 scaling factor
 		double f_temp = min(f_tempmax, exp(epsT*(temp-Tstand)));    // temp scaling factor
 
