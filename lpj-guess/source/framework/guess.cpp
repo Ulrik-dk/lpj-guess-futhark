@@ -1332,6 +1332,18 @@ cropindiv_struct* Individual::set_cropindiv() {
 	return cropindiv;
 }
 
+void Individual::report_flux(Fluxes::PerPFTFluxType flux_type, double value) {
+	if (alive || istruecrop_or_intercropgrass()) {
+		vegetation.patch.fluxes.report_flux(flux_type, pft.id, value);
+	}
+}
+
+void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
+	if (alive || istruecrop_or_intercropgrass()) {
+		vegetation.patch.fluxes.report_flux(flux_type, value);
+	}
+}
+
 
 /// Help function for reduce_biomass(), partitions nstore into leafs and roots
 /**
