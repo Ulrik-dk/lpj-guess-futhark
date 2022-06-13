@@ -312,7 +312,7 @@ let iftwolayersoil : bool = false
 --let ifmultilayersnow : bool = true
 
 --- whether to reduce GPP if there's inundation (1), or not (0)
---let ifinundationstress : bool = true
+let ifinundationstress : bool = true
 
 --- Whether to limit soilC decomposition below 0 degC in upland soils (1), or not (0)
 --let ifcarbonfreeze : bool = true

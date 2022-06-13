@@ -3,6 +3,7 @@ type int = i64
 type uint = u64
 
 let realzero : real = 0.0
+let Date_subdaily : int = 1 -- get this somewhere else
 let Date_MAX_YEAR_LENGTH : int = 365
 let Date_MAX_YEAR_LENGTH_plusone : int = 366
 type xtring = int -- we wont care about strings

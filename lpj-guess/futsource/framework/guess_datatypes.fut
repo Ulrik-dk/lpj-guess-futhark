@@ -18,7 +18,6 @@ let NSOILLAYER_LOWER : int = NSOILLAYER - NSOILLAYER_UPPER
 let NMTCOMPOUNDS : int = NMTCOMPOUNDTYPES
 
 -- SOIL DEPTH VALUES
-
 -- soil upper layer depth (mm)
 let SOILDEPTH_UPPER : real = 500.0
 -- soil lower layer depth (mm)
@@ -232,13 +231,56 @@ let NO : n_pref_type = 0
 let NH4 : n_pref_type = 1
 let NO3 : n_pref_type = 2
 
--- type Date
-type Date = { -- TODO
-  year : int,
-  month : int,
-  day : int
-}
+--- General purpose object for handling simulation timing.
+-- In general, frameworks should use a single Date object for all simulation
+--  timing.
+--
+--  Member variables of the class (see below) provide various kinds of calender
+--  and timing information, assuming init has been called to initialise the
+--  object, and next() has been called at the end of each simulation day.
+type Date = {
+	--- Maximum number of days in an LPJ-GUESS simulation year
+	--- The standard version doesn't yet support leap years. */
+	MAX_YEAR_LENGTH : int,
 
+	--- number of days in each month (0=January - 11=December)
+	ndaymonth : [12]int,
+
+	--- julian day of year (0-364 : int, 0=Jan 1)
+	day : int,
+
+	--- day of current month (0=first day)
+	dayofmonth : int,
+
+	--- month number (0=January - 11=December)
+	month : int,
+
+	--- year since start of simulation (0=first simulation year)
+	year : int,
+
+	--- number of subdaily periods in a day (to be set in IO module)
+	subdaily : int,
+
+	--- julian day for middle day of each month
+	middaymonth : [12]int,
+
+	--- true if last year of simulation, false otherwise
+	islastyear : bool,
+
+	--- true if last month of year, false otherwise
+	islastmonth : bool,
+
+	--- true if last day of month, false otherwise
+	islastday : bool,
+
+	--- true if middle day of month, false otherwise
+	ismidday : bool,
+
+	--- The calendar year corresponding to simulation year 0
+	first_calendar_year : int,
+
+	nyear : int
+}
 -- type Day
 
 
@@ -1466,7 +1508,7 @@ type Individual = {
   --- non-water-stressed canopy conductance on FPC basis (mm/s)
   gpterm : real,
   --- sub-daily version of the above variable (mm/s)
-  --gpterms : []real,
+  gpterms : [Date_subdaily]real,
   --- interception associated with this individual today (patch basis)
   intercep : real,
 

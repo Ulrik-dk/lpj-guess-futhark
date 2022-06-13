@@ -16,7 +16,7 @@
 
 void ncompete(std::vector<NCompetingIndividual>& individuals, double nmass_avail) {
 	double nsupply = nmass_avail;		// Nitrogen available for uptake
-	double total_ups = 0.0;				// Total uptake strength
+	double total_ups = 0.0;					// Total uptake strength
 
 	// calculate total nitrogen uptake strength, and set all uptake to
 	// zero initially

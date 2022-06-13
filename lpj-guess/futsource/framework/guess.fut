@@ -200,6 +200,28 @@ let Climate(latitude : real, climate_id : int, gridcell_id : int) : Climate = {
 }
 
 
+let Date() : Date =
+  let data = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  let scanned = scan (+) 0 data
+  let middaymonth = map (\i -> scanned[i] + data[i] / 2) <| iota 12 --TODO FIXME: chech that this is right, it probably isnt
+  in
+  {
+  ndaymonth = copy data,
+  middaymonth = middaymonth,
+  subdaily = 1,
+  first_calendar_year = 0,
+  ---
+  MAX_YEAR_LENGTH = intnan,
+  day = intnan,
+  dayofmonth = intnan,
+  islastday = false,
+  islastmonth = false,
+  islastyear = false,
+  ismidday = false,
+  month = intnan,
+  nyear = intnan,
+  year = intnan
+}
 
 
 
@@ -664,6 +686,8 @@ let initregen(this: Pft) : Pft =
   in this with regen_cmass_root = 1.0 / this.ltor_max * this.regen_cmass_leaf
 
 
+
+
 -- Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
 let init_rootdist(this: Pft) : Pft =
 
@@ -764,6 +788,18 @@ let cropindiv_struct() : cropindiv_struct = {
   nmass_ho_luc=nan
 }
 
+
+-- Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
+let is_highlatitude_peatland_stand(this: Stand, gridcell : Gridcell) : bool =
+	let lat : real = gridcell.lat
+	in this.landcover==PEATLAND && lat >= PEATLAND_WETLAND_LATITUDE_LIMIT
+
+-- Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
+let is_true_wetland_stand(this: Stand, gridcell : Gridcell) : bool =
+  let lat : real = gridcell.lat
+	in this.landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT
+
+
 let Individual(individual_id : int
               ,gridcell_id : int
               ,patch_id : int
@@ -854,6 +890,7 @@ let Individual(individual_id : int
   monstor = replicate NMTCOMPOUNDS realzero,
   dnpp              = 0.0,
   last_turnover_day = (-1i64),
+  gpterms = replicate Date_subdaily realzero,
 
   --Stand& stand = vegetation.patch.stand,
 

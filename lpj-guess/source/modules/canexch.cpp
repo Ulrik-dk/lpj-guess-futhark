@@ -901,6 +901,31 @@ double get_co2(Patch& p, Climate& climate, Pft& pft) {
 	if (p.stand.is_highlatitude_peatland_stand() && pft.ismoss())
 		pftco2 = p.soil.acro_co2; // override for peat mosses
 
+	if (FIRST_TIME_HERE) {
+	  ostringstream oss;
+	  init_oss(oss);
+
+	  string stand_field_values[] =
+	    {"is_highlatitude_peatland_stand", to_string(p.stand.is_highlatitude_peatland_stand())};
+	  obj_with_fields(oss, "stand", "Stand()", stand_field_values, 1);
+
+		string soil_fields_values[] =
+	    {"acro_co2", to_string(p.soil.acro_co2)};
+	  obj_with_fields(oss, "soil", "Soil()", soil_fields_values, 1);
+
+		string climate_fields_values[] =
+			{"co2", to_string(climate.co2)};
+		obj_with_fields(oss, "climate", "Climate()", climate_fields_values, 1);
+
+	  finish_input(oss, "pftco2");
+
+		string res_fields_values[] =
+	    {"pftco2", "pftco2", to_string(pftco2)};
+		gen_entry_point_tests(oss, "get_co2", "pftco2", res_fields_values, 1);
+
+		gen_test_file(oss, "get_co2");
+	}
+
 	return pftco2;
 }
 
@@ -2042,23 +2067,21 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				for (int i = 0; i<NSOILLAYER; i++) {
 					wcont_local[i] = patch.soil.get_layer_soil_water(i);
 				}
+				if (iftwolayersoil)
+					wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
+								pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+								pft.lifeform == TREE, pft.drought_tolerance);
+				else {
 
-			if (iftwolayersoil)
-				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
-							pft.lifeform == TREE, pft.drought_tolerance);
-			else {
-
-				if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
-					wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
-							pft.lifeform == TREE, pft.drought_tolerance);
-				else
-					wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
-							pft.lifeform == TREE, pft.drought_tolerance);
-
-				}
+					if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
+						wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
+								pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+								pft.lifeform == TREE, pft.drought_tolerance);
+					else
+						wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
+								pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+								pft.lifeform == TREE, pft.drought_tolerance);
+					}
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
