@@ -134,183 +134,196 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
   --Vegetation& vegetation=patch.vegetation
   -- And to Climate object
   --const Climate& climate = patch.get_climate()
-  let vegetation =
-  if (vegmode==POPULATION) then
-    -- POPULATION MODE
-    -- Loop through individuals
-    map (\indiv ->
-        let indiv = indiv with fpar = fpc_today(indiv)
-        let indiv = indiv with fpar_leafon = indiv.fpar * indiv.growingseason
-        in indiv
-      ) vegetation
-      -- For this individual ...
-  else
-    -- INDIVIDUAL OR COHORT MODE
-    -- Initialise individual FPAR, find maximum height of vegetation, calculate
-    -- individual LAI given current phenology, calculate summed LAI for grasses
-    let plai : real = 0.0
-    let plai_leafon : real = 0.0
-    let plai_grass : real = 0.0
-    let plai_leafon_grass : real = 0.0
-    let height_veg : real = reduce 0.0 (max) <| map (\i -> if i.growingseason then i.height else 0.0) vegetation
-    let vegetation = map (\i -> if i.growingseason then
-                                let i = i with fpar = 0.0
-                                let i = i with fpar_leafon = 0.0
-                                in i
-                                else i) vegetation
-    let plai_leafon = reduce 0.0 (+) <| map (\i -> if i.growingseason then i.lai else 0.0) vegetation
-    let (plai_grass, plai_leafon_grass) =
-      reduce (0.0, 0.0) (\(a1,b1) (a2,b2) -> (a1+a2,b1+b2))
-      <| map (\i -> if pfts[i.pft_id].lifeform == GRASS || pfts[i.pft_id].lifeform == MOSS then (i.lai, i.lai_today) else (0.0, 0.0)) vegetation
-    -- Accumulate LAI-weighted sum of individual leaf-out fractions
-    let phen_veg : real = reduce 0.0 (+) <| map (\i -> i.lai_today) vegetation
-    -- Calculate LAI-weighted mean leaf-out fraction for vegetation
-    -- guess2008 - bugfix - was: if (!negligible(plai))
-    let phen_veg = if (!negligible(plai_leafon)) then phen_veg / plai_leafon else 1.0
-    -- Calculate number of layers (minus 1) from ground surface to top of canopy
-    let toplayer = intFromReal (height_veg/VSTEP-0.0001)
-    -- Calculate FPAR by integration from the top of the canopy (Eqn 2)
-    let plai : real = 0.0
-    let plai_leafon : real = 0.0
-    -- Set FPAR for bottom of layer above (initially 1 at top of canopy)
-    let fpar_layer_bottom = 1.0
-    let fpar_leafon_layer_bottom = 1.0
-    let (layer) =
-    loop (layer) =
-         (toplayer)
-    while(layer >=0) do
-      let lowbound = realFromInt layer*VSTEP
-      let highbound = lowbound+VSTEP
-      -- FPAR at top of this layer = FPAR at bottom of layer above
-      let fpar_layer_top = fpar_layer_bottom
-      let fpar_leafon_layer_top = fpar_leafon_layer_bottom
+  in
+    if (vegmode==POPULATION) then
+      -- POPULATION MODE
       -- Loop through individuals
-      let (vegetation, pls, plls) = unzip3 <| map (\indiv ->
-        if (pfts[i.pft_id].lifeform==TREE) then
-          if (indiv.height>lowbound && indiv.boleht<highbound &&
-            !negligible(indiv.height-indiv.boleht)) then
-            -- Calculate vertical fraction of current layer occupied by
-            -- crown cylinders of this cohort
-            let frac = 1.0
-            let frac =
-            if (indiv.height<highbound) then
-              frac-(highbound-indiv.height)/VSTEP
-            else frac
-            let frac =
-            if (indiv.boleht>lowbound) then
-              frac-(indiv.boleht-lowbound)/VSTEP
-            else frac
-            -- Calculate summed LAI of this cohort in this layer
-            let atoh = indiv.lai/(indiv.height-indiv.boleht)
-            let indiv = indiv with lai_leafon_layer=atoh*frac*VSTEP
-            let pl = indiv.lai_leafon_layer * indiv.phen
-            let pll = indiv.lai_leafon_layer
-            in (indiv, pl, pll)
-          else
-            let indiv = indiv with lai_layer = 0.0
-            let indiv = indiv with lai_leafon_layer = 0.0
-            in (indiv, 0.0, 0.0)
-        else indiv) vegetation
-      let plai_layer : real = reduce 0.0 (+) pls
-      let plai_leafon_layer : real = reduce 0.0 (+) plls
-      -- Update cumulative LAI for this layer and above
-      let plai = plai + plai_layer
-      let plai_leafon =  plai_leafon + plai_leafon_layer
-      -- Calculate FPAR at bottom of this layer
-      -- Eqn 27, Prentice et al 1993
-      let fpar_layer_bottom = lambertbeer(plai)
-      let fpar_leafon_layer_bottom = lambertbeer(plai_leafon)
-      -- Total PAR uptake in this layer
-      let fpar_uptake_layer = fpar_layer_top-fpar_layer_bottom
-      let fpar_uptake_leafon_layer = fpar_leafon_layer_top-fpar_leafon_layer_bottom
-      -- Partition PAR for this layer among trees,
-      let vegetation = map (\indiv ->
-        if (pfts[indiv.pft_id].lifeform==TREE) then
-          let indiv =
-          if (!negligible(plai_leafon_layer)) then
-            -- FPAR partitioned according to the relative amount
-            -- of leaf area in this layer for this individual
-            indiv with fpar_leafon = indiv.fpar_leafon + fpar_uptake_leafon_layer*indiv.lai_leafon_layer/plai_leafon_layer
-          else indiv
-          let indiv =
-          if (!negligible(plai_layer)) then
-            indiv with fpar = indiv.fpar + fpar_uptake_layer* (indiv.lai_leafon_layer*indiv.phen)/plai_layer
-          else indiv
+      (patch, map (\indiv ->
+          let indiv = indiv with fpar = fpc_today(indiv)
+          let indiv = indiv with fpar_leafon = indiv.fpar * indiv.growingseason
           in indiv
-        else indiv
-      ) vegetation
-    -- FPAR reaching grass canopy
-    let fpar_grass = lambertbeer(plai)
-    let fpar_leafon_grass = lambertbeer(plai_leafon)
-    -- Add grass LAI to calculate PAR reaching forest floor
-    -- BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
-    --plai+=plai_grass
-    let fpar_ff = lambertbeer(plai+plai_grass)
-    let plai = plai + plai_grass
-    -- Save this
-    let patch = patch with fpar_ff = fpar_ff
-    let plai_leafon = plai_leafon + plai_leafon_grass
-    let fpar_leafon_ff = lambertbeer(plai_leafon)
-    -- FPAR for grass PFTs is difference between relative PAR at top of grass canopy
-    -- canopy and at forest floor, or lower if FPAR at forest floor below threshold
-    -- for grass growth. PAR reaching the grass canopy is partitioned among grasses
-    -- in proportion to their LAI (a somewhat simplified assumption)
-    -- Loop through individuals
-    let (vegetation) = map (\indiv ->
-      if (pfts[indiv.pft_id].lifeform==GRASS || pfts[indiv.pft_id].lifeform==MOSS) then
-        -- Calculate minimum FPAR for growth of this grass
-        -- Fraction of total grass LAI represented by this grass
-        let flai =
-        if (!negligible(plai_grass)) then
-          indiv.lai_today()/plai_grass
-        else 1.0
-        let fpar_min =
-        if (!negligible(climate.par)) then
-          min(pfts[pfts[indiv.pft_id]_id].parff_min/climate.par,1.0)
-        else 1.0
-        let indiv = indiv with fpar = max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min))
-        -- Repeat assuming full leaf cover for all individuals
-        let flai =
-        if (!negligible(plai_leafon_grass)) then
-          indiv.lai/plafpari_leafon_grass
-        else 1.0
-        let indiv = indiv with fpar_leafon=max(0.0,fpar_leafon_grass*flai-
-          max(fpar_leafon_ff*flai,fpar_min))
-        in indiv
-      else (indiv)
-      ) vegetation
-    let fpar_tree_total : real =
-      reduce 0.0 (+) <| map
-        (\i -> if pfts[pfts[indiv.pft_id]_id].lifeform==TREE then i.fpar else 0.0
+        ) vegetation)
+        -- For this individual ...
+    else
+      -- INDIVIDUAL OR COHORT MODE
+      -- Initialise individual FPAR, find maximum height of vegetation, calculate
+      -- individual LAI given current phenology, calculate summed LAI for grasses
+      let plai : real = 0.0
+      let plai_leafon : real = 0.0
+      let plai_grass : real = 0.0
+      let plai_leafon_grass : real = 0.0
+
+
+
+      let height_veg : real = reduce 0.0 (max) <| map (\i -> if i.growingseason then i.height else 0.0) vegetation
+      let vegetation = map (\i -> if i.growingseason then
+                                  let i = i with fpar = 0.0
+                                  let i = i with fpar_leafon = 0.0
+                                  in i
+                                  else i) vegetation
+      let plai_leafon = reduce 0.0 (+) <| map (\i -> if i.growingseason then i.lai else 0.0) vegetation
+      let (plai_grass, plai_leafon_grass) =
+            reduce (0.0, 0.0) (\(a1,b1) (a2,b2) -> (a1+a2,b1+b2))
+            <| map (\i -> if pfts[i.pft_id].lifeform == GRASS || pfts[i.pft_id].lifeform == MOSS then (i.lai, i.lai_today) else (0.0, 0.0)) vegetation
+      -- Accumulate LAI-weighted sum of individual leaf-out fractions
+      let phen_veg : real = reduce 0.0 (+) <| map (\i -> i.lai_today) vegetation
+
+
+
+      -- Calculate LAI-weighted mean leaf-out fraction for vegetation
+      -- guess2008 - bugfix - was: if (!negligible(plai))
+      let phen_veg = if (!negligible(plai_leafon)) then phen_veg / plai_leafon else 1.0
+
+      -- Calculate number of layers (minus 1) from ground surface to top of canopy
+      let toplayer = intFromReal (height_veg/VSTEP-0.0001)
+
+      -- Calculate FPAR by integration from the top of the canopy (Eqn 2)
+      let plai : real = 0.0
+      let plai_leafon : real = 0.0
+
+      -- Set FPAR for bottom of layer above (initially 1 at top of canopy)
+      let fpar_layer_bottom = 1.0
+      let fpar_leafon_layer_bottom = 1.0
+
+      let  (layer,plai,play_leafon,vegetation) =
+      loop (layer,plai,play_leafon,vegetation)
+         = (toplayer,plai,play_leafon,vegetation)
+      while (layer >=0) do
+
+        let lowbound = realFromInt layer*VSTEP
+        let highbound = lowbound+VSTEP
+
+        -- FPAR at top of this layer = FPAR at bottom of layer above
+        let fpar_layer_top = fpar_layer_bottom
+        let fpar_leafon_layer_top = fpar_leafon_layer_bottom
+
+        -- Loop through individuals
+        let (vegetation, pls, plls) = unzip3 <| map (\indiv ->
+          if (pfts[i.pft_id].lifeform==TREE) then
+            if (indiv.height>lowbound && indiv.boleht<highbound &&
+              !negligible(indiv.height-indiv.boleht)) then
+              -- Calculate vertical fraction of current layer occupied by
+              -- crown cylinders of this cohort
+              let frac = 1.0
+              let frac =
+              if (indiv.height<highbound) then
+                frac-(highbound-indiv.height)/VSTEP
+              else frac
+              let frac =
+              if (indiv.boleht>lowbound) then
+                frac-(indiv.boleht-lowbound)/VSTEP
+              else frac
+              -- Calculate summed LAI of this cohort in this layer
+              let atoh = indiv.lai/(indiv.height-indiv.boleht)
+              let indiv = indiv with lai_leafon_layer=atoh*frac*VSTEP
+              let pl = indiv.lai_leafon_layer * indiv.phen
+              let pll = indiv.lai_leafon_layer
+              in (indiv, pl, pll)
+            else
+              let indiv = indiv with lai_layer = 0.0
+              let indiv = indiv with lai_leafon_layer = 0.0
+              in (indiv, 0.0, 0.0)
+          else indiv) vegetation
+        let plai_layer : real = reduce 0.0 (+) pls
+        let plai_leafon_layer : real = reduce 0.0 (+) plls
+
+        -- Calculate FPAR at bottom of this layer
+        -- Eqn 27, Prentice et al 1993
+        let fpar_layer_bottom = lambertbeer(plai)
+        let fpar_leafon_layer_bottom = lambertbeer(plai_leafon)
+        -- Total PAR uptake in this layer
+        let fpar_uptake_layer = fpar_layer_top-fpar_layer_bottom
+        let fpar_uptake_leafon_layer = fpar_leafon_layer_top-fpar_leafon_layer_bottom
+        -- Partition PAR for this layer among trees,
+        let vegetation = map (\indiv ->
+          if (pfts[indiv.pft_id].lifeform==TREE) then
+            let indiv =
+            if (!negligible(plai_leafon_layer)) then
+              -- FPAR partitioned according to the relative amount
+              -- of leaf area in this layer for this individual
+              indiv with fpar_leafon = indiv.fpar_leafon + fpar_uptake_leafon_layer*indiv.lai_leafon_layer/plai_leafon_layer
+            else indiv
+            let indiv =
+            if (!negligible(plai_layer)) then
+              indiv with fpar = indiv.fpar + fpar_uptake_layer* (indiv.lai_leafon_layer*indiv.phen)/plai_layer
+            else indiv
+            in indiv
+          else indiv
         ) vegetation
-    -- Save grass canopy FPAR and update mean growing season grass canopy PAR
-    -- Growing season defined here as days when mean vegetation leaf-on fraction
-    -- exceeds 50% and we're in the light half of the year (daylength >= 11).
-    --
-    -- The daylength condition was added because sites with evergreens can have
-    -- a mean vegetation leaf-on fraction over 50% even during polar night.
-    -- 11 hours was chosen because some sites never reach exactly 12 hours, the
-    -- exact limit shouldn't matter much.
-    let patch = patch with fpar_grass=fpar_grass
-    let par_grass = fpar_grass * climate.par
-    let patch =
-        if (date.day==0) then
-          let patch = patch with par_grass_mean = 0.0
-          let patch = patch with nday_growingseason = 0
-          in patch
-        else patch
-    let patch =
-        if (phen_veg > PHEN_GROWINGSEASON && climate.daylength >= 11.0) then
-          let patch = patch with par_grass_mean = patch.par_grass_mean + par_grass
-          let patch = patch with nday_growingseason = patch.nday_growingseason + 1
-          in patch
-        else patch
-    -- Convert from sum to mean on last day of year
-    let patch =
-        if (date.islastday && date.islastmonth && patch.nday_growingseason) then
-          patch with par_grass_mean = patch.par_grass_mean / realFromInt patch.nday_growingseason
-        else patch
-    in (patch, vegetation)
+        in (layer-1,plai + plai_layer,plai_leafon + plai_leafon_layer,vegetation)
+
+      -- FPAR reaching grass canopy
+      let fpar_grass = lambertbeer(plai)
+      let fpar_leafon_grass = lambertbeer(plai_leafon)
+      -- Add grass LAI to calculate PAR reaching forest floor
+      -- BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
+      --plai+=plai_grass
+      let fpar_ff = lambertbeer(plai+plai_grass)
+      let plai = plai + plai_grass
+      -- Save this
+      let patch = patch with fpar_ff = fpar_ff
+      let plai_leafon = plai_leafon + plai_leafon_grass
+      let fpar_leafon_ff = lambertbeer(plai_leafon)
+      -- FPAR for grass PFTs is difference between relative PAR at top of grass canopy
+      -- canopy and at forest floor, or lower if FPAR at forest floor below threshold
+      -- for grass growth. PAR reaching the grass canopy is partitioned among grasses
+      -- in proportion to their LAI (a somewhat simplified assumption)
+      -- Loop through individuals
+      let (vegetation) = map (\indiv ->
+        if (pfts[indiv.pft_id].lifeform==GRASS || pfts[indiv.pft_id].lifeform==MOSS) then
+          -- Calculate minimum FPAR for growth of this grass
+          -- Fraction of total grass LAI represented by this grass
+          let flai =
+          if (!negligible(plai_grass)) then
+            indiv.lai_today()/plai_grass
+          else 1.0
+          let fpar_min =
+          if (!negligible(climate.par)) then
+            min(pfts[pfts[indiv.pft_id]_id].parff_min/climate.par,1.0)
+          else 1.0
+          let indiv = indiv with fpar = max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min))
+          -- Repeat assuming full leaf cover for all individuals
+          let flai =
+          if (!negligible(plai_leafon_grass)) then
+            indiv.lai/plafpari_leafon_grass
+          else 1.0
+          let indiv = indiv with fpar_leafon=max(0.0,fpar_leafon_grass*flai-
+            max(fpar_leafon_ff*flai,fpar_min))
+          in indiv
+        else (indiv)
+        ) vegetation
+      let fpar_tree_total : real =
+        reduce 0.0 (+) <| map
+          (\i -> if pfts[pfts[indiv.pft_id]_id].lifeform==TREE then i.fpar else 0.0
+          ) vegetation
+      -- Save grass canopy FPAR and update mean growing season grass canopy PAR
+      -- Growing season defined here as days when mean vegetation leaf-on fraction
+      -- exceeds 50% and we're in the light half of the year (daylength >= 11).
+      --
+      -- The daylength condition was added because sites with evergreens can have
+      -- a mean vegetation leaf-on fraction over 50% even during polar night.
+      -- 11 hours was chosen because some sites never reach exactly 12 hours, the
+      -- exact limit shouldn't matter much.
+      let patch = patch with fpar_grass=fpar_grass
+      let par_grass = fpar_grass * climate.par
+      let patch =
+          if (date.day==0) then
+            let patch = patch with par_grass_mean = 0.0
+            let patch = patch with nday_growingseason = 0
+            in patch
+          else patch
+      let patch =
+          if (phen_veg > PHEN_GROWINGSEASON && climate.daylength >= 11.0) then
+            let patch = patch with par_grass_mean = patch.par_grass_mean + par_grass
+            let patch = patch with nday_growingseason = patch.nday_growingseason + 1
+            in patch
+          else patch
+      -- Convert from sum to mean on last day of year
+      let patch =
+          if (date.islastday && date.islastmonth && patch.nday_growingseason) then
+            patch with par_grass_mean = patch.par_grass_mean / realFromInt patch.nday_growingseason
+          else patch
+      in (patch, vegetation)
 
 let alphaa(pft : Pft) =
   if (pft.phenology == CROPGREEN) then
@@ -595,63 +608,63 @@ let get_moss_wtp_limit(pft : Pft, stand : Stand, soil : Soil, gridcell : Gridcel
 ---Subdaily values calculated if needed
  --
 let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Standpft, ppfts : [npft]Patchpft, pfts : [npft]Pft)
-  : (Vegetation, [npft]Standpft, [npft]Patchpft) =
-  --ps_stress.no_stress() --TODO: is this just the default constructor?
-  -- If this is the first patch, calculate no-stress assimilation for
-  -- each Standpft, assuming FPAR=1. This is then later used in
-  -- forest_floor_conditions.
-  let pftco2 : real = climate.co2 -- will override for peat mosses
-  let (spfts, ppfts) = if patch.patch_id == 0 then
-    map2 (\spft ppft ->
-      if (spft.active) then
-        let pftco2 = get_co2(patch, climate, pfts[spft.pft_id])
-        let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=1.0, daylength=climate.daylength}
-        let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(patch, pfts[spft.pft_id]), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pfts[spft.pft_id]), inund_stress=get_inund_stress(patch, ppft)}
-        -- Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-        let ps_result = photosynthesis(ps_env, ps_stress, spft.pft,
-                                       spft.pft.lambda_max, 1.0, -1,
-                                       spft.photosynthesis)
-        let spft = spft with photosynthesis_result = ps_result
-        in (spft, ppft)
-      else (spft, ppft)
-    ) spfts ppfts
-  else (spfts, ppfts)
-  -- Pre-calculation of no-stress assimilation for each individual
-  let (vegetation) =
-  map (\indiv ->
-    let pft : Pft = pfts[pfts[indiv.pft_id]_id]
-    let ppft : Patchpft = ppfts[pft.id]
-    let pftco2 = get_co2(patch, climate, pft)
-    let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
-    let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(patch, pft), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft), inund_stress=get_inund_stress(patch, ppft)}
-    -- Individual photosynthesis with no nitrogen limitation
-    let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                                   pft.lambda_max, 1.0, -1,
-                                   indiv.photosynthesis)
-    let indiv = indiv with photosynthesis = ps_result
-    let indiv = indiv with gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength)
-    in
-    if (diurnal(date)) then
-      let indiv = indiv with gpterms = gpterms with [date.subdaily] = 0
-      --FIXME is this correct?
-      let res = PhotosynthesisResult()
-      let indiv = indiv with phots = phots with [date.subdaily] = res
-      let (indiv, _) =
-      loop (indiv, i) =
-           (indiv, 0)
-      while (i < date.subdaily) do
-        let ps_result : PhotosynthesisResult = indiv.phots[i]
-        -- Update temperature and PAR
-        let ps_env : PhotosynthesisEnvironment = {co2=pftco2, temp=climate.temps[i], pars=climate.pars[i], fpar=indiv.fpar, daylength=24}
-        let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                                       pft.lambda_max, 1.0, indiv.photosynthesis.vm,
-                                       ps_result)
-        let indiv = indiv with gpterms = gpterms with [i] = gpterm(ps_result.adtmm, climate.co2, pft.lampda_max, 24)
-        in (indiv, i+1)
-      in indiv
-      else indiv
-  ) vegetation
-  in (vegetation, spfts, ppfts)
+ : (Vegetation, [npft]Standpft, [npft]Patchpft) =
+ --ps_stress.no_stress() --TODO: is this just the default constructor?
+ -- If this is the first patch, calculate no-stress assimilation for
+ -- each Standpft, assuming FPAR=1. This is then later used in
+ -- forest_floor_conditions.
+ let pftco2 : real = climate.co2 -- will override for peat mosses
+ let (spfts, ppfts) = if patch.patch_id == 0 then
+   map2 (\spft ppft ->
+     if (spft.active) then
+       let pftco2 = get_co2(patch, climate, pfts[spft.pft_id])
+       let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=1.0, daylength=climate.daylength}
+       let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(patch, pfts[spft.pft_id]), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pfts[spft.pft_id]), inund_stress=get_inund_stress(patch, ppft)}
+       -- Call photosynthesis assuming stomates fully open (lambda = lambda_max)
+       let ps_result = photosynthesis(ps_env, ps_stress, spft.pft,
+                                      spft.pft.lambda_max, 1.0, -1,
+                                      spft.photosynthesis)
+       let spft = spft with photosynthesis_result = ps_result
+       in (spft, ppft)
+     else (spft, ppft)
+   ) spfts ppfts
+ else (spfts, ppfts)
+ -- Pre-calculation of no-stress assimilation for each individual
+ let (vegetation) =
+ map (\indiv ->
+   let pft : Pft = pfts[pfts[indiv.pft_id]_id]
+   let ppft : Patchpft = ppfts[pft.id]
+   let pftco2 = get_co2(patch, climate, pft)
+   let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
+   let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(patch, pft), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft), inund_stress=get_inund_stress(patch, ppft)}
+   -- Individual photosynthesis with no nitrogen limitation
+   let ps_result = photosynthesis(ps_env, ps_stress, pft,
+                                  pft.lambda_max, 1.0, -1,
+                                  indiv.photosynthesis)
+   let indiv = indiv with photosynthesis = ps_result
+   let indiv = indiv with gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength)
+   in
+   if (diurnal(date)) then
+     let indiv = indiv with gpterms = gpterms with [date.subdaily] = 0
+     --FIXME is this correct?
+     let res = PhotosynthesisResult()
+     let indiv = indiv with phots = phots with [date.subdaily] = res
+     let (indiv, _) =
+     loop (indiv, i) =
+          (indiv, 0)
+     while (i < date.subdaily) do
+       let ps_result : PhotosynthesisResult = indiv.phots[i]
+       -- Update temperature and PAR
+       let ps_env : PhotosynthesisEnvironment = {co2=pftco2, temp=climate.temps[i], pars=climate.pars[i], fpar=indiv.fpar, daylength=24}
+       let ps_result = photosynthesis(ps_env, ps_stress, pft,
+                                      pft.lambda_max, 1.0, indiv.photosynthesis.vm,
+                                      ps_result)
+       let indiv = indiv with gpterms = gpterms with [i] = gpterm(ps_result.adtmm, climate.co2, pft.lampda_max, 24)
+       in (indiv, i+1)
+     in indiv
+     else indiv
+ ) vegetation
+ in (vegetation, spfts, ppfts)
 --- Calculates individual fnuptake based on surface of fine root
 --- Calculates individual fraction nitrogen uptake based on surface of fine root
 --- Roots are cone formed with height == radius.
@@ -660,13 +673,14 @@ let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Stan
 --- -> A = const * cmass_root^2/3
 ---
 let nitrogen_uptake_strength(indiv : Individual) : real =
-  pow(max(0.0, indiv.cmass_root_today()) * pfts[indiv.pft_id].nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv
+ pow(max(0.0, indiv.cmass_root_today()) * pfts[indiv.pft_id].nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv
 --- Individual nitrogen uptake fraction
 --- Determining individual nitrogen uptake as a fraction of its nitrogen demand.
 --- \see ncompete
 --- Function nitrogen_uptake_strength() determines how good individuals are at
 --- acquiring nitrogen.
 ---
+
 let fnuptake [n] (vegetation : [n]Individual, nmass_avail : real) =
   -- Create vector describing the individuals to ncompete()
   let individuals = map (\_ -> {dnemand = vegetation[i].ndemand, strength = nitrogen_uptake_strength(vegetation[i]), fnuptake = 0}) <| iota n
@@ -683,6 +697,7 @@ let fnuptake [n] (vegetation : [n]Individual, nmass_avail : real) =
                   ) <| zip vegetation individuals
   in vegetation
 --- Use nitrogen storage to limit stress
+
 --- Retranslocated nitrogen from last year is used to
 --- limit nitrogen stress in leaves, roots, and sap wood
 let nstore_usage(vegetation : Vegetation) : Vegetation =
@@ -733,6 +748,7 @@ let nstore_usage(vegetation : Vegetation) : Vegetation =
       -- photosynthesis will not be nitrogen stresses
   ) vegetation
 --/ Nitrogen demand
+
 --- Determines nitrogen demand based on vmax for leaves.
 --  Roots and sap wood nitrogen concentration follows leaf
 --  nitrogen concentration.
@@ -943,6 +959,7 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetati
   ) vegetation
   in vegetation
 --/ Transpirative demand
+
 --- Two alternative parameterisations of aet_monteith are available:
 --      AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL
 --  \see canexch.h
@@ -1126,28 +1143,25 @@ let aet_water_stress(patch : Patch, stand: Stand, vegetation : Vegetation, day :
 
 --/ Water scalar
 let water_scalar(stand : Stand, patch : Patch, vegetation : Vegetation, day : Day, ppfts : [npft]Patchpft, pfts : [nptf]Pft)
-  : [nptf]Pft =
+  : [nptf]Patchpft =
   -- Derivation of daily and annual versions of water scalar (wscal, omega)
   -- Daily version is used to determine leaf onset and abscission for raingreen PFTs.
   -- Annual version determines relative allocation to roots versus leaves for
   -- subsequent year
-  let (p, ppfts) =
-  loop (p, ppfts)
-    = (0, ppfts)
-  while (p<npft) do
+  let (_, ppfts) = loop (p, ppfts) = (0, ppfts) while (p<npft) do
     -- Retrieve next patch PFT
     let ppft : Patchpft = ppfts[p] in
-    if (!patch.stand.pft[p].active) then (p+1, ppfts) else
+      if (!patch.stand.pft[p].active) then (p+1, ppfts) else
     let pft = pfts[p]
     let ppft =
       if (day.isstart) then
-        let ppft = ppft with wscal = 0 in
-          if (date.day == 0) then
-            let ppft = ppft with wscal_mean = 0 in
-              if (pft.phenology==CROPGREEN || pft.isintercropgrass) then
-                ppft with cropphen = cropphen with growingdays_y = 0
-              else ppft
+      let ppft = ppft with wscal = 0 in
+        if (date.day == 0) then
+        let ppft = ppft with wscal_mean = 0 in
+          if (pft.phenology==CROPGREEN || pft.isintercropgrass) then
+            ppft with cropphen = cropphen with growingdays_y = 0
           else ppft
+        else ppft
       else ppft
     let ppft = ppft with wscal =
       -- Calculate patch PFT water scalar value
@@ -1155,26 +1169,25 @@ let water_scalar(stand : Stand, patch : Patch, vegetation : Vegetation, day : Da
         ppft.wscal + min(1.0, ppft.wsupply_leafon/patch.wdemand_leafon)
       else
         ppft.wscal + 1.0
-
     let ppft =
       if (day.isend) then
         let ppft = ppft with wscal = ppft.wscal / realFromInt date.subdaily in
-        if (stand.landcover!=CROPLAND --natural, urban, pasture, forest and peatland stands
-            || pft.phenology==ANY && ppft_pft_id==stand.pft_id) then --normal grass growth
-          let ppft = ppft with wscal_mean = ppft.wscal_mean + ppft.wscal
-          in
+        if (stand.landcover!=CROPLAND || pft.phenology==ANY && ppft_pft_id==stand.pft_id) --natural, urban, pasture, forest and peatland stands
+          then --normal grass growth
+          let ppft = ppft with wscal_mean = ppft.wscal_mean + ppft.wscal in
             -- Convert from sum to mean on last day of year
             if (date.islastday && date.islastmonth) then
               ppft with wscal_mean = ppft.wscal_mean / date.year_length()
             else ppft
-          else if (ppft.cropphen.growingseason -- true crops and cover-crop grass
-              || ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen.hdate
-              || ppft.pft.isintercropgrass && date.day == patch.pft[stand.pft_id].cropphen.eicdate) then
+        else
+          if (ppft.cropphen.growingseason || ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen.hdate || ppft.pft.isintercropgrass && date.day == patch.pft[stand.pft_id].cropphen.eicdate) then
             let ppft = ppft with cropphen = ppft.cropphen with growingdays_y = ppft.cropphen.growingdays_y+1
             let ppft = ppft with wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen.growingdays_y
             in ppft
           else ppft
       else ppft
+    let ppfts = ppfts with [p] = ppft
+    in (p+1, ppfts)
   in ppfts
 -- ASSIMILATION_WSTRESS
 -- Internal function (do not call directly from framework)
@@ -1386,6 +1399,7 @@ let respiration( gtemp_air : real,  gtemp_soil : real,  lifeform : lifeformtype,
     -- Total respiration (see above)
     in resp_root + resp_growth
   else nan --else fail ("Canopy exchange function respiration: unknown life form")
+--
 --/ Net Primary Productivity
 --- Includes BVOC calculations \see bvoc.cpp
 --/
@@ -1617,24 +1631,7 @@ let init_canexch(patch : Patch, climate : Climate, vegetation : Vegetation, date
       ) vegetation
     else vegetation
   in (patch with wdemand_day = 0, vegetation)
---type GlobalData = {
---    pfts : [npft]Pft,
---    standtypes: []StandType,
---    managementtypes : []ManagementType,
---    soultypes: []Soiltype,
-    --gridcells : []Gridcell
---    climate: []Climate,
---    weathergenstate: []WeatherGenState,
---    landcover: []Landcover,
---    massbalance: []MassBalance,
-  --gridcellsts: [][]Gridcellst,
-  --    gridcellpfts: [][]Gridcellpft,
---    stands: [][]Stand,
---    standpfts : [][][]Standpft,
---    patches : [][][]Patch,
---    patchpfts : [][][][]Patchpft,
---    individuals : [][][][]Individual
---}
+
 --let canopy_exchange(patch : Patch, climate : Climate, individuals : [][][]Individuals) : Patch =
 --  let vegetation : []Individual = individuals[patch.gridcell_id, patch.stand_id, patch.patch_id]
 --  in patch
@@ -1698,3 +1695,22 @@ let canopy_exchange(patch : Patch, vegetation : Vegetation, climate : Climate, p
   let patch = patch with apet = patch.apet + pet_patch
   let patch = patch with mpet = patch.mpet with [date.month] = patch.mpet[date.month] + pet_patch
   in (patch, vegetation, spfts, ppfts)
+
+--type GlobalData = {
+--    pfts : [npft]Pft,
+--    standtypes: []StandType,
+--    managementtypes : []ManagementType,
+--    soultypes: []Soiltype,
+    --gridcells : []Gridcell
+--    climate: []Climate,
+--    weathergenstate: []WeatherGenState,
+--    landcover: []Landcover,
+--    massbalance: []MassBalance,
+  --gridcellsts: [][]Gridcellst,
+  --    gridcellpfts: [][]Gridcellpft,
+--    stands: [][]Stand,
+--    standpfts : [][][]Standpft,
+--    patches : [][][]Patch,
+--    patchpfts : [][][][]Patchpft,
+--    individuals : [][][][]Individual
+--}

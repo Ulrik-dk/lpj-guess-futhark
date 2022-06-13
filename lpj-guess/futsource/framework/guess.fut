@@ -1692,3 +1692,4 @@ let Gridcellst(gridcellst_id : int, standtype_id : int) : Gridcellst = {
   nstands = 0,
   nfert = (-1.0)
 }
+type Vegetation = [npft]Individual

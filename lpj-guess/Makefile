@@ -16,6 +16,7 @@ archdependencies:
 	yay -S cmake netcdf
 
 0:
+	futhark check futsource/modules/canexch.fut
 
 	futhark check futsource/framework/guess.fut
 
@@ -33,7 +34,6 @@ archdependencies:
 
 	futhark check futsource/everything.fut
 
-	futhark check futsource/modules/canexch.fut
 
 1: build
 
