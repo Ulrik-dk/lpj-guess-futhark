@@ -85,7 +85,7 @@ let ROOTDIST_JACKSON : rootdisttype = 1
 --let title : xtring = 1
 
 --- Vegetation mode (population, cohort or individual)
---let vegmode : vegmodetype = POPULATION --TODO
+let vegmode : vegmodetype = POPULATION
 
 --- Default number of patches in each stand
 --- Should always be 1 in population mode,
@@ -168,7 +168,7 @@ let freenyears : int = 100
 --let  nfix_b : real = 1.0
 
 --- whether to use nitrification/denitrification in CENTURY SOM dynamics
---let ifntransform : bool = true
+let ifntransform : bool = true
 --- Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
 --let  frac_labile_carbon : real = 1.0
 

@@ -1,4 +1,5 @@
 open import "../framework/guessmath"
+open import "../framework/guess"
 
 type NCompetingIndividual = {
   ndemand : real,
@@ -6,10 +7,10 @@ type NCompetingIndividual = {
   fnuptake : real
 }
 
-let NCompetingIndividual() : NCompetingIndividual = {
-  ndemand = realzero,
-  strength = realzero,
-  fnuptake = realzero
+let NCompetingIndividual(individual : Individual) : NCompetingIndividual = {
+  ndemand = individual.ndemand,
+  strength = 0.0,
+  fnuptake = individual.fnuptake
 } -- FIXME: a guess at a constructor
 
 let ncompete [n] (individuals : [n]NCompetingIndividual, nmass_avail : real) =

@@ -161,7 +161,11 @@ let Climate(latitude : real, climate_id : int, gridcell_id : int) : Climate = {
   adjustlat = if (latitude >= 0) then 0 else 181,
 
   -- UNINITIALIZED
-
+  temps = replicate Date_subdaily 0.0,
+  insols = replicate Date_subdaily 0.0,
+  pars = replicate Date_subdaily 0.0,
+  rads = replicate Date_subdaily 0.0,
+  gtemps = replicate Date_subdaily 0.0,
   agdd5=nan,
   avg_annual_rainfall=nan,
   co2=nan,
@@ -349,7 +353,38 @@ let get_monthly_flux_PerPatchFluxType(this: Fluxes, flux_type: PerPatchFluxType,
   this.monthly_fluxes_patch[month,flux_type]
 
 let istruecrop_or_intercropgrass(indiv: Individual, pft : Pft) : bool =
-	(pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || indiv.cropindiv.isintercropgrass))
+  (pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || indiv.cropindiv.isintercropgrass))
+
+
+let cmass_leaf_today(this : Individual, pft : Pft, patchpft: Patchpft) : real =
+  if (istruecrop_or_intercropgrass(this, pft)) then
+    if patchpft.cropphen.growingseason then this.cropindiv.grs_cmass_leaf else 0
+  else
+    this.cmass_leaf * this.phen
+
+
+let nmass_avail(this: Soil, pref : int) : real =
+  let nmass = 0.0 --TODO should this modify Soil state?
+  let pref = if (!ifntransform) then NH4 else NO -- see guess.h somewhere
+  let (NH4_mass, NO3_mass) =
+    if (!ifntransform) && (this.NO3_mass > 0.0)
+    then (this.NH4_mass+this.NO3_mass, 0.0)
+    else (this.NH4_mass, this.NO3_mass)
+  in
+    if (pref == NO) then
+      NH4_mass + NO3_mass
+    else if (pref == NH4) then
+      NH4_mass
+    else if (pref == NO3) then
+      NO3_mass
+    else nmass
+
+--- Gets the individual's daily cmass_root value
+let cmass_root_today(this : Individual, pft: Pft, patchpft: Patchpft) : real =
+  if (istruecrop_or_intercropgrass(this, pft)) then
+    if patchpft.cropphen.growingseason then this.cropindiv.grs_cmass_root else 0
+  else
+    this.cmass_root * this.phen
 
 let Individual_report_flux_PerPFTFluxType(this: *Fluxes, alive: bool, istruecrop_or_intercropgrass: bool, flux_type : PerPFTFluxType, value : real, date : Date, pft_id : int) =
   if (alive || istruecrop_or_intercropgrass) then
@@ -821,7 +856,10 @@ let Individual(individual_id : int
               ,stand_hasgrassintercrop : bool
               ,pft_isintercropgrass : bool
             --,stand: Stand [num_patches]
-              ) : Individual = {
+              ) : Individual =
+
+  let ps_res = PhotosynthesisResult() in
+  {
   individual_id = individual_id,
   pft_id = pft_id,
   gridcell_id = gridcell_id,
@@ -915,6 +953,7 @@ let Individual(individual_id : int
               else newone),
 
   --uninitialized:
+  phots=replicate Date_subdaily ps_res,
   aaet=nan,
   aet=nan,
   avmaxnlim=nan,
@@ -940,357 +979,6 @@ let Individual(individual_id : int
   photosynthesis_result=PhotosynthesisResult()
 }
 
-
-let Soiltype(soiltype_id : int) : Soiltype = {
-  soiltype_id = soiltype_id,
-  solvesom_end = SOLVESOM_END,
-  solvesom_begin = SOLVESOM_BEGIN,
-  organic_frac = 0.02,
-  pH = -1.0,
-
-  -- Assume no mineral content on peatlands
-  sand_frac_peat = 0.0,
-  clay_frac_peat = 0.0,
-  silt_frac_peat = 0.0,
-
-  runon = 0.0,
-  soiltempdepths = replicate 10 0.0,
-
-  -- NOTE: These were UNINITIALIZED in the c++ code:
-  awc = replicate NSOILLAYER 0.0, --replicate NSOILLAYER nan, --- FIXME: awc is used EVERYWHERE but never initialized in the c++ code, how?
-  awc_peat = replicate NSOILLAYER nan,
-  clay_frac = nan,
-  gawc = replicate 2 nan,
-  gawc_peat = replicate 2 nan,
-  gwp = replicate 2 nan,
-  gwp_peat = replicate 2 nan,
-  gwsats = replicate 2 nan,
-  gwsats_peat = replicate 2 nan,
-  min_frac_gridcell = replicate NSOILLAYER nan,
-  mineral_frac = nan,
-  org_frac_gridcell = replicate NSOILLAYER nan,
-  perc_base = nan,
-  perc_base_evap = nan,
-  perc_exp = nan,
-  porosity = nan,
-  porosity_gridcell = replicate NSOILLAYER nan,
-  sand_frac = nan,
-  silt_frac = nan,
-  soilcode = intnan,
-  thermdiff_0 = nan,
-  thermdiff_100 = nan,
-  thermdiff_15 = nan,
-  water_below_wp = nan,
-  wp = replicate NSOILLAYER nan,
-  wp_peat = replicate NSOILLAYER nan,
-  wsats = replicate NSOILLAYER nan,
-  wsats_peat = replicate NSOILLAYER nan,
-  wtot = nan,
-  wtot_peat = nan
-}
-
---- Override the default SOM years with 70-80% of the spin-up period length
-let updateSolveSOMvalues(this : Soiltype, nyrspinup : int) : Soiltype =
-  let this = this with solvesom_end = intFromReal (0.8 * (realFromInt nyrspinup))
-  let this = this with solvesom_begin = intFromReal (0.7 * (realFromInt nyrspinup))
-  in this
-
---- Constructor
-let Sompool() : Sompool = {
-  -- Initialise pool
-  cmass = 0.0,
-  nmass = 0.0,
-  ligcfrac = 0.0,
-  delta_cmass = 0.0,
-  delta_nmass = 0.0,
-  fracremain = 0.0,
-  litterme = 0.0,
-  fireresist = 0.0,
-  mfracremain_mean = replicate 12 0.0,
-
-  -- FIXME: these were not initialized in the c++ code:
-  cdec = nan,
-  ndec = nan,
-  ntoc = nan
-}
-
-
-let LitterSolveSOM() : LitterSolveSOM =
-  { clitter = replicate NSOMPOOL 0.0
-  , nlitter = replicate NSOMPOOL 0.0
-  }
-
---- Add litter
-let add_litter({clitter, nlitter} : *LitterSolveSOM, cvalue : real, nvalue : real, pool : int) : LitterSolveSOM =
-  { clitter = clitter with [pool] = clitter[pool] + cvalue
-  , nlitter = nlitter with [pool] = nlitter[pool] + nvalue
-  }
-
-let Soil(soiltype : Soiltype) : Soil = {
-  soiltype_id = soiltype.soiltype_id,
-
-  -- Initialises certain member variables
-  alag = 0.0,
-  exp_alag = 1.0,
-  cpool_slow = 0.0,
-  cpool_fast = 0.0,
-  decomp_litter_mean = 0.0,
-  k_soilfast_mean = 0.0,
-  k_soilslow_mean = 0.0,
-  wcont_evap = 0.0,
-  snowpack = 0.0,
-  orgleachfrac = 0.0,
-
-  -- Extra initialisation
-  aorgCleach = 0.0,
-  aorgNleach = 0.0,
-  anfix = 0.0,
-  aminleach = 0.0,
-
-  lKorg = 0.0,
-  lKpeat = 0.0,
-  lKmin = 0.0,
-  lKwater = 0.0,
-  lKice = 0.0,
-  lKair = 0.0,
-
-  mwcontupper = 0.0,
-  mwcontlower = 0.0,
-
-  --for (int mth=0, mth<12, mth++) {
-  --  mwcont[mth][0] = 0.0,
-  --  mwcont[mth][1] = 0.0,
-  --  fnuptake_mean[mth] = 0.0,
-  --  morgleach_mean[mth] = 0.0,
-  --  mminleach_mean[mth] = 0.0,
-  --}
-  mwcont = replicate 12 (replicate NSOILLAYER 0.0),
-  morgleach_mean = replicate 12 0.0,
-  mminleach_mean = replicate 12 0.0,
-  fnuptake_mean = replicate 12 0.0,
-
-  dwcontupper = replicate Date_MAX_YEAR_LENGTH 0.0,
-  dwcontlower = replicate Date_MAX_YEAR_LENGTH 0.0,
-  -- for fire
-  dthaw = replicate Date_MAX_YEAR_LENGTH 0.0,
-
-
-  ----------------------------------------------------/
-  -- Initialise CENTURY pools
-
-  -- Set initial CENTURY pool N:C ratios
-  -- Parton et al 1993, Fig 4
-
-  -- inplace updates on records inside arrays is impossible?
-  -- easier to do a scatter
-  -- create the 'new' records and scatter them to their places
-  sompool = (let somepool = Sompool()
-             let dsts = replicate NSOMPOOL somepool
-             let idx_vals = [(SOILMICRO, 1.0 / 15.0)
-                            ,(SURFHUMUS, 1.0 / 15.0)
-                            ,(SLOWSOM  , 1.0 / 20.0)
-                            ,(SURFMICRO, 1.0 / 20.0)
-                            -- passive has a fixed value
-                            ,(PASSIVESOM,1.0 /  9.0)
-                            ]
-             let updated_Sompools = map (\(_, b) ->
-                Sompool() with ntoc = b
-               ) idx_vals
-             in scatter dsts (map (\(a,_) -> a) idx_vals) updated_Sompools
-             ),
-
-
-  NO2_mass = 0.0,
-  NO2_mass_w = 0.0,
-  NO2_mass_d = 0.0,
-  NO_mass = 0.0,
-  NO_mass_w = 0.0,
-  NO_mass_d = 0.0,
-  N2O_mass = 0.0,
-  N2O_mass_w = 0.0,
-  N2O_mass_d = 0.0,
-  N2_mass = 0.0,
-  NH4_mass = 0.0,
-  NO3_mass = 0.0,
-  NH4_input = 0.0,
-  NO3_input = 0.0,
-  anmin = 0.0,
-  animmob = 0.0,
-  --aminleach = 0.0, -- these were initialied twice in c++
-  --aorgNleach = 0.0,
-  --aorgCleach = 0.0,
-  --anfix = 0.0,
-  anfix_calc = 0.0,
-  anfix_mean = 0.0,
-  snowpack_NH4_mass = 0.0,
-  snowpack_NO3_mass = 0.0,
-  labile_carbon = 0.0,
-  labile_carbon_w = 0.0,
-  labile_carbon_d = 0.0,
-
-  pH = 6.5,
-
-  dperc = 0.0,
-
-  solvesomcent_beginyr = intFromReal (SOLVESOMCENT_SPINBEGIN * (realFromInt <| nyear_spinup - freenyears) + (realFromInt freenyears)),
-  solvesomcent_endyr   = intFromReal (SOLVESOMCENT_SPINEND   * (realFromInt <|nyear_spinup - freenyears) + (realFromInt freenyears)),
-
-  temp25 = 10,
-
-  ----------------------------------------------------/
-  -- Arctic and wetland initialisation
-
-  -- Daily heterotrophic respiration. Only ever nonzero on peatland stands.
-  dcflux_soil = 0.0,
-
-  -- Indices
-  IDX = 0,
-  SIDX = 0,
-  MIDX = 0,
-  SIDX_old = 0,
-
-  firstTempCalc = true,
-  firstHydrologyCalc = true,
-  --SIDX_old = 0, -- these were initialized multiple times
-  --IDX = 0,
-  --nsublayer1 = 0,
-  --nsublayer2 = 0,
-  --num_evaplayers = 0,
-
-  -- initialise snow variables
-  snow_active = false,
-  snow_active_layers = 0,
-  snow_days = 0,
-  snow_days_prev = 365,
-  dec_snowdepth = 0.0,
-
-  -- Peatland hydrology variables
-  awtp = 0.0,
---  acro_depth = 0.0,
---  cato_depth = 0.0,
-
-  acro_co2 = 934.0, -- [mimol L-1]
-
-  wtd = 0.0, -- [-100, +300] mm
-
-  acro_por = acrotelm_por - Fgas,
-  cato_por = catotelm_por - Fgas,
-
-  Wtot = 0.0,
-  stand_water = 0.0,
-
-  dmoss_wtp_limit = 1.0,
-  dgraminoid_wtp_limit = 1.0,
-
-  k_O2 = 0.0,
-  k_CO2 = 0.0,
-  k_CH4 = 0.0,
-  Ceq_O2 = 0.0,
-  Ceq_CO2 = 0.0,
-  Ceq_CH4 = 0.0,
-
-  ch4_store = 0.0,
-  co2_store = 0.0,
-
-  maxthawdepththisyear = 0.0,
-  thaw = 0.0,
-  snowdens = snowdens_start, -- kg/m3
-  dsnowdepth = 0.0,
-
-  mthaw = replicate 12 0.0,
-  msnowdepth = replicate 12 0.0,
-  mwtp = replicate 12 0.0,
-  T_soil_monthly = replicate 12 (replicate SOILTEMPOUT (-999.0)),
-
-  sub_water = replicate NSUBLAYERS_ACRO 0.0,
-
-  wtp = replicate Date_MAX_YEAR_LENGTH 0.0,
-
-  -- FUNFACT: these were initialized to 0, 365 times in a row, in the c++ code
-  Frac_ice = replicate NLAYERS 0.0,
-  T_soil = replicate NLAYERS 0.0,
-
-  -- FIX?: The original code was super wierd and inefficient here.
-  Frac_water = replicate NLAYERS 0.0,
-  T = replicate NLAYERS 0.0,
-  T_old = replicate NLAYERS 0.0,
-  Frac_org = replicate NLAYERS 0.0,
-  Frac_peat = replicate NLAYERS 0.0,
-  Frac_min = replicate NLAYERS 0.0,
-  Fpwp_ref = replicate NLAYERS 0.0,
-  Frac_water_belowpwp = replicate NLAYERS 0.0,
-  Frac_ice_yesterday = replicate NLAYERS 0.0,
-  Dz = replicate NLAYERS 0.0,
-  por = replicate NLAYERS 0.0,
-  rootfrac = replicate NLAYERS 0.0,
-  CH4_yesterday = replicate NLAYERS 0.0,
-  CO2_soil_yesterday = replicate NLAYERS 0.0,
-  volume_liquid_water = replicate NLAYERS 0.0,
-  total_volume_water = replicate NLAYERS 0.0,
-  tiller_area = replicate NLAYERS 0.0001,  -- The max value
-  CH4_ebull_ind = replicate NLAYERS 0.0,
-  CH4_ebull_vol = replicate NLAYERS 0.0,
-  CH4_gas_yesterday = replicate NLAYERS 0.0,
-  CH4_diss_yesterday = replicate NLAYERS 0.0,
-  CH4_gas_vol = replicate NLAYERS 0.0,
-  CH4 = replicate NLAYERS 0.0,
-  CO2_soil = replicate NLAYERS 0.0,
-  O2 = replicate NLAYERS 0.0,
-  CO2_soil_prod = replicate NLAYERS 0.0,
-  CH4_prod = replicate NLAYERS 0.0,
-  CH4_gas = replicate NLAYERS 0.0,
-  CH4_diss = replicate NLAYERS 0.0,
-  Frac_air = replicate NLAYERS 0.0,
-
-
-  wcont = replicate NSOILLAYER 0.0,
-  alwhc = replicate NSOILLAYER 0.0,
-  alwhc_init = replicate NSOILLAYER 0.0,
-
-  awcont_upper = 0.0,
-
-  nsublayer1 = intFromReal(SOILDEPTH_UPPER / Dz_soil),    -- 5, typically
-  nsublayer2 = intFromReal(SOILDEPTH_LOWER / Dz_soil),    -- 10, typically
-  num_evaplayers = intFromReal(SOILDEPTH_EVAP / Dz_soil),  -- 2, typically
-
-  whc_evap = soiltype.awc[0] + soiltype.awc[1],    -- mm
-
-  -- Depths of the acrotelm & catotelm
-  acro_depth = realFromInt <| NACROTELM * (intFromReal Dz_acro),
-  cato_depth = SOILDEPTH_UPPER + SOILDEPTH_LOWER - (realFromInt <| NACROTELM * (intFromReal Dz_acro)),
-
-  --- the following were not initialized in the original code:
-  CH4_oxid = replicate NLAYERS nan,
-  CH4_vgc = replicate NLAYERS nan,
-  Ci = replicate NLAYERS nan,
-  Di = replicate NLAYERS nan,
-  Ki = replicate NLAYERS nan,
-  NH4_mass_d = nan,
-  NH4_mass_w = nan,
-  NO3_mass_d = nan,
-  NO3_mass_w = nan,
-  T_soil_yesterday = replicate NLAYERS nan,
-  aw_max = replicate NSOILLAYER nan,
-  dtemp = replicate 31 nan,
-  gtemp = nan,
-  litterSolveSOM = LitterSolveSOM(),
-  max_rain_melt = nan,
-  mtemp = nan,
-  ngroundl = intnan,
-  pad_dz = replicate PAD_LAYERS nan,
-  pad_temp = replicate PAD_LAYERS nan,
-  percolate = false,
-  rain_melt = nan,
-  runoff = nan,
-  snow_ice = replicate NLAYERS_SNOW nan,
-  snow_water = replicate NLAYERS_SNOW nan,
-  temp_analyticsoln = nan,
-  whc = replicate NSOILLAYER nan
-}
-
-
-
--- TODO: There are many SOIL member functions in soil.cpp
 
 let cropphen_struct() : cropphen_struct = {
     sdate=(-1),
@@ -1429,6 +1117,44 @@ let next(this : Day, date: Date) : Day = {
   isstart = false,
   isend = this.period+1 == date.subdaily - 1
 }
+
+--- Gets the individual's daily fpc value
+let fpc_today(this: Individual, pft: Pft, ppft: Patchpft) : real =
+  if (pft.phenology == CROPGREEN) then
+    if ppft.cropphen.growingseason then this.fpc_daily else 0.0
+  else
+    this.fpc * this.phen
+
+--- Gets the individual's daily lai_indiv value
+let lai_indiv_today(this: Individual, pft: Pft, ppft: Patchpft) : real =
+	if (pft.phenology == CROPGREEN) then
+		if ppft.cropphen.growingseason then this.lai_indiv_daily else 0
+	else
+		this.lai_indiv * this.phen
+--
+let is_true_crop_stand(stand: Stand, pft: Pft) : bool =
+  stand.landcover==CROPLAND && pft.phenology==CROPGREEN--	// OK also for fallow (pftid always cropgreen)
+
+let cton_leaf(this : Individual, use_phen : bool, stand : Stand, standpft: Standpft, pfts : [npft]Pft, patchpft: Patchpft) : real =
+	if (is_true_crop_stand(stand, pfts[standpft.pft_id]) && !negligible(cmass_leaf_today(this, pfts[standpft.pft_id], patchpft)) && !negligible(this.nmass_leaf))
+  then cmass_leaf_today(this, pfts[standpft.pft_id], patchpft) / this.nmass_leaf
+	else
+    if (!is_true_crop_stand(stand, pfts[standpft.pft_id]) && !negligible(this.cmass_leaf) && !negligible(this.nmass_leaf)) then
+  		if (use_phen) then
+  			if (!negligible(this.phen)) then
+  				cmass_leaf_today(this, pfts[standpft.pft_id], patchpft) / this.nmass_leaf
+  			else pfts[standpft.pft_id].cton_leaf_avr
+  		else this.cmass_leaf / this.nmass_leaf
+  	else pfts[standpft.pft_id].cton_leaf_max
+
+
+--- Gets the individual's daily lai value
+let lai_today(this : Individual, pft: Pft, ppft: Patchpft) : real =
+  if (pft.phenology == CROPGREEN) then
+    if ppft.cropphen.growingseason then this.lai_daily else 0
+  else
+    this.lai * this.phen
+
 
 let Patch(gridcell_id: int
          ,stand_id: int

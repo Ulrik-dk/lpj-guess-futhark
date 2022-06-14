@@ -16,6 +16,7 @@ archdependencies:
 	yay -S cmake netcdf
 
 0:
+	futhark check futsource/modules/ncompete.fut
 	futhark check futsource/modules/canexch.fut
 
 	futhark check futsource/framework/guess.fut
@@ -23,7 +24,6 @@ archdependencies:
 
 	futhark check futsource/futhark-extras.fut
 
-	futhark check futsource/modules/ncompete.fut
 	futhark check futsource/framework/guessmath.fut
 	futhark check futsource/framework/parameters.fut
 	futhark check futsource/framework/guess_datatypes.fut

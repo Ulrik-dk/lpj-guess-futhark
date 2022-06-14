@@ -4,8 +4,6 @@ type uint = u64
 
 let ifbvoc : int = 0
 
-let vegmode : bool = true
-
 let realzero : real = 0.0
 let Date_subdaily : int = 1 -- get this somewhere else
 let Date_MAX_YEAR_LENGTH : int = 365
@@ -35,7 +33,10 @@ type enum_type = i64
 
 let npft : int = 6 -- TODO: this is a dynamic global variable that should be aquired otherwise than this!
 
+
+
 -- from global.ins
 let run_landcover : bool = false
+let lambda_max : real = 0.8
 --parameters.cpp?
 let disturb_pasture : bool = false

@@ -6,7 +6,7 @@ open import "../framework/guess"
 open import "../modules/q10"
 open import "../futhark-extras"
 --#include "bvoc.h"
---open import "../framework/ncompete"
+open import "../modules/ncompete"
 --#include <assert.h>
 -------------------------------------PART FROM .h--------------------------------------
 -- Constants for photosynthesis calculations
@@ -54,8 +54,51 @@ let lookup_ko = LookupQ10(1.2, 3.0e4)
 let lookup_kc = LookupQ10(2.1, 30.0)
 --void interception(Patch& patch,Climate& climate) {
 --------------------------------------------------------------------------------------/
+
+-- replacing the respective call with these will result in futhark being unable to typecheck it
+let type_checker_helper1 (i: Individual, ppfts: [npft]Patchpft) : Individual =
+    if ppfts[i.pft_id].cropphen.growingseason then
+      let i = i with fpar_leafon = 0.0
+      let i = i with fpar = 0.0
+      in i
+    else i
+
+let type_checker_helper2 (i: Individual, value: real) : Individual =
+  i with lai_leafon_layer = value
+
+let type_checker_helper3 (indiv: Individual, plai_leafon_layer: real, fpar_uptake_leafon_layer : real, plai_layer : real, fpar_uptake_layer : real) : Individual =
+  let indiv : Individual =
+  if (!negligible(plai_leafon_layer)) then
+    -- FPAR partitioned according to the relative amount
+    -- of leaf area in this layer for this individual
+    indiv with fpar_leafon = indiv.fpar_leafon + fpar_uptake_leafon_layer*indiv.lai_leafon_layer/plai_leafon_layer
+  else indiv
+  let indiv =
+    if (!negligible(plai_layer)) then
+      indiv with fpar = indiv.fpar + fpar_uptake_layer* (indiv.lai_leafon_layer*indiv.phen)/plai_layer
+    else indiv
+  in indiv
+
+let type_checker_helper4 (spft: Standpft, ps_res: PhotosynthesisResult) : Standpft =
+  spft with photosynthesis_result = ps_res
+
+let type_checker_helper5 (i: Individual, ps_res: PhotosynthesisResult) : Individual =
+  i with photosynthesis_result = ps_res
+
+let type_checker_helper6 (i: Individual, subdaily : int) : Individual =
+  let new_gpterms = copy i.gpterms
+  let new_gpterms[subdaily] = realzero
+  in i with gpterms = new_gpterms
+
+let type_checker_helper7 (i: Individual, ci: NCompetingIndividual) : Individual =
+  i with fnuptake = ci.fnuptake
+
+let type_checker_helper8 (i: Individual) : Individual =
+  i
+
+
 -- Internal function - not intended to be called by framework
-let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft]Pft, date : Date)
+let fpar(patch : Patch, vegetation : [npft]Individual, climate : Climate, pfts : [npft]Pft, date : Date, ppfts : [npft]Patchpft)
   : (Patch, Vegetation) =
   -- DESCRIPTION
   -- Calculates daily fraction of incoming PAR (FPAR) taken up by individuals in a
@@ -139,8 +182,8 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
       -- POPULATION MODE
       -- Loop through individuals
       (patch, map (\indiv ->
-          let indiv = indiv with fpar = fpc_today(indiv)
-          let indiv = indiv with fpar_leafon = indiv.fpar * indiv.growingseason
+          let indiv = indiv with fpar = fpc_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])
+          let indiv = indiv with fpar_leafon = if ppfts[indiv.pft_id].cropphen.growingseason then indiv.fpar else 0.0
           in indiv
         ) vegetation)
         -- For this individual ...
@@ -154,19 +197,16 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
       let plai_leafon_grass : real = 0.0
 
 
-
-      let height_veg : real = reduce 0.0 (max) <| map (\i -> if i.growingseason then i.height else 0.0) vegetation
-      let vegetation = map (\i -> if i.growingseason then
-                                  let i = i with fpar = 0.0
-                                  let i = i with fpar_leafon = 0.0
-                                  in i
-                                  else i) vegetation
-      let plai_leafon = reduce 0.0 (+) <| map (\i -> if i.growingseason then i.lai else 0.0) vegetation
+      let height_veg : real =
+        reduce (curry max) 0.0 <|
+        map (\i -> if ppfts[i.pft_id].cropphen.growingseason then i.height else 0.0) vegetation
+      let vegetation = map (\i -> type_checker_helper1(i, ppfts)) vegetation
+      let plai_leafon = reduce (+) 0.0  <| map (\i -> if ppfts[i.pft_id].cropphen.growingseason then i.lai else 0.0) vegetation
       let (plai_grass, plai_leafon_grass) =
-            reduce (0.0, 0.0) (\(a1,b1) (a2,b2) -> (a1+a2,b1+b2))
-            <| map (\i -> if pfts[i.pft_id].lifeform == GRASS || pfts[i.pft_id].lifeform == MOSS then (i.lai, i.lai_today) else (0.0, 0.0)) vegetation
+            reduce (\(a1,b1) (a2,b2) -> (a1+a2,b1+b2)) (0.0, 0.0)
+            <| map (\i -> if pfts[i.pft_id].lifeform == GRASS || pfts[i.pft_id].lifeform == MOSS then (i.lai, lai_today(i, pfts[i.pft_id], ppfts[i.pft_id])) else (0.0, 0.0)) vegetation
       -- Accumulate LAI-weighted sum of individual leaf-out fractions
-      let phen_veg : real = reduce 0.0 (+) <| map (\i -> i.lai_today) vegetation
+      let phen_veg : real = reduce (+) 0.0 <| map (\i -> lai_today(i, pfts[i.pft_id], ppfts[i.pft_id])) vegetation
 
 
 
@@ -185,9 +225,9 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
       let fpar_layer_bottom = 1.0
       let fpar_leafon_layer_bottom = 1.0
 
-      let  (layer,plai,play_leafon,vegetation) =
-      loop (layer,plai,play_leafon,vegetation)
-         = (toplayer,plai,play_leafon,vegetation)
+      let  (layer,plai,plai_leafon,vegetation) =
+      loop (layer,plai,plai_leafon,vegetation)
+         = (toplayer,plai,plai_leafon,vegetation)
       while (layer >=0) do
 
         let lowbound = realFromInt layer*VSTEP
@@ -199,7 +239,7 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
 
         -- Loop through individuals
         let (vegetation, pls, plls) = unzip3 <| map (\indiv ->
-          if (pfts[i.pft_id].lifeform==TREE) then
+          if (pfts[indiv.pft_id].lifeform==TREE) then
             if (indiv.height>lowbound && indiv.boleht<highbound &&
               !negligible(indiv.height-indiv.boleht)) then
               -- Calculate vertical fraction of current layer occupied by
@@ -215,7 +255,7 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
               else frac
               -- Calculate summed LAI of this cohort in this layer
               let atoh = indiv.lai/(indiv.height-indiv.boleht)
-              let indiv = indiv with lai_leafon_layer=atoh*frac*VSTEP
+              let indiv = type_checker_helper2 (indiv,atoh*frac*VSTEP)
               let pl = indiv.lai_leafon_layer * indiv.phen
               let pll = indiv.lai_leafon_layer
               in (indiv, pl, pll)
@@ -223,9 +263,9 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
               let indiv = indiv with lai_layer = 0.0
               let indiv = indiv with lai_leafon_layer = 0.0
               in (indiv, 0.0, 0.0)
-          else indiv) vegetation
-        let plai_layer : real = reduce 0.0 (+) pls
-        let plai_leafon_layer : real = reduce 0.0 (+) plls
+          else (indiv, 0.0, 0.0)) vegetation
+        let plai_layer : real = reduce (+) 0.0 pls
+        let plai_leafon_layer : real = reduce (+) 0.0 plls
 
         -- Calculate FPAR at bottom of this layer
         -- Eqn 27, Prentice et al 1993
@@ -237,17 +277,7 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
         -- Partition PAR for this layer among trees,
         let vegetation = map (\indiv ->
           if (pfts[indiv.pft_id].lifeform==TREE) then
-            let indiv =
-            if (!negligible(plai_leafon_layer)) then
-              -- FPAR partitioned according to the relative amount
-              -- of leaf area in this layer for this individual
-              indiv with fpar_leafon = indiv.fpar_leafon + fpar_uptake_leafon_layer*indiv.lai_leafon_layer/plai_leafon_layer
-            else indiv
-            let indiv =
-            if (!negligible(plai_layer)) then
-              indiv with fpar = indiv.fpar + fpar_uptake_layer* (indiv.lai_leafon_layer*indiv.phen)/plai_layer
-            else indiv
-            in indiv
+            type_checker_helper3 (indiv, plai_leafon_layer, fpar_uptake_leafon_layer, plai_layer, fpar_uptake_layer)
           else indiv
         ) vegetation
         in (layer-1,plai + plai_layer,plai_leafon + plai_leafon_layer,vegetation)
@@ -275,17 +305,17 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
           -- Fraction of total grass LAI represented by this grass
           let flai =
           if (!negligible(plai_grass)) then
-            indiv.lai_today()/plai_grass
+            lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])/plai_grass
           else 1.0
           let fpar_min =
           if (!negligible(climate.par)) then
-            min(pfts[pfts[indiv.pft_id]_id].parff_min/climate.par,1.0)
+            min(pfts[indiv.pft_id].parff_min/climate.par,1.0)
           else 1.0
           let indiv = indiv with fpar = max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min))
           -- Repeat assuming full leaf cover for all individuals
           let flai =
           if (!negligible(plai_leafon_grass)) then
-            indiv.lai/plafpari_leafon_grass
+            indiv.lai/plai_leafon_grass
           else 1.0
           let indiv = indiv with fpar_leafon=max(0.0,fpar_leafon_grass*flai-
             max(fpar_leafon_ff*flai,fpar_min))
@@ -293,8 +323,8 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
         else (indiv)
         ) vegetation
       let fpar_tree_total : real =
-        reduce 0.0 (+) <| map
-          (\i -> if pfts[pfts[indiv.pft_id]_id].lifeform==TREE then i.fpar else 0.0
+        reduce (+) 0.0 <| map
+          (\i -> if pfts[i.pft_id].lifeform==TREE then i.fpar else 0.0
           ) vegetation
       -- Save grass canopy FPAR and update mean growing season grass canopy PAR
       -- Growing season defined here as days when mean vegetation leaf-on fraction
@@ -320,7 +350,7 @@ let fpar(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft
           else patch
       -- Convert from sum to mean on last day of year
       let patch =
-          if (date.islastday && date.islastmonth && patch.nday_growingseason) then
+          if (date.islastday && date.islastmonth && (patch.nday_growingseason > 0)) then
             patch with par_grass_mean = patch.par_grass_mean / realFromInt patch.nday_growingseason
           else patch
       in (patch, vegetation)
@@ -607,63 +637,65 @@ let get_moss_wtp_limit(pft : Pft, stand : Stand, soil : Soil, gridcell : Gridcel
 ---Vmax is calculated on a daily scale (w/ daily averages of temperature and par)
 ---Subdaily values calculated if needed
  --
-let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Standpft, ppfts : [npft]Patchpft, pfts : [npft]Pft)
+let photosynthesis_nostress(vegetation : Vegetation, patch : Patch, climate : Climate, spfts : [npft]Standpft, ppfts : [npft]Patchpft, pfts : [npft]Pft, stand : Stand, soil : Soil, gridcell : Gridcell, date : Date)
  : (Vegetation, [npft]Standpft, [npft]Patchpft) =
  --ps_stress.no_stress() --TODO: is this just the default constructor?
  -- If this is the first patch, calculate no-stress assimilation for
  -- each Standpft, assuming FPAR=1. This is then later used in
  -- forest_floor_conditions.
  let pftco2 : real = climate.co2 -- will override for peat mosses
- let (spfts, ppfts) = if patch.patch_id == 0 then
-   map2 (\spft ppft ->
-     if (spft.active) then
-       let pftco2 = get_co2(patch, climate, pfts[spft.pft_id])
-       let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=1.0, daylength=climate.daylength}
-       let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(patch, pfts[spft.pft_id]), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pfts[spft.pft_id]), inund_stress=get_inund_stress(patch, ppft)}
-       -- Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-       let ps_result = photosynthesis(ps_env, ps_stress, spft.pft,
-                                      spft.pft.lambda_max, 1.0, -1,
-                                      spft.photosynthesis)
-       let spft = spft with photosynthesis_result = ps_result
-       in (spft, ppft)
-     else (spft, ppft)
-   ) spfts ppfts
- else (spfts, ppfts)
+ let (spfts, ppfts) =
+    if patch.patch_id == 0 then
+     unzip <| map2 (\spft ppft ->
+       if (spft.active) then
+         let pftco2 = get_co2(patch, climate, pfts[spft.pft_id], stand, soil, gridcell)
+         let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=1.0, daylength=climate.daylength}
+         let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(pfts[spft.pft_id], stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pfts[spft.pft_id], stand, soil, gridcell), inund_stress=get_inund_stress(ppft, stand, gridcell)}
+         -- Call photosynthesis assuming stomates fully open (lambda = lambda_max)
+         let ps_result = photosynthesis(ps_env, ps_stress, pfts[spft.pft_id],
+                                        pfts[spft.pft_id].lambda_max, 1.0, -1)
+         let spft = type_checker_helper4(spft, ps_result)
+         in (spft, ppft)
+       else (spft, ppft)
+     ) spfts ppfts
+   else (spfts, ppfts)
  -- Pre-calculation of no-stress assimilation for each individual
  let (vegetation) =
- map (\indiv ->
-   let pft : Pft = pfts[pfts[indiv.pft_id]_id]
-   let ppft : Patchpft = ppfts[pft.id]
-   let pftco2 = get_co2(patch, climate, pft)
-   let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
-   let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(patch, pft), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft), inund_stress=get_inund_stress(patch, ppft)}
-   -- Individual photosynthesis with no nitrogen limitation
-   let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                                  pft.lambda_max, 1.0, -1,
-                                  indiv.photosynthesis)
-   let indiv = indiv with photosynthesis = ps_result
-   let indiv = indiv with gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength)
-   in
-   if (diurnal(date)) then
-     let indiv = indiv with gpterms = gpterms with [date.subdaily] = 0
-     --FIXME is this correct?
-     let res = PhotosynthesisResult()
-     let indiv = indiv with phots = phots with [date.subdaily] = res
-     let (indiv, _) =
-     loop (indiv, i) =
-          (indiv, 0)
-     while (i < date.subdaily) do
-       let ps_result : PhotosynthesisResult = indiv.phots[i]
-       -- Update temperature and PAR
-       let ps_env : PhotosynthesisEnvironment = {co2=pftco2, temp=climate.temps[i], pars=climate.pars[i], fpar=indiv.fpar, daylength=24}
-       let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                                      pft.lambda_max, 1.0, indiv.photosynthesis.vm,
-                                      ps_result)
-       let indiv = indiv with gpterms = gpterms with [i] = gpterm(ps_result.adtmm, climate.co2, pft.lampda_max, 24)
-       in (indiv, i+1)
-     in indiv
-     else indiv
- ) vegetation
+   map (\indiv ->
+     let pft : Pft = pfts[indiv.pft_id]
+     let ppft : Patchpft = ppfts[pft.pft_id]
+     let pftco2 = get_co2(patch, climate, pft, stand, soil, gridcell)
+     let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
+     let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell), inund_stress=get_inund_stress(ppft, stand, gridcell)}
+     -- Individual photosynthesis with no nitrogen limitation
+     let ps_result = photosynthesis(ps_env, ps_stress, pft,
+                                    pft.lambda_max, 1.0, -1)
+     let indiv = type_checker_helper5(indiv, ps_result)
+     let indiv = indiv with gpterm = gpterm(indiv.photosynthesis_result.adtmm, pftco2, pft.lambda_max, climate.daylength)
+     let indiv =
+     if (diurnal(date)) then
+       let indiv = type_checker_helper6(indiv, date.subdaily)
+       --FIXME is this correct?
+       let res = PhotosynthesisResult()
+       let phots = copy indiv.phots
+       let phots[date.subdaily] = res
+       let indiv = indiv with phots = phots
+       let (indiv, _) =
+       loop (indiv, i) =
+            (indiv, 0)
+       while (i < date.subdaily) do
+         let ps_result : PhotosynthesisResult = copy indiv.phots[i]
+         -- Update temperature and PAR
+         let ps_env : PhotosynthesisEnvironment = {co2=pftco2, temp=climate.temps[i], par=climate.pars[i], fpar=indiv.fpar, daylength=24}
+         let ps_result = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, 1.0, indiv.photosynthesis_result.vm)
+         let gpterms = copy indiv.gpterms
+         let gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24)
+         let indiv = indiv with gpterms = gpterms
+         in (indiv, i+1)
+         in indiv
+       else indiv
+       in indiv
+   ) vegetation
  in (vegetation, spfts, ppfts)
 --- Calculates individual fnuptake based on surface of fine root
 --- Calculates individual fraction nitrogen uptake based on surface of fine root
@@ -672,8 +704,8 @@ let photosynthesis_nostress(patch : Patch, climate : Climate, spfts : [npft]Stan
 --- A = (2^1/2 + 1) * PI * r^2
 --- -> A = const * cmass_root^2/3
 ---
-let nitrogen_uptake_strength(indiv : Individual) : real =
- pow(max(0.0, indiv.cmass_root_today()) * pfts[indiv.pft_id].nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv
+let nitrogen_uptake_strength(indiv : Individual, pfts: [npft]Pft, patchpft: Patchpft) : real =
+ pow(max(0.0, cmass_root_today(indiv, pfts[indiv.pft_id], patchpft)) * pfts[indiv.pft_id].nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv
 --- Individual nitrogen uptake fraction
 --- Determining individual nitrogen uptake as a fraction of its nitrogen demand.
 --- \see ncompete
@@ -681,28 +713,23 @@ let nitrogen_uptake_strength(indiv : Individual) : real =
 --- acquiring nitrogen.
 ---
 
-let fnuptake [n] (vegetation : [n]Individual, nmass_avail : real) =
+let fnuptake [n] (vegetation : [n]Individual, nmass_avail : real, pfts: [npft]Pft, patchpft: Patchpft) =
   -- Create vector describing the individuals to ncompete()
-  let individuals = map (\_ -> {dnemand = vegetation[i].ndemand, strength = nitrogen_uptake_strength(vegetation[i]), fnuptake = 0}) <| iota n
+  let competingIndividuals = map (\i -> {ndemand = vegetation[i].ndemand, strength = nitrogen_uptake_strength(vegetation[i], pfts, patchpft), fnuptake = 0}) <| iota n
   -- Let ncompete() do the actual distribution
-  let individuals : [n]NCompetingIndividual = ncompete(individuals, nmass_avail)
+  let individuals : [n]NCompetingIndividual = ncompete(competingIndividuals, nmass_avail)
 
   -- Get the results, nitrogen uptake fraction for each individual
-  let vegetation = map (\(veg_indiv, indiv) ->
-                          let veg_indiv =
-                              veg_indiv with
-                              fnuptake =
-                                indiv.fnuptake
-                          in veg_indiv
-                  ) <| zip vegetation individuals
+  let vegetation = map (type_checker_helper7) <| zip vegetation individuals
   in vegetation
 --- Use nitrogen storage to limit stress
 
 --- Retranslocated nitrogen from last year is used to
 --- limit nitrogen stress in leaves, roots, and sap wood
-let nstore_usage(vegetation : Vegetation) : Vegetation =
+let nstore_usage(vegetation : [npft]Individual, pfts: [npft]Pft, patchpft: Patchpft) : [npft]Individual =
   map (\indiv ->
     -- individual excess nitrogen demand after uptake
+    let indiv = type_checker_helper8(indiv)
     let excess_ndemand : real = (indiv.leafndemand + indiv.rootndemand) * (1.0 - indiv.fnuptake) + indiv.leafndemand_store + indiv.rootndemand_store
     in
     -- if individual is in need of using its labile nitrogen storage
@@ -712,7 +739,7 @@ let nstore_usage(vegetation : Vegetation) : Vegetation =
         -- leaf nitrogen demand
         let leaf_ndemand : real = indiv.leafndemand * (1.0 - indiv.fnuptake) + indiv.leafndemand_store
         let indiv = indiv with nmass_leaf = indiv.nmass_leaf + leaf_ndemand
-        let indiv = indiv with nstore_labile = indiv.nstorelabile - leaf_ndemand
+        let indiv = indiv with nstore_labile = indiv.nstore_labile - leaf_ndemand
 
         -- root nitrogen demand
         let root_ndemand : real = indiv.rootndemand * (1.0 - indiv.fnuptake) + indiv.rootndemand_store
@@ -726,10 +753,10 @@ let nstore_usage(vegetation : Vegetation) : Vegetation =
           let tot_nmass : real = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile
 
           -- new leaf C:N ratio
-          let cton_leaf : real = (indiv.cmass_leaf_today() + indiv.cmass_root_today() * (pfts[indiv.pft_id].cton_leaf_avr / pfts[indiv.pft_id].cton_root_avr)) / tot_nmass
+          let cton_leaf : real = (cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) + cmass_root_today(indiv, pfts[indiv.pft_id], patchpft) * (pfts[indiv.pft_id].cton_leaf_avr / pfts[indiv.pft_id].cton_root_avr)) / tot_nmass
 
           -- nitrogen added to leaf from storage
-          let labile_nto_leaf : real = indiv.cmass_leaf_today() / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand)
+          let labile_nto_leaf : real = cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand)
 
           -- new leaf nitrogen
           let indiv = indiv with nmass_leaf = indiv.nmass_leaf + labile_nto_leaf
@@ -754,7 +781,7 @@ let nstore_usage(vegetation : Vegetation) : Vegetation =
 --  nitrogen concentration.
 --  Also determines individual nitrogen uptake capability
 --/
-let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : Soil, pfts : [nptf]Pft)
+let ndemand(patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, soil : Soil, pfts : [npft]Pft, patchpft : Patchpft)
   : (Patch, Vegetation) =
   --  Gridcell& gridcell = patch.stand.get_gridcell()
   --  Soil& soil = patch.soil
@@ -763,12 +790,13 @@ let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : 
   -- soil available mineral nitrogen (kgN/m2)
   let nmin_avail : real = nmass_avail(soil,NO)
   -- Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
-  let soilT = soil.get_soil_temp_25()
+  let soilT = get_soil_temp_25(soil)
   let temp_scale = if soilT > 0.0 then max(0.0, 0.0326 + 0.00351 * pow(soilT, 1.652) - pow(soilT / 41.748, 7.19)) else 0.0
   --/ Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
   let kNmin : real = 0.05
   let vegetation =
   map (\indiv ->
+    let indiv = type_checker_helper8(indiv)
     -- Rescaler of nitrogen uptake
     let indiv = indiv with fnuptake = 1.0
     -- Starts with no nitrogen stress
@@ -783,39 +811,39 @@ let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : 
       let indiv = indiv with nday_leafon = indiv.nday_leafon + 1
       -- Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
       -- Peltoniemi et al. 2012
-      let indiv = indiv with nextin = exp(0.12 * min(10.0*indiv.phen, indiv.lai_indiv_today()))
+      let indiv = indiv with nextin = exp(0.12 * min(10.0*indiv.phen, lai_indiv_today(indiv, pfts[indiv.pft_id], patchpft)))
       -- Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic
       -- active nitrogen (Haxeltine et al. 1996 eqn 27/28)
-      let leafoptn = indiv.photosynthesis.nactive_opt * indiv.nextin + N0 * indiv.cmass_leaf_today()
+      let leafoptn = indiv.photosynthesis_result.nactive_opt * indiv.nextin + N0 * cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft)
       -- Can not have higher nitrogen concentration than minimum leaf C:N ratio
 
       let leafoptn =
-      if (indiv.cmass_leaf_today() / leafoptn < pfts[indiv.pft_id].cton_leaf_min) then
-        indiv.cmass_leaf_today() / pfts[indiv.pft_id].cton_leaf_min
+      if (cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / leafoptn < pfts[indiv.pft_id].cton_leaf_min) then
+        cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / pfts[indiv.pft_id].cton_leaf_min
       -- Can not have lower nitrogen concentration than maximum leaf C:N ratio
-      else if (indiv.cmass_leaf_today() / leafoptn > pfts[indiv.pft_id].cton_leaf_max) then
-        indiv.cmass_leaf_today() / pfts[indiv.pft_id].cton_leaf_max
+      else if (cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / leafoptn > pfts[indiv.pft_id].cton_leaf_max) then
+        cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / pfts[indiv.pft_id].cton_leaf_max
       else leafoptn
 
       -- Updating annual optimal leaf C:N ratio
-      let indiv = indiv with cton_leaf_aopt = min(indiv.cmass_leaf_today() / leafoptn, indiv.cton_leaf_aopt)
+      let indiv = indiv with cton_leaf_aopt = min(cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / leafoptn, indiv.cton_leaf_aopt)
       -- Leaf nitrogen demand
       let indiv = indiv  with leafndemand = max(leafoptn - indiv.nmass_leaf, 0.0)
       -- Setting daily optimal leaf C:N ratio
       let cton_leaf_opt =
-      if (indiv.leafndemand) then
-        indiv.cmass_leaf_today() / leafoptn
-      else
-        max(pfts[indiv.pft_id].cton_leaf_min, indiv.cton_leaf())
+        if (indiv.leafndemand > 0) then
+          cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / leafoptn
+        else
+          max(pfts[indiv.pft_id].cton_leaf_min, cton_leaf(indiv, true, stand, standpft, pfts, patchpft))
       in (leafoptn, cton_leaf_opt, indiv)
     else
       let indiv = indiv with leafndemand = 0.0
-      let cton_leaf_opt = indiv.cton_leaf()
+      let cton_leaf_opt = cton_leaf(indiv, true, stand, standpft, pfts, patchpft)
       in (leafoptn, cton_leaf_opt, indiv)
 
     -- Nitrogen demand
     -- Root nitrogen demand
-    let indiv = indiv with rootndemand = max(0.0, indiv.cmass_root_today() / (cton_leaf_opt * pfts[indiv.pft_id].cton_root_avr / pfts[indiv.pft_id].cton_leaf_avr) - indiv.nmass_root)
+    let indiv = indiv with rootndemand = max(0.0, cmass_root_today(indiv, pfts[indiv.pft_id], patchpft) / (cton_leaf_opt * pfts[indiv.pft_id].cton_root_avr / pfts[indiv.pft_id].cton_leaf_avr) - indiv.nmass_root)
     -- Sap wood nitrogen demand. Demand is ramped up throughout the year.
     let indiv =
     if (pfts[indiv.pft_id].lifeform == TREE) then
@@ -829,7 +857,7 @@ let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : 
     let ndemand_tot : real = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand
     -- Calculate scalars to possible nitrogen uptake
     -- Current plant mobile nitrogen concentration
-    let ntoc : real =  if !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) then (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) else 0.0
+    let ntoc : real =  if !negligible(cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) + cmass_root_today(indiv, pfts[indiv.pft_id], patchpft)) then (indiv.nmass_leaf + indiv.nmass_root) / (cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) + cmass_root_today(indiv, pfts[indiv.pft_id], patchpft)) else 0.0
     -- Scale to maximum nitrogen conceforest_floorntrations
     let indiv = indiv with cton_status = max(0.0, (ntoc - 1.0 / pfts[indiv.pft_id].cton_leaf_min) / (1.0 / pfts[indiv.pft_id].cton_leaf_avr - 1.0 / pfts[indiv.pft_id].cton_leaf_min))
     -- Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
@@ -840,7 +868,7 @@ let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : 
     let max_indiv_avail : real = min(1.0, indiv.fpc * 4.0) * nmin_avail
     -- Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
     -- and soil available nitrogen within individual projectived coverage
-    let maxnup : real = min(2.0 * pfts[indiv.pft_id].nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail)
+    let maxnup : real = min(2.0 * pfts[indiv.pft_id].nuptoroot * nmin_scale * temp_scale * indiv.cton_status * cmass_root_today(indiv, pft, patchpft), max_indiv_avail)
     -- Nitrogen demand limitation due to maximum nitrogen uptake capacity
     let fractomax : real = if ndemand_tot > 0.0 then min(maxnup/ndemand_tot,1.0) else 0.0
     -- Root and leaf demand from storage pools
@@ -879,8 +907,8 @@ let ndemand(patch : Patch, vegetation : Vegetation, gridcell : Gridcell, soil : 
 --- If nitrogen supply is not able to meet demand it will lead
 --  to down-regulation of vmax resulting in lower photosynthesis
 --/
-let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetation, soil : Soil, pfts : [npft]Pft, ppfts : [nptf]Patchpft)
-  : Vegetation =
+let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : [npft]Individual, soil : Soil, pfts : [npft]Pft, ppfts : [nptf]Patchpft)
+  : [npft]Individual =
   -- Supply function for nitrogen and determination of nitrogen stress leading
   -- to down-regulation of vmax.
   -- Nitrogen within projective cover of all individuals
@@ -908,23 +936,23 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetati
     let nmass_leaf = indiv.nmass_leaf + indiv.leafndemand * indiv.fnuptake
     let indiv = indiv with nactive =
     if (indiv.phen > 0.0) then
-      max(0.0, nmass_leaf - N0 * indiv.cmass_leaf_today())
+      max(0.0, nmass_leaf - N0 * cmass_leaf_today(indiv, pft, patchpft))
     else 0.0
     -- Individuals photosynthesis is nitrogen stressed
     let indiv =
     if (indiv.nstress) then
-      let pftco2 : real = get_co2(patch, climate, pft)
+      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
       let ps_env : PhotosynthesisEnvironment = {co2 = pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
       -- Set stresses
       PhotosynthesisStresses ps_stress
-      let ps_stress = {ifnlimvmax=true, moss_ps_limit=get_moss_wtp_limit(patch, pft), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft), inund_stress=get_inund_stress(patch, ppft)}
+      let ps_stress = {ifnlimvmax=true, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell), inund_stress=get_inund_stress(ppft, stand, gridcell)}
       -- Individual photosynthesis
       let ps_result = photosynthesis(ps_env, ps_stress, pft,
                                      pft.lambda_max, indiv.nactive / indiv.nextin, -1,
-                                     indiv.photosynthesis)
+                                     indiv.photosynthesis_result)
       let indiv = indiv with photosynthesis = ps_result
 
-      let indiv = indiv with gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength)
+      let indiv = indiv with gpterm = gpterm(indiv.photosynthesis_result.adtmm, pftco2, pft.lambda_max, climate.daylength)
       let indiv =
       if (date.diurnal()) then
         let (indiv, _) =
@@ -934,7 +962,7 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetati
           let ps_result = indiv.phots[i]
           let ps_env = {co2=pftco2, temp=climate.temps[i], pars=climate.pars[i], fpar=indiv.fpar, daylength=24}
           let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                          pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis.vm,
+                          pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis_result.vm,
                           ps_result)
           let indiv = indiv with gpterms = gpterms with [i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24)
           in indiv
@@ -943,7 +971,7 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetati
       in
       -- Sum annual average nitrogen limitation on vmax
       if (indiv.phen) then
-        let indiv = indiv with avmaxnlim = indiv.avmaxnlim + indiv.photosynthesis.vmaxnlim
+        let indiv = indiv with avmaxnlim = indiv.avmaxnlim + indiv.photosynthesis_result.vmaxnlim
       -- On last day of year determined average nitrogen limitation
       -- based on days with leaf on
         in
@@ -964,7 +992,7 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : Vegetati
 --      AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL
 --  \see canexch.h
 --/
-let wdemand(patch : Patch, climate : Climate, vegetation : Vegetation, day : Day) : (Patch, Vegetation) =
+let wdemand(patch : Patch, climate : Climate, vegetation : [npft]Individual, day : Day) : (Patch, Vegetation) =
     -- non-water-stressed canopy conductance assuming full leaf cover, patch
     -- vegetated area basis (mm/s)
   let (vegetation, gps, glps) = map (\indiv ->
@@ -984,10 +1012,10 @@ let wdemand(patch : Patch, climate : Climate, vegetation : Vegetation, day : Day
       let temp : real = if date.diurnal() then climate.temps[day.period] else climate.temp
       let par : real = if date.diurnal() then climate.pars[day.period] else climate.par
       let daylength : real = if date.diurnal() then 24 else climate.daylength
-      let pftco2 : real = get_co2(patch, climate, pft)
+      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
       let ps_env = {co2=pftco2, temp=temp, par=par, fpar=indiv.fpar_leafon, daylight=daylight}
       let ppft : Patchpft = ppfts[patch.patchpft_id]
-      let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(patch, pft), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft),inund_stress=get_inund_stress(patch, ppft)}
+      let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell),inund_stress=get_inund_stress(ppft, stand, gridcell)}
 
       -- No nitrogen limitation when calculating gp_leafon
       let ps_result = photosynthesis(ps_env, ps_stress, pft,
@@ -995,7 +1023,7 @@ let wdemand(patch : Patch, climate : Climate, vegetation : Vegetation, day : Day
                                      leafon_photosynthesis)
       let gp_leafon : real = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc
       -- Increment patch sums of non-water-stressed gp by individual value
-      let gp_patch = gp_patch + (if date.diurnal() then indiv.gpterms[day.period] else indiv.gpterm) + pft.gmin * indiv.fpc_today()
+      let gp_patch = gp_patch + (if date.diurnal() then indiv.gpterms[day.period] else indiv.gpterm) + pft.gmin * fpc_today(indiv)
       let gp_leafon_patch = gp_leafon_patch + gp_leafon
       in (indiv, gp_patch, gp_leafon_patch)
     else (indiv, 0.0, 0.0)
@@ -1036,7 +1064,7 @@ let wdemand(patch : Patch, climate : Climate, vegetation : Vegetation, day : Day
 --- Soil water supply at the roots available to meet the transpirational demand
 --  Fundamentally, water stress = supply < demand
 --/
-let aet_water_stress(patch : Patch, stand: Stand, vegetation : Vegetation, day : Day, pfts : [npft]Pft, spfts : [npft]Standpft, ppfts : [npft]Patchpft) : (Vegetation, [npft]Patchpft)  =
+let aet_water_stress(patch : Patch, stand: Stand, vegetation : [npft]Individual, day : Day, pfts : [npft]Pft, spfts : [npft]Standpft, ppfts : [npft]Patchpft) : (Vegetation, [npft]Patchpft)  =
   -- Supply function for evapotranspiration and determination of water stress leading
   -- to down-regulation of stomatal conductance. Actual evapotranspiration determined
   -- as smaller of supply and transpirative demand (see function demand).
@@ -1142,7 +1170,7 @@ let aet_water_stress(patch : Patch, stand: Stand, vegetation : Vegetation, day :
 
 
 --/ Water scalar
-let water_scalar(stand : Stand, patch : Patch, vegetation : Vegetation, day : Day, ppfts : [npft]Patchpft, pfts : [nptf]Pft)
+let water_scalar(stand : Stand, patch : Patch, vegetation : [npft]Individual, day : Day, ppfts : [npft]Patchpft, pfts : [nptf]Pft)
   : [nptf]Patchpft =
   -- Derivation of daily and annual versions of water scalar (wscal, omega)
   -- Daily version is used to determine leaf onset and abscission for raingreen PFTs.
@@ -1405,7 +1433,7 @@ let respiration( gtemp_air : real,  gtemp_soil : real,  lifeform : lifeformtype,
 --/
 let npp( patch : Patch
        , climate : Climate
-       , vegetation : Vegetation
+       , vegetation : [npft]Individual
        , day : Day
        , pfts : [npft]Pft
        , spfts : [npft]Standpft)
@@ -1439,11 +1467,11 @@ let npp( patch : Patch
     --Don't do calculations for crops outside their growingseason
     in if (!indiv.growingseason()) then (indiv with dnpp = 0.0, (false, false, 0, 0, 0, 0.0, 0.0, 0.0, date, 0))
     else
-      let pftco2 : real = get_co2(patch, climate, pft)
-      let inund_stress : real = get_inund_stress(patch, ppft)
-      let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft)
-      let moss_wtp_limit : real = get_moss_wtp_limit(patch, pft)
-      let phot : PhotosynthesisResult = if date.diurnal() then indiv.phots[day.period] else indiv.photosynthesis
+      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
+      let inund_stress : real = get_inund_stress(ppft, stand, gridcell)
+      let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell)
+      let moss_wtp_limit : real = get_moss_wtp_limit(pft, stand, soil, gridcell)
+      let phot : PhotosynthesisResult = if date.diurnal() then indiv.phots[day.period] else indiv.photosynthesis_result
       let (phot, lambda) =
         if (indiv.wstress) then
           -- Water stress - derive assimilation by simultaneous solution
@@ -1454,7 +1482,7 @@ let npp( patch : Patch
         else (phot, lambda)
       let assim = phot.net_assimilation()
       --if (ifbvoc) { --TODO FIXME: this is false in global.ins, so it is omitted here for now
-      --  PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis
+      --  PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis_result
       --  bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day)
       --}
       -- Calculate autotrophic respiration
@@ -1462,7 +1490,7 @@ let npp( patch : Patch
         if (indiv.cropindiv && indiv.cropindiv.isintercropgrass && indiv.phen == 0.0) then
           0.0
         else
-          indiv.cmass_root_today()
+          cmass_root_today(indiv, pft, patchpft)
       -- Static root and sap wood C:N ratio if no N limitation
       -- to not let N affect respiration for C only version of model
       let (cton_sap, cton_root) =
@@ -1488,13 +1516,13 @@ let npp( patch : Patch
       -- report fluxes reduction extracted from map, see below
 
       let indiv =
-        if (indiv.lai_today() > indiv.mlai_max[date.month]) then
-          indiv with mlai_max = indiv.mlai_max with [date.month] = indiv.lai_today()
+        if (lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id]) > indiv.mlai_max[date.month]) then
+          indiv with mlai_max = indiv.mlai_max with [date.month] = lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])
         else indiv
 
       let indiv =
         if (day.isend) then
-          indiv with mlai = mlai with [date.month] = indiv.mlai[date.month] + indiv.lai_today() / realFromInt date.ndaymonth[date.month]
+          indiv with mlai = mlai with [date.month] = indiv.mlai[date.month] + lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id]) / realFromInt date.ndaymonth[date.month]
         else indiv
       in (indiv, (alive, itoicg, NPP, GPP, RA, indiv.dnpp, assim, resp, date, pft_id))
     ) vegetation
@@ -1529,10 +1557,10 @@ let forest_floor_conditions(stand: Stand, patch : Patch, climate : Climate, spft
     in if (!spft.active) then (ppfts, spfts, p+1) else
       let pft : Pft = pfts[spft.pft_id]
       -- peatland limits on photosynthesis
-      let pftco2 : real = get_co2(patch, climate, pft) -- was patch.stand.get_gridcell().climate
-      let inund_stress : real = get_inund_stress(patch, ppft)
-      let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft)
-      let moss_wtp_limit : real = get_moss_wtp_limit(patch, pft)
+      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell) -- was patch.stand.get_gridcell().climate
+      let inund_stress : real = get_inund_stress(ppft, stand, gridcell)
+      let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell)
+      let moss_wtp_limit : real = get_moss_wtp_limit(pft, stand, soil, gridcell)
       -- Initialise net photosynthesis sum on first day of year
       let ppft =
         if (date.day == 0) then
@@ -1544,7 +1572,7 @@ let forest_floor_conditions(stand: Stand, patch : Patch, climate : Climate, spft
           let assim =
             if (ppft.wstress_day) then
               --PhotosynthesisStresses ps_stress
-              --ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft))
+              --ps_stress.set(false, get_moss_wtp_limit(pft, stand, soil, gridcell), get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell), get_inund_stress(ppft, stand, gridcell))
               let (phot_result, lambda) =
                                 assimilation_wstress(pft, pftco2, climate.temp, climate.par,
                                   climate.daylength, patch.fpar_grass * ppft.phen, 1.0, ppft.gcbase_day,
@@ -1570,7 +1598,7 @@ let forest_floor_conditions(stand: Stand, patch : Patch, climate : Climate, spft
   in (ppfts, spfts)
 
 --/ Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
-let leaf_senescence(stand: Stand, patch: Patch, vegetation: Vegetation, ppfts: [npft]Patchpft) : Vegetation =
+let leaf_senescence(stand: Stand, patch: Patch, vegetation: [npft]Individual, ppfts: [npft]Patchpft) : [npft]Individual =
   -- FIXME when you know returntype if (!(stand.is_true_crop_stand() && ifnlim)) { return }
 
   let vegetation = map (\indiv ->
@@ -1578,7 +1606,7 @@ let leaf_senescence(stand: Stand, patch: Patch, vegetation: Vegetation, ppfts: [
     let indiv =
       if (ppfts[indiv.pft_id].cropphen.dev_stage > 1.0) then
         let senNr = 0.1
-        let senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (pfts[indiv.pft_id].cton_leaf_max))
+        let senN = senNr * (indiv.nmass_leaf-cmass_leaf_today(indiv, pft, patchpft) / (pfts[indiv.pft_id].cton_leaf_max))
         in
         -- Senescence is not done during spinup
         if (date.year > nyear_spinup && senN > 0) then
@@ -1590,9 +1618,9 @@ let leaf_senescence(stand: Stand, patch: Patch, vegetation: Vegetation, ppfts: [
 
     let r =
     -- N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
-      if (indiv.cmass_leaf_today() > 0.0) then
+      if (cmass_leaf_today(indiv, pft, patchpft) > 0.0) then
         let Ln : real = indiv.lai_nitrogen_today()
-        let Lnld : real = indiv.lai_today()
+        let Lnld : real = lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])
         in (Lnld - min(Lnld, Ln))/pfts[indiv.pft_id].sla/10.0
       else 0.0
     -- No senescence during the initial growing period
@@ -1607,7 +1635,7 @@ let leaf_senescence(stand: Stand, patch: Patch, vegetation: Vegetation, ppfts: [
   in vegetation
 
 --/ Initiate required variables for the module
-let init_canexch(patch : Patch, climate : Climate, vegetation : Vegetation, date : Date) : (Patch, Vegetation) =
+let init_canexch(patch : Patch, climate : Climate, vegetation : [npft]Individual, date : Date) : (Patch, Vegetation) =
   let vegetation =
     if (date.day == 0) then
       map (\indiv ->
@@ -1643,7 +1671,7 @@ let init_canexch(patch : Patch, climate : Climate, vegetation : Vegetation, date
 --  following update of leaf phenology and soil temperature and prior to update
 --  of soil water.
 ---
-let canopy_exchange(patch : Patch, vegetation : Vegetation, climate : Climate, pfts : [npft]Pft, date : Date, spfts: [npft]Standpft, npfts: [npft]Patchpft) : (Patch, Vegetation, [npft]Standpft, [npft]Patchpft) =
+let canopy_exchange(patch : Patch, vegetation : [npft]Individual, climate : Climate, pfts : [npft]Pft, date : Date, spfts: [npft]Standpft, npfts: [npft]Patchpft) : (Patch, Vegetation, [npft]Standpft, [npft]Patchpft) =
   -- NEW ASSUMPTIONS CONCERNING FPC AND FPAR (Ben Smith 2002-02-20)
   -- FPAR = average individual fraction of PAR absorbed on patch basis today,
   --        including effect of current leaf phenology (this differs from previous
