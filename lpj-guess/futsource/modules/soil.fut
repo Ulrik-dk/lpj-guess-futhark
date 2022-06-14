@@ -1317,7 +1317,27 @@ let get_soil_temp_25(this: Soil) : real =
 	else
 		this.temp25
 
+-- Nitrogen preferance
+type n_pref_type = enum_type
+let NO : n_pref_type = 0
+let NH4 : n_pref_type = 1
+let NO3 : n_pref_type = 2
 
+let nmass_avail(this: Soil, pref : int) : real =
+  let nmass = 0.0 --TODO should this modify Soil state?
+  let pref = if (!ifntransform) then NH4 else NO -- see guess.h somewhere
+  let (NH4_mass, NO3_mass) =
+    if (!ifntransform) && (this.NO3_mass > 0.0)
+    then (this.NH4_mass+this.NO3_mass, 0.0)
+    else (this.NH4_mass, this.NO3_mass)
+  in
+    if (pref == NO) then
+      NH4_mass + NO3_mass
+    else if (pref == NH4) then
+      NH4_mass
+    else if (pref == NO3) then
+      NO3_mass
+    else nmass
 
 
 -- INLINE FUNCTIONS

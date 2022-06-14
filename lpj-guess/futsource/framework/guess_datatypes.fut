@@ -158,11 +158,7 @@ type gastype = enum_type
 let O2gas : gastype = 0
 let CO2gas : gastype = 1
 let CH4gas : gastype = 2
--- Nitrogen preferance
-type n_pref_type = enum_type
-let NO : n_pref_type = 0
-let NH4 : n_pref_type = 1
-let NO3 : n_pref_type = 2
+
 
 --- General purpose object for handling simulation timing.
 -- In general, frameworks should use a single Date object for all simulation

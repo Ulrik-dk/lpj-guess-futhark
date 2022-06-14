@@ -781,7 +781,7 @@ let nstore_usage(vegetation : [npft]Individual, pfts: [npft]Pft, patchpft: Patch
 --  nitrogen concentration.
 --  Also determines individual nitrogen uptake capability
 --/
-let ndemand(patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, soil : Soil, pfts : [npft]Pft, patchpft : Patchpft)
+let ndemand(date: Date, stand: Stand, standpft: Standpft, patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, soil : Soil, pfts : [npft]Pft, patchpft : Patchpft, gridcellpft: Gridcellpft)
   : (Patch, Vegetation) =
   --  Gridcell& gridcell = patch.stand.get_gridcell()
   --  Soil& soil = patch.soil
@@ -806,7 +806,7 @@ let ndemand(patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, s
     -- Optimal leaf C:N ratio
     --double cton_leaf_opt
     -- Calculate optimal leaf nitrogen content and demand
-    let (leafoptn, cton_leaf_opt, indiv) =
+    let (cton_leaf_opt, indiv) =
     if (!negligible(indiv.phen)) then
       let indiv = indiv with nday_leafon = indiv.nday_leafon + 1
       -- Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
@@ -835,11 +835,11 @@ let ndemand(patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, s
           cmass_leaf_today(indiv, pfts[indiv.pft_id], patchpft) / leafoptn
         else
           max(pfts[indiv.pft_id].cton_leaf_min, cton_leaf(indiv, true, stand, standpft, pfts, patchpft))
-      in (leafoptn, cton_leaf_opt, indiv)
+      in (cton_leaf_opt, indiv)
     else
       let indiv = indiv with leafndemand = 0.0
       let cton_leaf_opt = cton_leaf(indiv, true, stand, standpft, pfts, patchpft)
-      in (leafoptn, cton_leaf_opt, indiv)
+      in (cton_leaf_opt, indiv)
 
     -- Nitrogen demand
     -- Root nitrogen demand
@@ -847,10 +847,10 @@ let ndemand(patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, s
     -- Sap wood nitrogen demand. Demand is ramped up throughout the year.
     let indiv =
     if (pfts[indiv.pft_id].lifeform == TREE) then
-      indiv with sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * pfts[indiv.pft_id].cton_sap_avr / pfts[indiv.pft_id].cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length())
+      indiv with sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * pfts[indiv.pft_id].cton_sap_avr / pfts[indiv.pft_id].cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + realFromInt date.day)/realFromInt Date_MAX_YEAR_LENGTH)
     else indiv
     -- Labile nitrogen storage demand
-    let indiv = indiv with storendemand = indiv.ndemand_storage(cton_leaf_opt)
+    let indiv = indiv with storendemand = ndemand_storage(indiv, cton_leaf_opt : real, stand, pfts, standpft, patchpft)
     --TODO HO demand
     let indiv = indiv with hondemand = 0.0
     -- Total nitrogen demand
@@ -861,14 +861,14 @@ let ndemand(patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, s
     -- Scale to maximum nitrogen conceforest_floorntrations
     let indiv = indiv with cton_status = max(0.0, (ntoc - 1.0 / pfts[indiv.pft_id].cton_leaf_min) / (1.0 / pfts[indiv.pft_id].cton_leaf_avr - 1.0 / pfts[indiv.pft_id].cton_leaf_min))
     -- Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
-    let nmin_scale : real = kNmin + nmin_avail / (nmin_avail + gridcell.pft[pfts[indiv.pft_id].id].Km)
+    let nmin_scale : real = kNmin + nmin_avail / (nmin_avail + gridcellpft.Km)
     -- Maximum available soil mineral nitrogen for this individual is base on its root area.
     -- This is considered to be related to FPC which is proportional to crown area which is approx
     -- 4 times smaller than the root area
     let max_indiv_avail : real = min(1.0, indiv.fpc * 4.0) * nmin_avail
     -- Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
     -- and soil available nitrogen within individual projectived coverage
-    let maxnup : real = min(2.0 * pfts[indiv.pft_id].nuptoroot * nmin_scale * temp_scale * indiv.cton_status * cmass_root_today(indiv, pft, patchpft), max_indiv_avail)
+    let maxnup : real = min(2.0 * pfts[indiv.pft_id].nuptoroot * nmin_scale * temp_scale * indiv.cton_status * cmass_root_today(indiv, pfts[indiv.pft_id], patchpft), max_indiv_avail)
     -- Nitrogen demand limitation due to maximum nitrogen uptake capacity
     let fractomax : real = if ndemand_tot > 0.0 then min(maxnup/ndemand_tot,1.0) else 0.0
     -- Root and leaf demand from storage pools
@@ -907,20 +907,21 @@ let ndemand(patch : Patch, vegetation : [npft]Individual, gridcell : Gridcell, s
 --- If nitrogen supply is not able to meet demand it will lead
 --  to down-regulation of vmax resulting in lower photosynthesis
 --/
-let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : [npft]Individual, soil : Soil, pfts : [npft]Pft, ppfts : [nptf]Patchpft)
+let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : [npft]Individual, soil : Soil, pfts : [npft]Pft, ppfts : [npft]Patchpft, patchpft: Patchpft, stand : Stand, gridcell : Gridcell, date : Date)
   : [npft]Individual =
   -- Supply function for nitrogen and determination of nitrogen stress leading
   -- to down-regulation of vmax.
   -- Nitrogen within projective cover of all individuals
-  let tot_nmass_avail : real = soil.nmass_avail(NO) * min(1.0, patch.fpc_total)
+  let tot_nmass_avail : real = nmass_avail(soil, NO) * min(1.0, patch.fpc_total)
   -- Calculate individual uptake fraction of nitrogen demand
   let vegetation =
   if (patch.ndemand > tot_nmass_avail) then
     -- Determine individual nitrogen uptake fractions
-    fnuptake(vegetation, tot_nmass_avail)
+    fnuptake(vegetation, nmass_avail(soil, NO), pfts, patchpft)
   else vegetation
   -- Resolve nitrogen stress with longterm stored nitrogen
-  let vegetation = nstore_usage(vegetation)
+  let vegetation = nstore_usage(vegetation, pfts, patchpft)
+
 
   -- Calculate leaf nitrogen associated with photosynthesis, nitrogen limited photosynthesis,
   -- and annual otimal leaf nitrogen content and nitrogen limitation on vmax
@@ -944,39 +945,37 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : [npft]In
       let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
       let ps_env : PhotosynthesisEnvironment = {co2 = pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
       -- Set stresses
-      PhotosynthesisStresses ps_stress
       let ps_stress = {ifnlimvmax=true, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell), inund_stress=get_inund_stress(ppft, stand, gridcell)}
       -- Individual photosynthesis
       let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                                     pft.lambda_max, indiv.nactive / indiv.nextin, -1,
-                                     indiv.photosynthesis_result)
-      let indiv = indiv with photosynthesis = ps_result
+                                     pft.lambda_max, indiv.nactive / indiv.nextin, -1)
+      let indiv = type_checker_helper5(indiv, ps_result)
 
       let indiv = indiv with gpterm = gpterm(indiv.photosynthesis_result.adtmm, pftco2, pft.lambda_max, climate.daylength)
       let indiv =
-      if (date.diurnal()) then
+      if (diurnal(date)) then
         let (indiv, _) =
         loop (indiv, i)
           = (indiv, 0)
         while (i < date.subdaily) do
-          let ps_result = indiv.phots[i]
-          let ps_env = {co2=pftco2, temp=climate.temps[i], pars=climate.pars[i], fpar=indiv.fpar, daylength=24}
-          let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                          pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis_result.vm,
-                          ps_result)
-          let indiv = indiv with gpterms = gpterms with [i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24)
-          in indiv
+          let ps_result = indiv.phots[i] --FIXME shouldnt this one be put back, having been updated?
+          let ps_env = {co2=pftco2, temp=climate.temps[i], par=climate.pars[i], fpar=indiv.fpar, daylength=24}
+          let ps_result = photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis_result.vm)
+          let new_gpterms = copy indiv.gpterms
+          let new_gpterms = new_gpterms with [i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24)
+          let indiv = indiv with gpterms = new_gpterms
+          in (indiv, i+1)
         in indiv
         else indiv
       in
       -- Sum annual average nitrogen limitation on vmax
-      if (indiv.phen) then
+      if (indiv.phen > 0) then --TODO FIXME check conditional
         let indiv = indiv with avmaxnlim = indiv.avmaxnlim + indiv.photosynthesis_result.vmaxnlim
       -- On last day of year determined average nitrogen limitation
       -- based on days with leaf on
         in
         if (date.islastday && date.islastmonth) then
-          if (!negligible(indiv.nday_leafon)) then
+          if (!negligible(realFromInt indiv.nday_leafon)) then
             indiv with avmaxnlim = indiv.avmaxnlim / realFromInt indiv.nday_leafon
           else
             indiv with avmaxnlim = 0.0
@@ -992,7 +991,7 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : [npft]In
 --      AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL
 --  \see canexch.h
 --/
-let wdemand(patch : Patch, climate : Climate, vegetation : [npft]Individual, day : Day) : (Patch, Vegetation) =
+let wdemand(patch : Patch, climate : Climate, vegetation : [npft]Individual, day : Day, pfts : [npft]Pft, date : Date, stand : Stand, soil : Soil, gridcell : Gridcell, ppfts: [npft]Patchpft) : (Patch, Vegetation) =
     -- non-water-stressed canopy conductance assuming full leaf cover, patch
     -- vegetated area basis (mm/s)
   let (vegetation, gps, glps) = map (\indiv ->
@@ -1009,21 +1008,20 @@ let wdemand(patch : Patch, climate : Climate, vegetation : [npft]Individual, day
       -- Call photosynthesis first with fpar_leafon to get gp_leafon below.
       -- Should hopefully not be needed in future, demand_leafon only used
       -- by raingreen phenology.
-      let temp : real = if date.diurnal() then climate.temps[day.period] else climate.temp
-      let par : real = if date.diurnal() then climate.pars[day.period] else climate.par
-      let daylength : real = if date.diurnal() then 24 else climate.daylength
+      let temp : real = if diurnal(date) then climate.temps[day.period] else climate.temp
+      let par : real = if diurnal(date) then climate.pars[day.period] else climate.par
+      let daylength : real = if diurnal(date) then 24 else climate.daylength
       let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
-      let ps_env = {co2=pftco2, temp=temp, par=par, fpar=indiv.fpar_leafon, daylight=daylight}
-      let ppft : Patchpft = ppfts[patch.patchpft_id]
+      let ps_env = {co2=pftco2, temp=temp, par=par, fpar=indiv.fpar_leafon, daylength=daylength}
+      let ppft : Patchpft = ppfts[indiv.pft_id]
       let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell),inund_stress=get_inund_stress(ppft, stand, gridcell)}
 
       -- No nitrogen limitation when calculating gp_leafon
       let ps_result = photosynthesis(ps_env, ps_stress, pft,
-                                     pft.lambda_max, 1.0, -1,
-                                     leafon_photosynthesis)
+                                     pft.lambda_max, 1.0, -1)
       let gp_leafon : real = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc
       -- Increment patch sums of non-water-stressed gp by individual value
-      let gp_patch = gp_patch + (if date.diurnal() then indiv.gpterms[day.period] else indiv.gpterm) + pft.gmin * fpc_today(indiv)
+      let gp_patch = gp_patch + (if diurnal(date) then indiv.gpterms[day.period] else indiv.gpterm) + pft.gmin * fpc_today(indiv)
       let gp_leafon_patch = gp_leafon_patch + gp_leafon
       in (indiv, gp_patch, gp_leafon_patch)
     else (indiv, 0.0, 0.0)
@@ -1126,7 +1124,7 @@ let aet_water_stress(patch : Patch, stand: Stand, vegetation : [npft]Individual,
     let gmin : real = if pft.phenology==CROPGREEN then ppft.phen * pft.gmin else pft.gmin
     let ppft = ppft with gcbase = if ppft.wstress then max(gc_monteith(ppft.wsupply, patch.eet_net_veg)-gmin * ppft.wsupply / patch.wdemand, 0.0) else 0
     let ppft =
-    if (!date.diurnal()) then
+    if (!diurnal(date)) then
       let ppft = ppft with wstress_day = ppft.wstress
       let ppft= ppft with gcbase_day = ppft.gcbase
       in ppft
@@ -1205,7 +1203,7 @@ let water_scalar(stand : Stand, patch : Patch, vegetation : [npft]Individual, da
           let ppft = ppft with wscal_mean = ppft.wscal_mean + ppft.wscal in
             -- Convert from sum to mean on last day of year
             if (date.islastday && date.islastmonth) then
-              ppft with wscal_mean = ppft.wscal_mean / date.year_length()
+              ppft with wscal_mean = ppft.wscal_mean / realFromInt Date_MAX_YEAR_LENGTH
             else ppft
         else
           if (ppft.cropphen.growingseason || ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen.hdate || ppft.pft.isintercropgrass && date.day == patch.pft[stand.pft_id].cropphen.eicdate) then
@@ -1447,7 +1445,7 @@ let npp( patch : Patch
   -- conductance from function aet_water_stress (above).
   -- Plant respiration obtained by a call to function respiration (above).
   let (par, temp, hours, rad, gtemp) =
-    if (date.diurnal()) then
+    if (diurnal(date)) then
       (climate.pars[day.period]
       ,climate.temps[day.period]
       ,24-- diurnal "daylength" to convert to daily units
@@ -1471,7 +1469,7 @@ let npp( patch : Patch
       let inund_stress : real = get_inund_stress(ppft, stand, gridcell)
       let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell)
       let moss_wtp_limit : real = get_moss_wtp_limit(pft, stand, soil, gridcell)
-      let phot : PhotosynthesisResult = if date.diurnal() then indiv.phots[day.period] else indiv.photosynthesis_result
+      let phot : PhotosynthesisResult = if diurnal(date) then indiv.phots[day.period] else indiv.photosynthesis_result
       let (phot, lambda) =
         if (indiv.wstress) then
           -- Water stress - derive assimilation by simultaneous solution
@@ -1482,7 +1480,7 @@ let npp( patch : Patch
         else (phot, lambda)
       let assim = phot.net_assimilation()
       --if (ifbvoc) { --TODO FIXME: this is false in global.ins, so it is omitted here for now
-      --  PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis_result
+      --  PhotosynthesisResult phot_nostress = diurnal(date) ? indiv.phots[day.period] : indiv.photosynthesis_result
       --  bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day)
       --}
       -- Calculate autotrophic respiration

@@ -363,22 +363,6 @@ let cmass_leaf_today(this : Individual, pft : Pft, patchpft: Patchpft) : real =
     this.cmass_leaf * this.phen
 
 
-let nmass_avail(this: Soil, pref : int) : real =
-  let nmass = 0.0 --TODO should this modify Soil state?
-  let pref = if (!ifntransform) then NH4 else NO -- see guess.h somewhere
-  let (NH4_mass, NO3_mass) =
-    if (!ifntransform) && (this.NO3_mass > 0.0)
-    then (this.NH4_mass+this.NO3_mass, 0.0)
-    else (this.NH4_mass, this.NO3_mass)
-  in
-    if (pref == NO) then
-      NH4_mass + NO3_mass
-    else if (pref == NH4) then
-      NH4_mass
-    else if (pref == NO3) then
-      NO3_mass
-    else nmass
-
 --- Gets the individual's daily cmass_root value
 let cmass_root_today(this : Individual, pft: Pft, patchpft: Patchpft) : real =
   if (istruecrop_or_intercropgrass(this, pft)) then
@@ -395,8 +379,6 @@ let Individual_report_flux_PerPatchFluxType(this: *Fluxes, alive: bool, istruecr
   if (alive || istruecrop_or_intercropgrass) then
     report_flux_PerPatchFluxType(copy this, flux_type, value, date)
   else this
-
-
 
 --let get_annual_flux_PerPFTFluxType_pft_id(this: Fluxes, flux_type: PerPFTFluxType, pft_id: int) : real =
 --  this.annual_fluxes_per_pft[pft_id][flux_type]
@@ -1133,7 +1115,7 @@ let lai_indiv_today(this: Individual, pft: Pft, ppft: Patchpft) : real =
 		this.lai_indiv * this.phen
 --
 let is_true_crop_stand(stand: Stand, pft: Pft) : bool =
-  stand.landcover==CROPLAND && pft.phenology==CROPGREEN--	// OK also for fallow (pftid always cropgreen)
+  stand.landcover==CROPLAND && pft.phenology==CROPGREEN--	-- OK also for fallow (pftid always cropgreen)
 
 let cton_leaf(this : Individual, use_phen : bool, stand : Stand, standpft: Standpft, pfts : [npft]Pft, patchpft: Patchpft) : real =
 	if (is_true_crop_stand(stand, pfts[standpft.pft_id]) && !negligible(cmass_leaf_today(this, pfts[standpft.pft_id], patchpft)) && !negligible(this.nmass_leaf))
@@ -1147,6 +1129,24 @@ let cton_leaf(this : Individual, use_phen : bool, stand : Stand, standpft: Stand
   		else this.cmass_leaf / this.nmass_leaf
   	else pfts[standpft.pft_id].cton_leaf_max
 
+--- Total storage of nitrogen
+let nstore(individual : Individual) : real =
+	individual.nstore_longterm + individual.nstore_labile
+
+--- Total carbon wood biomass
+let cmass_wood(individual : Individual) : real =
+	individual.cmass_sap + individual.cmass_heart - individual.cmass_debt
+
+--- Total nitrogen wood biomass
+let nmass_wood(individual : Individual) : real =
+	individual.nmass_sap + individual.nmass_heart
+
+let ndemand_storage(this: Individual, cton_leaf_opt : real, stand : Stand, pfts: [npft]Pft, standpft: Standpft, patchpft : Patchpft) : real =
+	if (is_true_crop_stand(stand, pfts[standpft.pft_id]) && ifnlim) then	-- only CROPGREEN, only ifnlim ?
+		-- analogous with root demand
+		max(0.0, this.cropindiv.grs_cmass_stem / (cton_leaf_opt * pfts[standpft.pft_id].cton_stem_avr / pfts[standpft.pft_id].cton_leaf_avr) - this.cropindiv.nmass_agpool)
+	else
+		max(0.0, min(this.anpp * this.scale_n_storage / cton_leaf(this, true, stand, standpft, pfts, patchpft), this.max_n_storage) - nstore(this))
 
 --- Gets the individual's daily lai value
 let lai_today(this : Individual, pft: Pft, ppft: Patchpft) : real =
