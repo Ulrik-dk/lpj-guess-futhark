@@ -42,5 +42,8 @@ let negligible_2 (dval : real, limit : real) : bool =
 	-- Returns true if |dval| < EPSILON, otherwise false
 	if (limit == 0.0) then (abs dval) < (pow (10.0, limit)) else abs(dval) < 1.0e-30
 
+let largerthanzero(dval : real, limit : real) : bool =
+	-- Returns true if |dval| < EPSILON, otherwise false
+	if limit!=0.0 then dval > pow(10.0, limit) else dval > 1.0e-30
 
 -- TODO: more to be translated here

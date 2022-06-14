@@ -363,6 +363,18 @@ let cmass_leaf_today(this : Individual, pft : Pft, patchpft: Patchpft) : real =
     this.cmass_leaf * this.phen
 
 
+
+let lai_nitrogen_today(this : Individual, patchpft : Patchpft, pft: Pft) : real =
+	if (pft.phenology==CROPGREEN) then
+		if (patchpft.cropphen.growingseason && cmass_leaf_today(this, pft, patchpft) > 0.0) then
+			let k = 0.5
+			let ktn = 0.52*k + 0.01 -- Yin et al 2003
+			let nb = 1/(pft.cton_leaf_max*pft.sla)
+			in (1/ktn) * log(1+ktn*this.nmass_leaf/nb)
+		else 0.0
+  else 1.0
+
+
 --- Gets the individual's daily cmass_root value
 let cmass_root_today(this : Individual, pft: Pft, patchpft: Patchpft) : real =
   if (istruecrop_or_intercropgrass(this, pft)) then
@@ -962,6 +974,7 @@ let Individual(individual_id : int
 }
 
 
+
 let cropphen_struct() : cropphen_struct = {
     sdate=(-1),
     sdate_harv=(-1),
@@ -1093,6 +1106,10 @@ let Day(date : Date) : Day = {
   period = 0
 }
 
+--- Gets the growingseason status for crop individual. Non-crop individuals always return true.
+let growingseason(patchpft: Patchpft) : bool =
+	patchpft.cropphen.growingseason -- FIXME is this right?
+
 --- Advances to the next sub-daily period
 let next(this : Day, date: Date) : Day = {
   period = this.period+1,
@@ -1128,6 +1145,30 @@ let cton_leaf(this : Individual, use_phen : bool, stand : Stand, standpft: Stand
   			else pfts[standpft.pft_id].cton_leaf_avr
   		else this.cmass_leaf / this.nmass_leaf
   	else pfts[standpft.pft_id].cton_leaf_max
+
+
+let cton_sap(this : Individual, pft : Pft) : real =
+	if (pft.lifeform == TREE) then
+		if (!negligible(this.cmass_sap) && !negligible(this.nmass_sap)) then
+			max(pft.cton_sap_avr * pft.cton_leaf_min / pft.cton_leaf_avr, this.cmass_sap / this.nmass_sap)
+		else
+			pft.cton_sap_max
+	else
+		1.0
+--
+let cton_root(this : Individual, use_phen : bool, pft : Pft, patchpft: Patchpft) : real =
+	if (!negligible(this.cmass_root) && !negligible(this.nmass_root)) then
+		if (use_phen) then
+			if (!negligible(cmass_root_today(this, pft, patchpft))) then
+				max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root_today(this, pft, patchpft) / this.nmass_root)
+			else
+				pft.cton_root_avr
+		else
+			max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, this.cmass_root / this.nmass_root)
+	else
+		pft.cton_root_max
+
+
 
 --- Total storage of nitrogen
 let nstore(individual : Individual) : real =

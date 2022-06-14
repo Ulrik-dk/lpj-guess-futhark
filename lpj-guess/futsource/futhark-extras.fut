@@ -13,6 +13,7 @@ let euler : real = 2.71828
 let pow(a: real, b: real) = a ** b
 let exp(a: real) = pow(euler, a)
 let log10 = f64.log10
+let log = log10
 let sqrt = f64.sqrt
 let abs = f64.abs
 let sin = f64.sin

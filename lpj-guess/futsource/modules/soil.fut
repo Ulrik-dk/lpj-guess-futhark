@@ -1310,6 +1310,14 @@ let Soil(soiltype : Soiltype) : Soil = {
 
 -- TODO: There are many SOIL member functions in soil.cpp
 
+-- return wcont for a certain layer
+let get_layer_soil_water(this: Soil, layer : int) : real =
+	if (layer < 0 || layer > NSOILLAYER-1 || layer != layer) then ---????????? FIXME
+		-999.0
+	else
+		this.wcont[layer]
+
+
 let get_soil_temp_25(this: Soil) : real =
 	-- Return soil temperature at 25cm depth
 	if (iftwolayersoil) then

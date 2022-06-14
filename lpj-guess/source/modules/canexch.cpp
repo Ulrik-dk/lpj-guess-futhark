@@ -1430,7 +1430,6 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
  *  \see canexch.h
  */
 void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day) {
-
 	// Determination of transpirative demand based on a Monteith parameterisation of
 	// boundary layer dynamics, i.e. demand = f(EET, conductance)
 
