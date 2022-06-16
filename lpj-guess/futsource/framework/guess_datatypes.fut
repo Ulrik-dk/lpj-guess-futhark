@@ -807,11 +807,6 @@ type StandType = {
 }
 
 
-
-
-
-
-
 let nst : i64 = 5 -- num possible StandTypes
 
 -- Holds static functional parameters for a plant functional type (PFT).

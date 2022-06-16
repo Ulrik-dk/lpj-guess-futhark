@@ -1738,10 +1738,10 @@ let canopy_exchange(patch : Patch, vegetation : [npft]Individual, climate : Clim
 
     let (vegetation, ppfts) = aet_water_stress(patch, copy stand, vegetation, day, pfts, copy spfts, ppfts, copy soil, copy soiltype, copy gridcell, copy date)
 
-    let pfts = water_scalar(copy stand, patch, vegetation, day, ppfts, pfts, copy spfts, date)
+    let ppfts = water_scalar(copy stand, patch, vegetation, day, copy ppfts, pfts, copy spfts, date)
 
     let (patch, vegetation) = npp(patch, climate, vegetation, day, pfts, spfts, date, stand, gridcell, soil, ppfts)
-    in (patch, vegetation, ppfts, pfts, day.next())
+    in (patch, vegetation, ppfts, pfts, next(day, date))
 
   let vegetation = leaf_senescence(stand, patch, vegetation, ppfts)
   -- Forest-floor conditions
