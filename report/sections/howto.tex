@@ -1,0 +1,16 @@
+\section{How to}
+\subsection{Requirements}
+In order to run, test and develop further, several dependencies are necessary. In arch or arch derived linux, you will probably need the \texttt{cmake} and \texttt{netcdf} packages, not to mention futhark iteself. On another distro, there will be some equivalent packages you will need.
+
+The different packages available for futhark in the arch repositories are all several versions behind, so I would recommend installing a precompiled nightly build from the futhark website itself.
+
+Then:
+\begin{enumerate}
+\item Clone the github repository.
+\item Add the \texttt{input} folder, with its contents, to the \texttt{lpj-guess-22/lpj-guess/example/} directory. This is not tracked in the repository due to its size.
+\item Notice that the \texttt{Makefile} is located in \texttt{lpj-guess-22/}.
+\item \texttt{Make 0} to typecheck the futhark code files.
+\item \texttt{Make 1} to compile the reference implementation.
+\item \texttt{Make 2} to run the reference implementation, and thereby generate testfiles for the futhark implementation.
+\item \texttt{Make 3} to run the testfiles for the futhark implementation.
+\end{enumerate}

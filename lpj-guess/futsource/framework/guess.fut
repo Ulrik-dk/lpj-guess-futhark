@@ -1460,3 +1460,37 @@ let Gridcellst(gridcellst_id : int, standtype_id : int) : Gridcellst = {
   nfert = (-1.0)
 }
 type Vegetation = [npft]Individual
+
+let Gridcell() : Gridcell = {
+  --TODO this constructor is wrong
+	seed = 12345678,
+  aNH4dep = nan,
+  aNO3dep = nan,
+  ann_max_fapar = nan,
+  annual_burned_area = nan,
+  burned_area = nan,
+  burned_area_accumulated = nan,
+  can_burn = intnan,
+  climate_id = intnan,
+  cur_max_fapar = nan,
+  cur_nesterov = nan,
+  dNH4dep = nan,
+  dNO3dep = nan,
+  gridcellpft_id = intnan,
+  gridcellst_id = intnan,
+  hyde31_pop_density = replicate 57 nan,
+  k_tun_litter = nan,
+  landcover_id = intnan,
+  lat = nan,
+  lon = nan,
+  massbalance_id = intnan,
+  max_nesterov = nan,
+  monthly_burned_area = replicate 12 nan,
+  monthly_fire_risk = replicate 12 nan,
+  monthly_max_nesterov = replicate 12 nan,
+  pop_density = nan,
+  recent_max_fapar = replicate AVG_INTERVAL_FAPAR nan,
+  simfire_biome = intnan,
+  simfire_region = intnan,
+  soiltype_id = intnan
+}

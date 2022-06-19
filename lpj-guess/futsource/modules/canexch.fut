@@ -614,7 +614,7 @@ let gpterm (adtmm: real, co2: real, lambda: real, daylength: real) : real =
 ---
 -- Updated daily
 ---
-let get_co2(p : Patch, climate : Climate, pft : Pft, stand: Stand, soil : Soil, g: Gridcell) : real =
+let get_co2(climate : Climate, pft : Pft, stand: Stand, soil : Soil, g: Gridcell) : real =
   if (is_highlatitude_peatland_stand(stand, g) && ismoss(pft))
   then soil.acro_co2 -- override for peat mosses
   else climate.co2
@@ -658,7 +658,7 @@ let photosynthesis_nostress(vegetation : Vegetation, patch : Patch, climate : Cl
     if patch.patch_id == 0 then
      unzip <| map2 (\spft ppft ->
        if (spft.active) then
-         let pftco2 = get_co2(patch, climate, pfts[spft.pft_id], stand, soil, gridcell)
+         let pftco2 = get_co2(climate, pfts[spft.pft_id], stand, soil, gridcell)
          let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=1.0, daylength=climate.daylength}
          let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(pfts[spft.pft_id], stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pfts[spft.pft_id], stand, soil, gridcell), inund_stress=get_inund_stress(ppft, stand, gridcell)}
          -- Call photosynthesis assuming stomates fully open (lambda = lambda_max)
@@ -674,7 +674,7 @@ let photosynthesis_nostress(vegetation : Vegetation, patch : Patch, climate : Cl
    map (\indiv ->
      let pft : Pft = pfts[indiv.pft_id]
      let ppft : Patchpft = ppfts[pft.pft_id]
-     let pftco2 = get_co2(patch, climate, pft, stand, soil, gridcell)
+     let pftco2 = get_co2(climate, pft, stand, soil, gridcell)
      let ps_env = {co2=pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
      let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell), inund_stress=get_inund_stress(ppft, stand, gridcell)}
      -- Individual photosynthesis with no nitrogen limitation
@@ -954,7 +954,7 @@ let vmax_nitrogen_stress(patch : Patch, climate : Climate, vegetation : [npft]In
     -- Individuals photosynthesis is nitrogen stressed
     let indiv =
     if (indiv.nstress) then
-      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
+      let pftco2 : real = get_co2(climate, pft, stand, soil, gridcell)
       let ps_env : PhotosynthesisEnvironment = {co2 = pftco2, temp=climate.temp, par=climate.par, fpar=indiv.fpar, daylength=climate.daylength}
       -- Set stresses
       let ps_stress = {ifnlimvmax=true, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell), inund_stress=get_inund_stress(ppft, stand, gridcell)}
@@ -1023,7 +1023,7 @@ let wdemand(patch : Patch, climate : Climate, vegetation : [npft]Individual, day
       let temp : real = if diurnal(date) then climate.temps[day.period] else climate.temp
       let par : real = if diurnal(date) then climate.pars[day.period] else climate.par
       let daylength : real = if diurnal(date) then 24 else climate.daylength
-      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
+      let pftco2 : real = get_co2(climate, pft, stand, soil, gridcell)
       let ps_env = {co2=pftco2, temp=temp, par=par, fpar=indiv.fpar_leafon, daylength=daylength}
       let ppft : Patchpft = ppfts[indiv.pft_id]
       let ps_stress = {ifnlimvmax=false, moss_ps_limit=get_moss_wtp_limit(pft, stand, soil, gridcell), graminoid_ps_limit=get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell),inund_stress=get_inund_stress(ppft, stand, gridcell)}
@@ -1489,7 +1489,7 @@ let npp( patch : Patch
     --Don't do calculations for crops outside their growingseason
     in if (!growingseason(ppfts[indiv.pft_id])) then (indiv with dnpp = 0.0, (false, false, 0, 0, 0, 0.0, 0.0, 0.0, 0))
     else
-      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell)
+      let pftco2 : real = get_co2(climate, pft, stand, soil, gridcell)
       let inund_stress : real = get_inund_stress(ppft, stand, gridcell)
       let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell)
       let moss_wtp_limit : real = get_moss_wtp_limit(pft, stand, soil, gridcell)
@@ -1586,7 +1586,7 @@ let forest_floor_conditions(stand: Stand, patch : Patch, climate : Climate, spft
     in if (!spft.active) then (ppfts, spfts, p+1) else
       let pft : Pft = pfts[spft.pft_id]
       -- peatland limits on photosynthesis
-      let pftco2 : real = get_co2(patch, climate, pft, stand, soil, gridcell) -- was stand.get_gridcell().climate
+      let pftco2 : real = get_co2(climate, pft, stand, soil, gridcell) -- was stand.get_gridcell().climate
       let inund_stress : real = get_inund_stress(ppft, stand, gridcell)
       let graminoid_wtp_limit : real = get_graminoid_wtp_limit(patch, pft, stand, soil, gridcell)
       let moss_wtp_limit : real = get_moss_wtp_limit(pft, stand, soil, gridcell)
@@ -1692,9 +1692,6 @@ let init_canexch(patch : Patch, climate : Climate, vegetation : [npft]Individual
     else vegetation
   in (patch with wdemand_day = 0, vegetation)
 
---let canopy_exchange(patch : Patch, climate : Climate, individuals : [][][]Individuals) : Patch =
---  let vegetation : []Individual = individuals[patch.gridcell_id, stand_id, patch.patch_id]
---  in patch
 --- Canopy exchange
 --- Vegetation-atmosphere exchange of CO2 and water including calculations
 --  of actual evapotranspiration (AET), canopy conductance, carbon assimilation

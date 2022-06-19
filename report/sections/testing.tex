@@ -1,5 +1,5 @@
 \section{Testing}
-\husk{test driven development}
+\subsection{subsection name}
 
 Figure out a way of testing equivalence between these functions and the translation. Perhaps using generated tests?
 
@@ -12,10 +12,103 @@ Ensure that inputs are true inputs, and have not been written during the current
 
 If you want to be able to test multiple execution paths, collecting input and output at the end of these paths seems to be the most elegant approach, both to ensure correctness and for ease of implementation.
 
-
-
-
-
 These differences (in calling convetions mentioned in the relevant section) mean that is is extremely advisable to perform an analysis of any given function before writing it and testing it. This analysis must discover the following: What are the parameters of the function. Which ones are only ever read. Which ones are read before being written, and which ones are written before being read (if ever). These last ones are likely the return values, passed by reference. Anything passed as a const can not be written or modified by the given function. It is necessary to discover, for each parameter that is an object, exactly which fields are read.
 
 For all functions called by the given function, it is necessary to perform the same analysis, and to consider that the relevant inherits the read-dependencies on object fields of sub-functions. Otherwise it will not be possible to correctly test a given function. Having once forgotten to properly do this, I overlooked that a tiny helper function read a field of an object, and forgot to include this in the test data, making the test fail. Once corrected, the test passed. This took several hours of manual print statements and data injections to isolate the issue to the given function, and then to the missing data.
+
+\subsection{Practicality}
+Take for example the \texttt{get_co2()} funktion from \texttt{canexch.cpp}. This is the reference implementation:
+\begin{minted}{cpp}
+double get_co2(Patch& p, Climate& climate, Pft& pft) {
+	double pftco2 = climate.co2;
+	if (p.stand.is_highlatitude_peatland_stand() && pft.ismoss())
+		pftco2 = p.soil.acro_co2; // override for peat mosses
+	return pftco2;
+}
+\end{minted}
+Notice that it only takes three arguments, and how simple the function itself is. However, due to massive use of indirection, the translation becomes:
+
+\begin{minted}{futhark}
+let get_co2(climate : Climate, pft : Pft, stand: Stand, soil : Soil, g: Gridcell) : real =
+  if (is_highlatitude_peatland_stand(stand, g) && ismoss(pft))
+  then soil.acro_co2 -- override for peat mosses
+  else climate.co2
+\end{minted}
+
+The fields that are accessed in this function, and all the call-descendants, are \texttt{stand.landcover, gridcell.lat, pft.lifeform, soil.acro_co2, climate.co2}, so just one field for each object. The \texttt{Patch} object falls away from the function, as it is only used to point to another object.
+
+The code necessary to generate a test of this, using the current method, then is the following. We also need to generate dummy \texttt{Date} and \texttt{Soiltype} objects for use in the constructors, and the result of teh \texttt{Stand} constructor has to be handled in a unique way, as it also constructs \texttt{Standpft} and \texttt{Standst} objects that are irrelevant for this test.
+
+\begin{minted}{cpp}
+if (FIRST_TIME_HERE) {
+  ostringstream oss;
+  init_oss(oss);
+
+  init_obj(oss, "date", "Date()");
+  init_obj(oss, "soiltype", "Soiltype(0)");
+
+  init_obj(oss, "(_, _, stand)", "Stand(0,0,0,0,0,0,date)");
+  inplace_update(oss, "stand", "landcover", to_string(p.stand.landcover));
+
+  string gridcell_fields_values[] =
+    {"lat", to_string(p.stand.get_gridcell().get_lat())};
+  obj_with_fields(oss, "gridcell", "Gridcell()", gridcell_fields_values, 1);
+
+  string pft_fields_values[] =
+    {"lifeform", to_string(pft.lifeform)};
+  obj_with_fields(oss, "pft", "Pft(0)", pft_fields_values, 1);
+
+  string soil_fields_values[] =
+    {"acro_co2", to_string(p.soil.acro_co2)};
+  obj_with_fields(oss, "soil", "Soil(soiltype)", soil_fields_values, 1);
+
+  string climate_fields_values[] =
+    {"co2", to_string(climate.co2)};
+  obj_with_fields(oss, "climate", "Climate(0.0, 0, 0)", climate_fields_values, 1);
+
+  finish_input(oss, "(climate, pft, stand, soil, gridcell)");
+
+  string res_fields_values[] =
+    {"pftco2", "pftco2", to_string(pftco2)};
+  gen_entry_point_tests(oss, "get_co2", "pftco2", res_fields_values, 1);
+
+  gen_test_file(oss, "get_co2");
+}
+\end{minted}
+
+And the generated testfile is:
+
+\begin{minted}{futhark}
+open import "../../futsource/everything"
+
+let input =
+  let date = Date()
+  let soiltype = Soiltype(0)
+  let (_, _, stand) = Stand(0,0,0,0,0,0,date)
+  let stand = stand with landcover = 4
+  let gridcell = Gridcell()
+  let gridcell = gridcell with lat = 19.799999
+
+  let pft = Pft(0)
+  let pft = pft with lifeform = 1
+
+  let soil = Soil(soiltype)
+  let soil = soil with acro_co2 = 934.000000
+
+  let climate = Climate(0.0, 0, 0)
+  let climate = climate with co2 = 296.378500
+
+  in (climate, pft, stand, soil, gridcell)
+
+-- Autogenerated test of get_co2 output pftco2 field: pftco2
+-- ==
+-- entry: pftco2_test
+-- input {}
+-- output { 296.378500 }
+
+entry pftco2_test =
+  let pftco2 = get_co2 input
+  in pftco2
+\end{minted}
+
+For just a simple function like this, six (five) objects are required. For the more complex functions, many more are quickly required, and the number of fields required also grows. Further, many functions require arrays of objects. Currently the testing functions are not capable of expressing this, but it could be extended. However, it would be quite involved.

@@ -5,7 +5,7 @@ There is a significant difference between writing Futhark code from the bottom u
 
 It seems plausible that a hypothetical continuator of the present work is in a similar situation, and for that reason, I will present the reasoning behind the present work for consideration.
 
-\subsection{Architecture}
+\subsection{Data organisation}
 In translating the architecture, several choices presented themselves. First off, preserving the folder and file structure in translating the framework seems to have no drawbacks, and is very useful for keeping track of progress, comparing the translated code with its referent, etc. Given the dependency segregation principle of the SOLID principles of OOP, C++ has a distinction between header files (.h) and implementation files (.cpp) which is absent in futhark. Header files contain the definitions or interfaces of functions and classes, and the implementation files contain their implementations. This is not a strict distinction - the compilers will not force you to actually structure the code in this way - but it will pair headers and their corresponding implementation files together when compiling and linking the code.
 
 Because of this one-to-one correspondece headers have with their bodies, I decided to conceptually combine them into single futhark files. So, for canexch.h and canexch.cpp, only canexch.fut will exist. For the purpose of keeping track of progress and such, the content from the header file should appear first, and their sepparation should be denoted by a visually substantial comment.

@@ -521,8 +521,6 @@ double alphaa(const Pft& pft) {
 	  gen_test_file(oss, "alphaa");
 	}
 
-
-
 	return result;
 
 }
@@ -907,25 +905,35 @@ double get_co2(Patch& p, Climate& climate, Pft& pft) {
 	  ostringstream oss;
 	  init_oss(oss);
 
-	  string stand_field_values[] =
-	    {"is_highlatitude_peatland_stand", to_string(p.stand.is_highlatitude_peatland_stand())};
-	  obj_with_fields(oss, "stand", "Stand()", stand_field_values, 1);
+		init_obj(oss, "date", "Date()");
+		init_obj(oss, "soiltype", "Soiltype(0)");
+
+		init_obj(oss, "(_, _, stand)", "Stand(0,0,0,0,0,0,date)");
+		inplace_update(oss, "stand", "landcover", to_string(p.stand.landcover));
+
+		string gridcell_fields_values[] =
+	    {"lat", to_string(p.stand.get_gridcell().get_lat())};
+	  obj_with_fields(oss, "gridcell", "Gridcell()", gridcell_fields_values, 1);
+
+		string pft_fields_values[] =
+	    {"lifeform", to_string(pft.lifeform)};
+	  obj_with_fields(oss, "pft", "Pft(0)", pft_fields_values, 1);
 
 		string soil_fields_values[] =
 	    {"acro_co2", to_string(p.soil.acro_co2)};
-	  obj_with_fields(oss, "soil", "Soil()", soil_fields_values, 1);
+	  obj_with_fields(oss, "soil", "Soil(soiltype)", soil_fields_values, 1);
 
 		string climate_fields_values[] =
-			{"co2", to_string(climate.co2)};
-		obj_with_fields(oss, "climate", "Climate()", climate_fields_values, 1);
+	    {"co2", to_string(climate.co2)};
+	  obj_with_fields(oss, "climate", "Climate(0.0, 0, 0)", climate_fields_values, 1);
 
-	  finish_input(oss, "pftco2");
+	  finish_input(oss, "(climate, pft, stand, soil, gridcell)");
 
-		string res_fields_values[] =
+	  string res_fields_values[] =
 	    {"pftco2", "pftco2", to_string(pftco2)};
-		gen_entry_point_tests(oss, "get_co2", "pftco2", res_fields_values, 1);
+	  gen_entry_point_tests(oss, "get_co2", "pftco2", res_fields_values, 1);
 
-		gen_test_file(oss, "get_co2");
+	  gen_test_file(oss, "get_co2");
 	}
 
 	return pftco2;
