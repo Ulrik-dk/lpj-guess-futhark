@@ -1,22 +1,283 @@
 \section{Testing}
-\subsection{subsection name}
+Since the correctness of the translation is defined as equivalence to its reference, testing is most straightforwardly done by running both the translation and the reference with the same inputs and comparing the outputs. This is done, in practice, by extracting the input and resulting values from a given reference function, and then applying the translation to the same, and comparing results.
 
-Figure out a way of testing equivalence between these functions and the translation. Perhaps using generated tests?
+This poses several problems. The solution found was to modify the reference implementation with code that generates futhark code using the reference values. For functions that have several exits, this can be done several times, but currently has just been done with the longest path, as most divergent path merely return objects with default values, or somehow signal failures.
 
-Very difficult to prove that something cant break, but if we can prove that each function will return the correct result on a normal execution path, and if there are multiple paths, we migth want to prove this for each path, then we have a lot to argue for, perhaps not perfection, but at least normal functionality.
+This means that only one test is performed per function, which means that we do not necessarily test every path of every sub function. There was one case where a function failed, but only in a test of a parent function, because in the given test for the function itself, it never took the failing path, which was not taken before the parent function call, and the first function call was from an ealier parent.
 
-We only want to generate one test for each function (to begin with), and so we only need to run each function once to generate a test. Using a mutex enables us to only gather data from a single run, and then only generate one test file for the given function.
-
-Ensure that inputs and outputs are from the same run, ie. not taking inputs from one run, and outputs from another that diverged.
-Ensure that inputs are true inputs, and have not been written during the current run. That the inputs we use are really what they were at the start - if something is a const, this is trivially the case.
+We use a mutex macro in the reference implementation to ensure that the test generation is only done once per function, per run. We also do it all in one block, such that test generation is atomic. Otherwise we might risk mixing data from different calls to a given function.
 
 If you want to be able to test multiple execution paths, collecting input and output at the end of these paths seems to be the most elegant approach, both to ensure correctness and for ease of implementation.
 
-These differences (in calling convetions mentioned in the relevant section) mean that is is extremely advisable to perform an analysis of any given function before writing it and testing it. This analysis must discover the following: What are the parameters of the function. Which ones are only ever read. Which ones are read before being written, and which ones are written before being read (if ever). These last ones are likely the return values, passed by reference. Anything passed as a const can not be written or modified by the given function. It is necessary to discover, for each parameter that is an object, exactly which fields are read.
+When a function takes an object as input (a record in Futhark), there are two basic approaches to generating test code for it. Either one creates a literal record containing all the fields of it, or one uses a constructor which does the same, and then in-place updates the fields relevant for the given test. The relevant fields are those read by the given function, and by all the functions called by this, recursively, i.e. all descendants.
 
-For all functions called by the given function, it is necessary to perform the same analysis, and to consider that the relevant inherits the read-dependencies on object fields of sub-functions. Otherwise it will not be possible to correctly test a given function. Having once forgotten to properly do this, I overlooked that a tiny helper function read a field of an object, and forgot to include this in the test data, making the test fail. Once corrected, the test passed. This took several hours of manual print statements and data injections to isolate the issue to the given function, and then to the missing data.
+This second method is easier to some extent, but more error prone. One can spent several hours in confusion due to having overlooked a single field, read by a tiny helper function.
 
-\subsection{Practicality}
+\subsection{Elements of a test}
+First, one must find the place in the function, right before it exits, where the input and output values are all known. It is assumed that the input values have not been modified, but this is an oversight. If they are modified in the function, they must additionally be copied and thereby saved, such that their initial state is available at the end.
+
+One then uses the mutex macro and initializes the ostringstream used to write the contents of the testfile:
+\begin{minted}{cpp}
+if (FIRST_TIME_HERE) {
+  ostringstream oss;
+  init_oss(oss);
+  // rest goes here
+}
+\end{minted}
+The source for the macro is cited in a comment in the code.
+
+\subsubsection*{Beginning a test}
+
+The initializer function does this:
+
+\begin{minted}{cpp}
+void init_oss(std::ostringstream& oss){
+  oss << "open import \"../../futsource/everything\"" << endl;
+  oss << endl;
+  oss << "let input =" << endl;
+}
+\end{minted}
+
+which results in the following futhark code:
+
+\begin{minted}{futhark}
+open import "../../futsource/everything"
+
+let input =
+\end{minted}
+
+This is necessary to ensure that all tests import everything they might need. The \texttt{everything.fut} file just exists to make test generation not have to worry about which exact libraries are needed. It also begins the input tuple. Since global defintions can not be shadowed, and records that we are going to inplace update must be defined and updated in a a sub expression. This is done with the \texttt{input} tuple.
+
+\subsubsection*{Defining input values}
+
+The next step involves generating all the arguments for the function. If for example, the function receivs a simple \texttt{real}, one writes:
+
+\begin{minted}{cpp}
+dec_real(oss, "daylength", daylength);
+\end{minted}
+
+Using the function:
+\begin{minted}{cpp}
+void dec_real(std::ostringstream& oss,
+              const std::string& var,
+              const double val
+              ){
+  oss << "  let " << var << " : " << real_string << " = " << val << endl;
+}
+\end{minted}
+
+to generate code like this:
+
+\begin{minted}{futhark}
+  let daylength : f64 = 10.8269
+\end{minted}
+
+If one needs an object, one can declare this in two ways. Either by \texttt{init_obj} and \texttt{inplace_update}:
+
+\begin{minted}{cpp}
+void init_obj(std::ostringstream& oss,
+              const std::string& object,
+              const std::string& object_gen
+              ) {
+  oss << "  let " << object << " = " << object_gen << endl;
+}
+
+void inplace_update(std::ostringstream& oss,
+                    const std::string& object,
+                    const std::string& field,
+                    const std::string& value
+                    ) {
+  oss << "  let " << object << " = " << object << " with " << field << " = " << value << endl;
+}
+\end{minted}
+
+In this manner:
+
+\begin{minted}{cpp}
+init_obj(oss, "gridcell", "Gridcell()");
+inplace_update(oss, "gridcell", "lat", to_string(p.stand.get_gridcell().get_lat()));
+\end{minted}
+
+Resulting in:
+
+\begin{minted}{futhark}
+let gridcell = Gridcell()
+let gridcell = gridcell with lat = 19.799999
+\end{minted}
+
+Or, if one requires many updates like this, one can use the function \texttt{obj_with_fields}:
+
+\begin{minted}{cpp}
+void obj_with_fields(std::ostringstream& oss,
+                    const std::string& object,
+                    const std::string& object_gen,
+                    const string fields_values[],
+                    const unsigned int num_fields
+                    ) {
+  init_obj(oss, object, object_gen);
+  for (unsigned int i = 0; i < (num_fields*2); i+=2){
+    inplace_update(oss, object, fields_values[i], fields_values[i+1]);
+  }
+  oss << endl;
+}
+\end{minted}
+
+Like this:
+
+\begin{minted}{cpp}
+string ps_stresses_fields_values[] =
+  {"ifnlimvmax", to_string(ps_stresses.get_ifnlimvmax()), // bool.i32
+    "moss_ps_limit", to_string(ps_stresses.get_moss_ps_limit()),
+    "graminoid_ps_limit", to_string(ps_stresses.get_graminoid_ps_limit()),
+    "inund_stress", to_string(ps_stresses.get_inund_stress())};
+obj_with_fields(oss, "ps_stresses", "PhotosynthesisStresses()", ps_stresses_fields_values, 4);
+\end{minted}
+
+Resulting in:
+
+\begin{minted}{futhark}
+  let ps_stresses = PhotosynthesisStresses()
+  let ps_stresses = ps_stresses with ifnlimvmax = false
+  let ps_stresses = ps_stresses with moss_ps_limit = 1.000000
+  let ps_stresses = ps_stresses with graminoid_ps_limit = 1.000000
+  let ps_stresses = ps_stresses with inund_stress = 1.000000
+\end{minted}
+
+Which is essentially just a combination of the other two. It may be better to just call \texttt{inplace_update} by hand, however, than using this combined function.
+
+
+\subsubsection*{Finishing the input}
+Once all the input values have been defined and updated as needed, the input tuple is finished:
+
+
+\begin{minted}{cpp}
+void finish_input(std::ostringstream& oss,
+                  const string input){
+  oss << "  in " << input << endl;
+  oss << endl;
+}
+\end{minted}
+
+eg:
+
+\begin{minted}{cpp}
+finish_input(oss, "(ps_env, ps_stresses, pft, lambda, nactive, vm)");
+\end{minted}
+
+\begin{minted}{futhark}
+  in (ps_env, ps_stresses, pft, lambda, nactive, vm)
+\end{minted}
+
+
+\subsubsection*{Defining test cases}
+If the result of the function is just one simple value, it suffices to generate one entry point for the function in this manner:
+
+\begin{minted}{cpp}
+gen_entry_point_test(oss, "respiration", "resp", "resp", "resp", to_string(resp));
+\end{minted}
+
+\begin{minted}{cpp}
+void gen_entry_point_test(std::ostringstream& oss
+                         ,const string function
+                         ,const string function_output
+                         ,const string testname
+                         ,const string output_element
+                         ,const string value
+                         ) {
+  // print test comment
+  oss << "-- Autogenerated test of " << function << " output " << function_output << " field: " << testname << endl;
+  oss << "-- ==" << endl;
+  oss << "-- entry: " << testname << "_test" << endl;
+  oss << "-- input {}" << endl;
+  oss << "-- output { " << value << " }" << endl;
+  oss << endl;
+
+  // print entrypoint
+  oss << "entry " << testname << "_test" << " =" << endl;
+  oss << "  let " << function_output << " = " << function << " input" << endl;
+  oss << "  in " << output_element << endl;
+  oss << endl;
+ }
+\end{minted}
+Resulting in:
+\begin{minted}{futhark}
+-- Autogenerated test of respiration output resp field: resp
+-- ==
+-- entry: resp_test
+-- input {}
+-- output { 0.000004 }
+
+entry resp_test =
+  let resp = respiration input
+  in resp
+\end{minted}
+
+Note that the test technically has no input defined, only an output. Due to the complexity of flattening complicated objects in order to pass them as simple values to futhark standard input, and then reconstruct the records, and since the data is known before the test is generated, is is much simpler to just give no standard input, but to define the value as described above. However, the output must be defined as a standard output. If the test merely did an equality check between the function output and the reference result, \texttt{futhark test} would just report a boolean value, which is of little help in debugging. In this manner, the result is known, and can be used in debugging.
+
+When a function returns multiple results, either as a record with multiple fields, or just a tuple, one test entry must be generated for each of these, to get around the otherwise resultant opacity of the entry points.
+
+\begin{minted}{cpp}
+  void gen_entry_point_tests(std::ostringstream& oss
+                            ,const string function
+                            ,const string function_output
+                            ,const string fields_values[]
+                            ,const unsigned int num_fields
+                          )
+    {
+      for (unsigned int i = 0; i < (num_fields*3); i+=3){
+        gen_entry_point_test(oss, function, function_output, fields_values[i], fields_values[i+1], fields_values[i+2]);
+      }
+    }
+\end{minted}
+
+\begin{minted}{cpp}
+  string res_fields_values[] =
+    {"vm", "vm", to_string(vm)
+    ,"vmaxnlim", "vmaxnlim", to_string(vmaxnlim)
+    ,"nactive_opt", "nactive_opt", to_string(nactive_opt)};
+  gen_entry_point_tests(oss, "vmax", "(vm, vmaxnlim, nactive_opt)", res_fields_values, 3);
+\end{minted}
+
+Giving us these multiple entrypoints:
+
+\begin{minted}{futhark}
+  -- Autogenerated test of vmax output (vm, vmaxnlim, nactive_opt) field: vm
+  -- ==
+  -- entry: vm_test
+  -- input {}
+  -- output { 180.282661 }
+
+  entry vm_test =
+    let (vm, vmaxnlim, nactive_opt) = vmax input
+    in vm
+
+  -- Autogenerated test of vmax output (vm, vmaxnlim, nactive_opt) field: vmaxnlim
+  -- ==
+  -- entry: vmaxnlim_test
+  -- input {}
+  -- output { 1.000000 }
+
+  entry vmaxnlim_test =
+    let (vm, vmaxnlim, nactive_opt) = vmax input
+    in vmaxnlim
+
+  -- Autogenerated test of vmax output (vm, vmaxnlim, nactive_opt) field: nactive_opt
+  -- ==
+  -- entry: nactive_opt_test
+  -- input {}
+  -- output { 0.012033 }
+
+  entry nactive_opt_test =
+    let (vm, vmaxnlim, nactive_opt) = vmax input
+    in nactive_opt
+\end{minted}
+
+
+\subsubsection*{subsubsection name}
+
+
+
+\subsection{Complete example}
 Take for example the \texttt{get_co2()} funktion from \texttt{canexch.cpp}. This is the reference implementation:
 \begin{minted}{cpp}
 double get_co2(Patch& p, Climate& climate, Pft& pft) {
@@ -37,7 +298,7 @@ let get_co2(climate : Climate, pft : Pft, stand: Stand, soil : Soil, g: Gridcell
 
 The fields that are accessed in this function, and all the call-descendants, are \texttt{stand.landcover, gridcell.lat, pft.lifeform, soil.acro_co2, climate.co2}, so just one field for each object. The \texttt{Patch} object falls away from the function, as it is only used to point to another object.
 
-The code necessary to generate a test of this, using the current method, then is the following. We also need to generate dummy \texttt{Date} and \texttt{Soiltype} objects for use in the constructors, and the result of teh \texttt{Stand} constructor has to be handled in a unique way, as it also constructs \texttt{Standpft} and \texttt{Standst} objects that are irrelevant for this test.
+The code necessary to generate a test of this, using the current method, then is the following. We also need to generate dummy \texttt{Date} and \texttt{Soiltype} objects for use in the constructors, and the result of teh \texttt{Stand} constructor has to be handled in a unique way, as it also constructs other objects that are irrelevant to this test.
 
 \begin{minted}{cpp}
 if (FIRST_TIME_HERE) {
@@ -50,27 +311,21 @@ if (FIRST_TIME_HERE) {
   init_obj(oss, "(_, _, stand)", "Stand(0,0,0,0,0,0,date)");
   inplace_update(oss, "stand", "landcover", to_string(p.stand.landcover));
 
-  string gridcell_fields_values[] =
-    {"lat", to_string(p.stand.get_gridcell().get_lat())};
-  obj_with_fields(oss, "gridcell", "Gridcell()", gridcell_fields_values, 1);
+  init_obj(oss, "gridcell", "Gridcell()");
+  inplace_update(oss, "gridcell", "lat", to_string(p.stand.get_gridcell().get_lat()));
 
-  string pft_fields_values[] =
-    {"lifeform", to_string(pft.lifeform)};
-  obj_with_fields(oss, "pft", "Pft(0)", pft_fields_values, 1);
+  init_obj(oss, "pft", "Pft(0)");
+  inplace_update(oss, "pft", "lifeform", to_string(pft.lifeform));
 
-  string soil_fields_values[] =
-    {"acro_co2", to_string(p.soil.acro_co2)};
-  obj_with_fields(oss, "soil", "Soil(soiltype)", soil_fields_values, 1);
+  init_obj(oss, "soil", "Soil(soiltype)");
+  inplace_update(oss, "soil", "acro_co2", to_string(p.soil.acro_co2));
 
-  string climate_fields_values[] =
-    {"co2", to_string(climate.co2)};
-  obj_with_fields(oss, "climate", "Climate(0.0, 0, 0)", climate_fields_values, 1);
+  init_obj(oss, "climate", "Climate(0.0, 0, 0)");
+  inplace_update(oss, "climate", "co2", to_string(climate.co2));
 
   finish_input(oss, "(climate, pft, stand, soil, gridcell)");
 
-  string res_fields_values[] =
-    {"pftco2", "pftco2", to_string(pftco2)};
-  gen_entry_point_tests(oss, "get_co2", "pftco2", res_fields_values, 1);
+  gen_entry_point_test(oss, "get_co2", "pftco2", "pftco2", "pftco2", to_string(pftco2));
 
   gen_test_file(oss, "get_co2");
 }
@@ -111,4 +366,6 @@ entry pftco2_test =
   in pftco2
 \end{minted}
 
-For just a simple function like this, six (five) objects are required. For the more complex functions, many more are quickly required, and the number of fields required also grows. Further, many functions require arrays of objects. Currently the testing functions are not capable of expressing this, but it could be extended. However, it would be quite involved.
+This is already quite involved for a small function. For the more complex functions, many more objects, with more fields, are required. Further, many functions require arrays of objects. Currently the testing functions are not capable of expressing this, but it could be extended. This can be done by first generating a default record, and then replicating it with the given length of the array, and finally updating the record with the necessary fields, and then the array with the updated record. In case multiple entries are needed, a more complicated approach would be necessary.
+
+It may be simpler to just write one function for each class that generates futhark code for a literal of the class, than to track down each field of each objects, used in each sub function, and write specialized test generation code for each argument object, for each function.

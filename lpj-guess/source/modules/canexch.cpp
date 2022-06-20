@@ -514,9 +514,7 @@ double alphaa(const Pft& pft) {
 
 	  finish_input(oss, "pft");
 
-	  string res_fields_values[] =
-	    {"result", "result", to_string(result)};
-	  gen_entry_point_tests(oss, "alphaa", "result", res_fields_values, 1);
+		gen_entry_point_test(oss, "alphaa", "result", "result", "result", to_string(result));
 
 	  gen_test_file(oss, "alphaa");
 	}
@@ -902,36 +900,30 @@ double get_co2(Patch& p, Climate& climate, Pft& pft) {
 		pftco2 = p.soil.acro_co2; // override for peat mosses
 
 	if (FIRST_TIME_HERE) {
-	  ostringstream oss;
+		ostringstream oss;
 	  init_oss(oss);
 
-		init_obj(oss, "date", "Date()");
-		init_obj(oss, "soiltype", "Soiltype(0)");
+	  init_obj(oss, "date", "Date()");
+	  init_obj(oss, "soiltype", "Soiltype(0)");
 
-		init_obj(oss, "(_, _, stand)", "Stand(0,0,0,0,0,0,date)");
-		inplace_update(oss, "stand", "landcover", to_string(p.stand.landcover));
+	  init_obj(oss, "(_, _, stand)", "Stand(0,0,0,0,0,0,date)");
+	  inplace_update(oss, "stand", "landcover", to_string(p.stand.landcover));
 
-		string gridcell_fields_values[] =
-	    {"lat", to_string(p.stand.get_gridcell().get_lat())};
-	  obj_with_fields(oss, "gridcell", "Gridcell()", gridcell_fields_values, 1);
+	  init_obj(oss, "gridcell", "Gridcell()");
+	  inplace_update(oss, "gridcell", "lat", to_string(p.stand.get_gridcell().get_lat()));
 
-		string pft_fields_values[] =
-	    {"lifeform", to_string(pft.lifeform)};
-	  obj_with_fields(oss, "pft", "Pft(0)", pft_fields_values, 1);
+	  init_obj(oss, "pft", "Pft(0)");
+	  inplace_update(oss, "pft", "lifeform", to_string(pft.lifeform));
 
-		string soil_fields_values[] =
-	    {"acro_co2", to_string(p.soil.acro_co2)};
-	  obj_with_fields(oss, "soil", "Soil(soiltype)", soil_fields_values, 1);
+	  init_obj(oss, "soil", "Soil(soiltype)");
+	  inplace_update(oss, "soil", "acro_co2", to_string(p.soil.acro_co2));
 
-		string climate_fields_values[] =
-	    {"co2", to_string(climate.co2)};
-	  obj_with_fields(oss, "climate", "Climate(0.0, 0, 0)", climate_fields_values, 1);
+	  init_obj(oss, "climate", "Climate(0.0, 0, 0)");
+	  inplace_update(oss, "climate", "co2", to_string(climate.co2));
 
 	  finish_input(oss, "(climate, pft, stand, soil, gridcell)");
 
-	  string res_fields_values[] =
-	    {"pftco2", "pftco2", to_string(pftco2)};
-	  gen_entry_point_tests(oss, "get_co2", "pftco2", res_fields_values, 1);
+		gen_entry_point_test(oss, "get_co2", "pftco2", "pftco2", "pftco2", to_string(pftco2));
 
 	  gen_test_file(oss, "get_co2");
 	}
@@ -2559,9 +2551,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		finish_input(oss, "(gtemp_air, gtemp_soil, lifeform, respcoeff, cton_sap, cton_root, cmass_sap, cmass_root_today, assim)");
 
-		string res_fields_values[] =
-	    {"resp", "resp", to_string(resp)};
-	  gen_entry_point_tests(oss, "respiration", "resp", res_fields_values, 1);
+		gen_entry_point_test(oss, "respiration", "resp", "resp", "resp", to_string(resp));
 
 		gen_test_file(oss, "respiration");
 	}

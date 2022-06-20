@@ -69,6 +69,12 @@ void init_oss(std::ostringstream& oss){
   oss << "let input =" << endl;
 }
 
+void init_obj(std::ostringstream& oss,
+              const std::string& object,
+              const std::string& object_gen
+              ) {
+  oss << "  let " << object << " = " << object_gen << endl;
+}
 
 void inplace_update(std::ostringstream& oss,
                     const std::string& object,
@@ -76,15 +82,8 @@ void inplace_update(std::ostringstream& oss,
                     const std::string& value
                     ) {
   oss << "  let " << object << " = " << object << " with " << field << " = " << value << endl;
-  }
+}
 
-
-void init_obj(std::ostringstream& oss,
-              const std::string& object,
-              const std::string& object_gen
-              ) {
-  oss << "  let " << object << " = " << object_gen << endl;
-  }
 
 void obj_with_fields(std::ostringstream& oss,
                     const std::string& object,
