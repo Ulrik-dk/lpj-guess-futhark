@@ -17,19 +17,32 @@ If time permits, there will also be performance evaluation of the resulting futh
 
 Practically, it involves getting familiarised with the existing codebase, its structure, and creating a mental model of this. Based on this understanding, a plan for which parts to initially emulate with futhark can be developed, and then as a start to translating the whole framework, a futhark equivalent of the main moving parts of the framwork can be constructed. Initially this can be tested using extracted input and output values from the framework as a reference, and eventually integrated directly. Futhark is only relevant for the parts of the framework that do the heavy lifting, and can be integrated to replace those parts in the existing framework.
 
-\subsection*{Main learning goals}
+\subsection{Main learning goals}
 \begin{enumerate}
 \item Getting familiarised the software engineering and architecture of a large industry simulation framework.
 \item Investigate the challenges and feasability of translating idiomatic imperative C++ code to the functional array language Futhark.
 \item Investigate how to prove, test or argue for functional equivalence between a program and its manual translation.
 \end{enumerate}
 
-\subsection{Existing implementation}
-This subsection will describe the exisiting implementation, in a level of detail necessary to understand the following sections.
+\subsection{Preliminary analysis and scope limitation}
+It is very relevant to read the architecture section of the technical document, and to read the paper\cite{smith2001lpj} by Ben Smith to get familiarized with the overall structure of the existing implementation.
 
-\husk{Write about the relevant stuff, maybe here?}
+In order to focus on translating the functions in which most of the computational work is done first, and the dependencies of these. A good place to start is the \texttt{gprof} analysis:
+\begin{minted}[fontsize=\small]{bash}
+Each sample counts as 0.01 seconds.
+%         total
+time      s/call  name
+26.85     assimilation_wstress()
+12.17     photosynthesis()
+9.31      cnstep()
+3.57      npp()
+3.27      fpar()
+2.68      leaf_phenology()
+2.55      Soil::hydrology_lpjf()
+2.54      Stand::is_highlatitude_peatland_stand()
+2.34      decayrates_century()
+2.34      ndemand()
+\end{minted}
+I began by translating \texttt{assimilation_wstress()}, \texttt{photosynthesis()} and those functions and data structures it depended on.
 
-It is very relevant to read the architecture section of the technical document, and to read the paper by Ben Smith.
-
-\subsection{Futhark best practice}
-\husk{review and reference the futhark papers, website and blog a bunch here}
+As the project progressed, the \texttt{canopy_exchange()} function became the target of the present translation work.
