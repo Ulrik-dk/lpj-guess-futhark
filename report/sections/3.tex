@@ -1,3 +1,102 @@
 \subsection{The classes, structs and their logical relations}
+WeatherGenState: data
+PhotosynthesisEnvironment: data
+PhotosynthesisStresses: data
+Landcover: data
+Soiltype: data
+Sompool: data
+LitterSolveSOM: Data
+cropphen_struct: data
+
+Climate: data + WeatherGenState + gridcell reference
+
+Fluxes: data + patch reference
+
+Pft: data, id
+
+cropindiv_struct: data
+
+Individual: data + id + ref to one Pft + PhotosynthesisResult + unnecesary ref to vegetation objc
+
+Soil: Data + Soiltype ref + [NSOMPOOL]Sompool + LitterSolveSOM + Patch ref,
+
+Patchpft: data + id + reference to Pft
+
+Patch: data + id + ref to parent Stand + [npft]Patchpft + [npft]Individual + Soil + Fluxes
+
+Standpft: id, ref to Pft, PhotosynthesisResult,
+
+Stand: [num_patches]Patch, id, [npft]Standpft, Soiltype ref, gridcell ref
+
+Gridcellpft: id, pft ref,
+Gridcellst: id, StandType,
+
+Gridcell: data, Climate, Soiltype, Landcover, []Gridcellpft, []Gridcellst, MassBalance, inherited []Stand
+
+
+
+Global data:
+  []Pft
+  []StandType
+  []ManagementType
+  []Soiltype
+
+gridcellcount:
+  [i]Gridcell
+  [i]Climate
+  [i]WeatherGenState
+  [i]Soiltype
+  [i]Landcover
+  [i]MassBalance
+
+per gridcell:
+  [i]Gridcellst
+  [i]Gridcellpft
+
+  [gridcell_id][stand_id]Stand
+  [gridcell_id][stand_id][stand_pft_id]Standpft
+
+  [gridcell_id][stand_id][patch_id]Patch
+  [gridcell_id][stand_id][patch_id]Soil
+  [gridcell_id][stand_id][patch_id]Fluxes
+  [gridcell_id][stand_id][patch_id][patch_pft_id]Patchpft
+
+  [gridcell_id][stand_id][patch_id][individual_id]Individual
 
 \subsection{The functions and their logical relations}
+photosynthesis
+  called by
+    photosynthesis_nostress 3x
+      canopy_exchange
+    vmax_nitrogen_stress 2x
+      canopy_exchange
+    wdemand 1x
+      canopy_exchange
+    assimilation_wstress 2x
+      npp
+        canopy_exchange
+      forest_floor_conditions
+        canopy_exchange
+
+canopy_exchange
+  init_canexch(patch, climate, vegetation);
+    loops and sets values
+  fpar(patch);
+    lambertbeer
+  photosynthesis_nostress(patch, climate);
+    a lot of indirection
+  ndemand(patch, vegetation);
+    indirection, looping
+  vmax_nitrogen_stress(patch, climate, vegetation);
+    fnuptake(vegetation, tot_nmass_avail);
+    nstore_usage(vegetation);
+    loops
+  loop:
+    wdemand(patch, climate, vegetation, day);
+
+    aet_water_stress(patch, vegetation, day);
+    water_scalar(patch, vegetation, day);
+    npp(patch, climate, vegetation, day);
+      respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
+    leaf_senescence(vegetation);
+  forest_floor_conditions(patch);

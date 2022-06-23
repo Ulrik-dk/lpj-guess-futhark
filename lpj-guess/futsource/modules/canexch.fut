@@ -1756,22 +1756,3 @@ let canopy_exchange(patch : Patch, vegetation : [npft]Individual, climate : Clim
   let patch = patch with apet = patch.apet + pet_patch
   let patch = patch with mpet = patch.mpet with [date.month] = patch.mpet[date.month] + pet_patch
   in (patch, vegetation, spfts, ppfts)
-
---type GlobalData = {
---    pfts : [npft]Pft,
---    standtypes: []StandType,
---    managementtypes : []ManagementType,
---    soultypes: []Soiltype,
-    --gridcells : []Gridcell
---    climate: []Climate,
---    weathergenstate: []WeatherGenState,
---    landcover: []Landcover,
---    massbalance: []MassBalance,
-  --gridcellsts: [][]Gridcellst,
-  --    gridcellpfts: [][]Gridcellpft,
---    stands: [][]Stand,
---    standpfts : [][][]Standpft,
---    patches : [][][]Patch,
---    patchpfts : [][][][]Patchpft,
---    individuals : [][][][]Individual
---}
