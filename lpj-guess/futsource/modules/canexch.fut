@@ -314,13 +314,13 @@ let fpar(patch : Patch, vegetation : [npft]Individual, climate : Climate, pfts :
           -- Calculate minimum FPAR for growth of this grass
           -- Fraction of total grass LAI represented by this grass
           let flai =
-          if (!negligible(plai_grass)) then
-            lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])/plai_grass
-          else 1.0
+	          if (!negligible(plai_grass)) then
+	            lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])/plai_grass
+	          else 1.0
           let fpar_min =
-          if (!negligible(climate.par)) then
-            min(pfts[indiv.pft_id].parff_min/climate.par,1.0)
-          else 1.0
+	          if (!negligible(climate.par)) then
+	            min(pfts[indiv.pft_id].parff_min/climate.par,1.0)
+	          else 1.0
           let indiv = indiv with fpar = max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min))
           -- Repeat assuming full leaf cover for all individuals
           let flai =

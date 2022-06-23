@@ -1,4 +1,5 @@
-\section{Analysis and conventions}
+\section{Analysis}
+\section{Method}
 In order for the resulting conventions and code of the present project to be made the most useful for a follow up project, certain considerations are relevant to take into account.
 
 There is a significant difference between writing Futhark code from the bottom up, and to writing it as a translation from an object oriented language - C++ in this case. This author does have some experience in writing Futhark programs, and likewise in writing C and C\# programs, but not much experience in translating code in general, even less so in translating idiomatic code between paradigms.
@@ -15,14 +16,12 @@ Whenever there is a name for something, a file, field or function, or anything e
 \subsection{Basic values and operations}
 Most of the basic arithmetical operations used in the framework are common to both languages, as are basic data types. Doubles from C++ are represented by reals, which are parameterised and may be f64s or f32s for instance. Similar goes for ints. C++ structs can be represented most simply using records, and have almost equivalent semantics.
 
-\husk{when there are very small constantly sized arrays, make tuples instead} \cite{smallarraysbad}
+In many places of the code, small arrays of constant length are present. This is considered harmful\cite{smallarraysbad}, and is a possible target for future optimization.
 
 \subsection{Enumerators}
 In C++, enumerators are types with a very limited number of possible values, which are named tokens whose underlying representation is of secondary importance. However, they are essentially represented as integer constants, with each value of the enumerator, in order, having a value starting at zero and going up. For this reason, the last value of the enumerator is sometimes a pseudo-value, called for instance, NUM_SOME_ENUMERATOR. This allows the programmer to reference the size of the enumerator space, so to speak, but to me it seems like a hack. Printing an enumerator value to standard out will yield its underlying integer representation.
 
 Futhark has built-in enumerator types which can contain arbitrary data. This is very flexible, however they can not be type-unified with integers. I went back and forth between the elegant native futhark representation, and the unelegant integer constant representation, but due to the seeming infeasability of printing the code representation of an enumerator in C++, i have currently gone for the integer constant representation. While this unfortunately is slightly more verbose in the futhark source code, it makes testing much more streamlined and productive, as one does not have to write unique print functions for each enumerator.
-
-\husk{put examples here}
 
 \subsection{Functions, calling conventions and memory management}
 A widespread and useful convention in C++ is to have void functions that do not return anything, and that instead have return values of functions be allocated by the caller and passed to the callee by reference. C++ objects are likewise always passed by reference implicitly, whereas structs are passed by value unless otherwise specified.
@@ -31,19 +30,12 @@ Futhark passes everyting as values, and has no concept of reference or manual me
 
 Write-first values should be privatized, and only those values which have been modified should be returned. These values should then be shadowed in the caller, syntactically simulating them having been overwritten (which is morally impossible in a pure functional language).
 
-\husk{investigate this further, and futhark consumption and ownership etc}
-
-
 \subsection{Classes and their objects}
 Classes and objects do not exist in Futhark, so there is no one-to-one translation to be had. A reasonable convention therefore has to be discovered. In general, it is not desired for the translation to be a simulation of the original, but a functionally equivalent implementation of the original in the target language, true to the target language. One must therefore distinguish between objects and classes that exist to satisfy the OO paradigm, and objects and classes that exist to represent something in the mathematical model, of which the framework is an implementation.
 
 To keep things simple, classes are represented as records, member methods as functions on records, and constructors as functions returning records.
 
 Member functions should refer to the 'object' they are operating on as 'this'.
-
-\husk{mention and discuss the futhark module alternative to records for classes}
-
-\newpage
 
 Class definitions:
 \begin{minted}{c++}
@@ -62,7 +54,6 @@ type SomeClass = {
 }
 \end{minted}
 
-
 Constructors:
 \begin{minted}{c++}
 public
@@ -78,14 +69,6 @@ let SomeClass() : SomeClass =
   ,someotherfield = 2.0
   }
 \end{minted}
-
-
-
-
-
-
-
-
 
 Method:
 \begin{minted}{c++}
@@ -103,8 +86,6 @@ let someMethod(this: SomeClass) : SomeClass =
     then this.someotherfield
     else this.someotherfield/1.0
 \end{minted}
-
-
 
 Another method:
 \begin{minted}{c++}
@@ -170,21 +151,64 @@ The first example (point 1) should suffice to motivate just avoiding doing inpla
 
 No matter the size of the record, constructing a literal is the simplest way to do it. The only case where it is advisable to do inplace updates before returning is if there are a lot of fields with values that have not been modified, and which should be preserved. Only in that case would you end up with shorter and more readable code by doing inplace updates.
 
-\subsection{Where to begin translation}
-Focus on translating the functions in which most of the computational work is done first, and the dependencies of these. A good place to start:
-\begin{minted}{bash}
-Each sample counts as 0.01 seconds.
-  %   cumulative   self              self     total
- time   seconds   seconds    calls   s/call   s/call  name
- 26.85     27.24    27.24 37518927     0.00     0.00  assimilation_wstress(Pft const&, double, double, double, double, double, double, double, double, PhotosynthesisResult&, double&, double, bool, double, double, double)
- 12.17     39.59    12.35 130744474     0.00     0.00  photosynthesis(PhotosynthesisEnvironment const&, PhotosynthesisStresses const&, Pft const&, double, double, double, PhotosynthesisResult&)
-  9.31     49.04     9.45  8092050     0.00     0.00  cnstep(int, double*, double*, double, double, double*, double*, double*)
-  3.57     52.66     3.62  4046025     0.00     0.00  npp(Patch&, Climate&, Vegetation&, Day const&)
-  3.27     55.98     3.32  4046025     0.00     0.00  fpar(Patch&)
-  2.68     58.70     2.72  4046025     0.00     0.00  leaf_phenology(Patch&, Climate&)
-  2.55     61.29     2.59  4046025     0.00     0.00  Soil::hydrology_lpjf(Climate const&, double)
-  2.54     63.87     2.58 593102126     0.00     0.00  Stand::is_highlatitude_peatland_stand() const
-  2.34     66.24     2.37  4046040     0.00     0.00  decayrates_century(Soil&, double, double, bool)
-  2.34     68.61     2.37  4046025     0.00     0.00  ndemand(Patch&, Vegetation&)
+However, that is actually what is happening most of the time - most of the time, you are modifying a few fields in very large records. Futhermore, keeping track of which fields have been extracted and must be put back is errorprone. Doing inplace updates will not harm the performance of the code, since records are just sugar that disappears. One example of simple translation:
+
+\begin{minted}{cpp}
+if (!negligible(plai_grass))
+  flai=indiv.lai_today()/plai_grass;
+else
+  flai=1.0;
 \end{minted}
-And then we want to translate, so as to 'uncover', the parallelism, in order to be able to exploit it.
+
+Becomes
+
+\begin{minted}{futhark}
+let flai =
+  if (!negligible(plai_grass)) then
+    lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])/plai_grass
+  else 1.0
+\end{minted}
+Instead of a conditional branching to two assignments, we have one assignment to the outcome of a conditional, which just branches to two values. The overall structure is almost reused.
+
+
+\section{Conventions}
+conventions driven by simplicity and nicity of futhark code
+dont know anything about performance
+
+\subsection*{Calling convention semantic differences}
+\begin{enumerate}
+  \item pay attention to side effects
+  \item when to create a new object, when to inplace update
+  \item Caller updates state with return values,
+  \item only return the values that are actually modified
+  \item dont return something that could be, but is not, modified
+\end{enumerate}
+
+\subsection*{Translation conventions}\cite{smallarraysbad} \cite{futhark}
+\begin{enumerate}
+  \item C++ classes translate into Futhark records and methods translate to functions receiving and returning the same records.
+  \item Futhark has no non-constant values, but names can be reused and will shadow.
+  \item Modules may be of interest, but do not seem to be necessary.
+  \item Global constants translate to global value declarations.
+  \item Enumerators translate to series of i8 constants, as there is no equivalent construct.
+  \item The .h .cpp distinction, with the principle of dependency inversion, causes some problems for doing a direct file-to-file translation. Eg: photosynthesis() is declared in canexch.h and defined in canexch.cpp, but it is called in canexch.h. Should canexch.h.fut then import canexch.cpp.fut, or the other way around? Or both, creating a circular dependency? Will it be necessary to use module types and copy the structure? The solution (now) is to have one large combination for each of these two files, and then have them segmented with large comments to denote what part is from the header file, and what from the other. Since the codebase already has behavior in the header files, and also in the regular cpp files, the convention has perhaps not been followed.
+\end{enumerate}
+
+\begin{enumerate}
+  \item Identify a C++ function to translate.
+  \item analyse function
+  \item define (document) minimal input and output, fields of objects etc
+  \item write specialised print out the read and written fields
+  \item create test
+  \item specify what global state that is touched by function, read or written
+  \item privatization oppportunites
+\end{enumerate}
+parameterize floats as reals
+
+\subsection{Circular data dependencies}
+Many objects are contained in parent objects, and also hold references to the same parents. They often access fields of parents, and parents call methods on children, and or access their fields. This circularity is only possible with references, which Futhark does not have. Even worse, the c++ code often has constructors of objects call constructors for children, the same constructors refering to fields in their parents.
+
+There is no simple solution for this. The current solution is for the parents to pass the necessary fields to their childrens constructors, rather than references to themselves.
+
+\subsection{Architecture}
+The original architecture featured both inheritance and composition, and circular dependencies. All of this is troublesome to render in futhark, if not impossible. A simple solution to this is to abolish the circular references, and replace all references to parent objects with indices into global arrays.

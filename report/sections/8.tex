@@ -1,0 +1,148 @@
+\section{Discussion}
+global state, for reading only?
+whats the relationship between the data types?
+how much padding of the thing?
+
+WeatherGenState: data
+PhotosynthesisEnvironment: data
+PhotosynthesisStresses: data
+Landcover: data
+Soiltype: data
+Sompool: data
+LitterSolveSOM: Data
+cropphen_struct: data
+
+Climate: data + WeatherGenState + gridcell reference
+
+Fluxes: data + patch reference
+
+Pft: data, id
+
+cropindiv_struct: data
+
+Individual: data + id + ref to one Pft + PhotosynthesisResult + unnecesary ref to vegetation objc
+
+Soil: Data + Soiltype ref + [NSOMPOOL]Sompool + LitterSolveSOM + Patch ref,
+
+Patchpft: data + id + reference to Pft
+
+Patch: data + id + ref to parent Stand + [npft]Patchpft + [npft]Individual + Soil + Fluxes
+
+Standpft: id, ref to Pft, PhotosynthesisResult,
+
+Stand: [num_patches]Patch, id, [npft]Standpft, Soiltype ref, gridcell ref
+
+Gridcellpft: id, pft ref,
+Gridcellst: id, StandType,
+
+Gridcell: data, Climate, Soiltype, Landcover, []Gridcellpft, []Gridcellst, MassBalance, inherited []Stand
+
+
+
+Global data:
+  []Pft
+  []StandType
+  []ManagementType
+  []Soiltype
+
+gridcellcount:
+  [i]Gridcell
+  [i]Climate
+  [i]WeatherGenState
+  [i]Soiltype
+  [i]Landcover
+  [i]MassBalance
+
+per gridcell:
+  [i]Gridcellst
+  [i]Gridcellpft
+
+  [gridcell_id][stand_id]Stand
+  [gridcell_id][stand_id][stand_pft_id]Standpft
+
+  [gridcell_id][stand_id][patch_id]Patch
+  [gridcell_id][stand_id][patch_id]Soil
+  [gridcell_id][stand_id][patch_id]Fluxes
+  [gridcell_id][stand_id][patch_id][patch_pft_id]Patchpft
+
+  [gridcell_id][stand_id][patch_id][individual_id]Individual
+
+
+
+
+  photosynthesis
+    called by
+      photosynthesis_nostress 3x
+        canopy_exchange
+      vmax_nitrogen_stress 2x
+        canopy_exchange
+      wdemand 1x
+        canopy_exchange
+      assimilation_wstress 2x
+        npp
+          canopy_exchange
+        forest_floor_conditions
+          canopy_exchange
+
+  canopy_exchange
+    init_canexch(patch, climate, vegetation);
+      loops and sets values
+    fpar(patch);
+      lambertbeer
+    photosynthesis_nostress(patch, climate);
+      a lot of indirection
+    ndemand(patch, vegetation);
+      indirection, looping
+    vmax_nitrogen_stress(patch, climate, vegetation);
+      fnuptake(vegetation, tot_nmass_avail);
+      nstore_usage(vegetation);
+      loops
+    loop:
+      wdemand(patch, climate, vegetation, day);
+
+      aet_water_stress(patch, vegetation, day);
+      water_scalar(patch, vegetation, day);
+      npp(patch, climate, vegetation, day);
+        respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
+      leaf_senescence(vegetation);
+    forest_floor_conditions(patch);
+
+
+
+    Main focus on overall data structure, and predict how it should be flattened in array langauge
+
+    Structure of functions and their relations
+
+    Whats done, whats left to be done
+
+    How to map from pointer-based to array-based representation
+
+    show interesting examples, highlight the idea, show snippet
+
+    show problem of inplace update in report
+      errors etc
+
+    Ask Torben how to submit report and code
+
+    less is more
+
+    write meaningful clear examples that illustrate techniques, dont exhaustively go though everything
+
+    teach lessons with report
+
+    structure of data
+
+    make illustration
+
+    useful information, which functions are called multiple times, which can be inlined
+
+    calltree, starting with canopy_exchange
+
+    overall call structure, overall data structure
+
+
+
+
+    Many while loops are valid redomaps, but those are very complicated to write, and to translate from while loops.
+
+    Eg. a while loop over all Individuals in a Vegetation, the Individuals are modified, but several scalars are also accumulated. It can easily be rendered as a map, producing one extra array for each accumulator, which can then be summed afterwards. Preserving the modifications to each Indiviudal is not  possible if they are also put through the reduction, and fiddling with tuples and curry gets complicated. e.g the fpar function in canexch.fut.
