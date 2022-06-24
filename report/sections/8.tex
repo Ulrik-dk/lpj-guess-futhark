@@ -1,40 +1,11 @@
-\section{Discussion}
-global state, for reading only?
-whats the relationship between the data types?
-how much padding of the thing?
+\section{Current state and a few recommendations}
+Currently there is a use-after-consume\cite{bug1} bug in the implementation of the \texttt{canopy_exchange()} function. Normally these can be fixed using \texttt{copy}, but this does not seem to be the case.
 
-Main focus on overall data structure, and predict how it should be flattened in array langauge
+The code relies on some global constants that are set in the parameter files, and in the \texttt{global.ins} file.
 
-Structure of functions and their relations
+In several places in the code, \texttt{TODO}, \texttt{FIXME} etc are used to denote this and other issues. A couple of functions have yet to be implemented for \texttt{canopy_exchange} to work, specifically
+\texttt{irrigated_water_uptake}, \texttt{water_uptake_twolayer} and \texttt{water_uptake}. The first of these has a few dependencies of its own in the soil module.
 
-Whats done, whats left to be done
+I would also recommend writing functions for the testing framework that just print literals of entire objects. This will make it much more straightforward to later on begin testing arrays of objects, and it will be less error prone, as one will no longer have to keep track of data dependencies of subfunctions of subfunctions, although writing these print functions will require some investment up front.
 
-How to map from pointer-based to array-based representation
-
-show interesting examples, highlight the idea, show snippet
-
-show problem of inplace update in report
-  errors etc
-
-less is more
-
-write meaningful clear examples that illustrate techniques, dont exhaustively go though everything
-
-teach lessons with report
-
-structure of data
-
-make illustration
-
-useful information, which functions are called multiple times, which can be inlined
-
-calltree, starting with canopy_exchange
-
-overall call structure, overall data structure
-
-
-
-
-Many while loops are valid redomaps, but those are very complicated to write, and to translate from while loops.
-
-Eg. a while loop over all Individuals in a Vegetation, the Individuals are modified, but several scalars are also accumulated. It can easily be rendered as a map, producing one extra array for each accumulator, which can then be summed afterwards. Preserving the modifications to each Indiviudal is not  possible if they are also put through the reduction, and fiddling with tuples and curry gets complicated. e.g the fpar function in canexch.fut.
+After finishing \texttt{canopy_exchange} with its dependencies, one can move on to the other functions in the main outer loops.

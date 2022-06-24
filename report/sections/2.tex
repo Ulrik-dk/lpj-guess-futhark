@@ -1,17 +1,33 @@
-\section{Analysis}
-\section{Method}
+\section{Translation work}
 In order for the resulting conventions and code of the present project to be made the most useful for a follow up project, certain considerations are relevant to take into account.
 
 There is a significant difference between writing Futhark code from the bottom up, and to writing it as a translation from an object oriented language - C++ in this case. This author does have some experience in writing Futhark programs, and likewise in writing C and C\# programs, but not much experience in translating code in general, even less so in translating idiomatic code between paradigms.
 
 It seems plausible that a hypothetical continuator of the present work is in a similar situation, and for that reason, I will present the reasoning behind the present work for consideration.
-
 \subsection{Data organisation}
 In translating the architecture, several choices presented themselves. First off, preserving the folder and file structure in translating the framework seems to have no drawbacks, and is very useful for keeping track of progress, comparing the translated code with its referent, etc. Given the dependency segregation principle of the SOLID principles of OOP, C++ has a distinction between header files (.h) and implementation files (.cpp) which is absent in futhark. Header files contain the definitions or interfaces of functions and classes, and the implementation files contain their implementations. This is not a strict distinction - the compilers will not force you to actually structure the code in this way - but it will pair headers and their corresponding implementation files together when compiling and linking the code.
 
 Because of this one-to-one correspondece headers have with their bodies, I decided to conceptually combine them into single futhark files. So, for canexch.h and canexch.cpp, only canexch.fut will exist. For the purpose of keeping track of progress and such, the content from the header file should appear first, and their sepparation should be denoted by a visually substantial comment.
 
 Whenever there is a name for something, a file, field or function, or anything else, it is desirable to preserve this name in the translation. When functions are overloaded, or have default values, and in many other situations, a reasonable alternative must be found.
+
+\subsection{Branches}
+\begin{minted}{cpp}
+if (!negligible(plai_grass))
+  flai=indiv.lai_today()/plai_grass;
+else
+  flai=1.0;
+\end{minted}
+
+Becomes
+
+\begin{minted}{futhark}
+let flai =
+  if (!negligible(plai_grass)) then
+    lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])/plai_grass
+  else 1.0
+\end{minted}
+Instead of a conditional branching to two assignments, we have one assignment to the outcome of a conditional, which just branches to two values. This is both easy to read and to write.
 
 \subsection{Basic values and operations}
 Most of the basic arithmetical operations used in the framework are common to both languages, as are basic data types. Doubles from C++ are represented by reals, which are parameterised and may be f64s or f32s for instance. Similar goes for ints. C++ structs can be represented most simply using records, and have almost equivalent semantics.
@@ -101,9 +117,6 @@ let anotherMethod(this: SomeClass, somevalue: real) : SomeClass =
 Notice the verbosity of the in-place update of records. This is mostly an aesthetic concern, but when we get to functions that modify many fields of records many times, this becomes an issue, which brings us to:
 
 \subsection{Handling many in-place updates}
-\husk{how does futhark handle in-place updates?}
-\husk{ownership and consumption in futhark?}
-
 OOP generally involves heavy modification of fields of objects, and a translation to futhark easily ends up having an equal number of in-place updates to records, which ends up being difficult to read.
 
 It is advisable to extract values that are to be read multiple times into local variables, and it is advisable to generate and modify fields as local variables, externally, and then doing a series of in-place updates or a literal record construction at the end of the function. This keeps the code cleaner and more easily readable. Example, compare the following snippets for readability:
@@ -151,64 +164,211 @@ The first example (point 1) should suffice to motivate just avoiding doing inpla
 
 No matter the size of the record, constructing a literal is the simplest way to do it. The only case where it is advisable to do inplace updates before returning is if there are a lot of fields with values that have not been modified, and which should be preserved. Only in that case would you end up with shorter and more readable code by doing inplace updates.
 
-However, that is actually what is happening most of the time - most of the time, you are modifying a few fields in very large records. Futhermore, keeping track of which fields have been extracted and must be put back is errorprone. Doing inplace updates will not harm the performance of the code, since records are just sugar that disappears. One example of simple translation:
+However, that is actually what is happening most of the time - most of the time, you are modifying a few fields in very large records. Futhermore, keeping track of which fields have been extracted and must be put back is errorprone. Doing inplace updates will not harm the performance of the code, since records are just sugar that disappears.
 
-\begin{minted}{cpp}
-if (!negligible(plai_grass))
-  flai=indiv.lai_today()/plai_grass;
-else
-  flai=1.0;
-\end{minted}
-
-Becomes
+\subsection{Updating arrays in records}
+Consider the following record:
 
 \begin{minted}{futhark}
-let flai =
-  if (!negligible(plai_grass)) then
-    lai_today(indiv, pfts[indiv.pft_id], ppfts[indiv.pft_id])/plai_grass
-  else 1.0
+type Fluxes = {
+  annual_fluxes_per_pft : [npft][NPERPFTFLUXTYPES]real,
+  monthly_fluxes_patch : [12][NPERPATCHFLUXTYPES]real,
+  monthly_fluxes_pft : [12][NPERPFTFLUXTYPES]real,
+  daily_fluxes_patch : [365][NPERPATCHFLUXTYPES]real,
+  daily_fluxes_pft : [365][NPERPFTFLUXTYPES]real
+}
 \end{minted}
-Instead of a conditional branching to two assignments, we have one assignment to the outcome of a conditional, which just branches to two values. The overall structure is almost reused.
 
+Lets say we want to update three of these inner arrays. Ideally, we would like a simple syntax like this:
 
-\section{Conventions}
-conventions driven by simplicity and nicity of futhark code
-dont know anything about performance
+\begin{minted}{futhark}
+let report_flux_PerPFTFluxType_verbose2
+    ( fluxes: Fluxes
+    , flux_type: PerPFTFluxType
+    , pft_id: int
+    , value: real
+    , month: int
+    , day: int) : Fluxes =
+      let fluxes.annual_fluxes_per_pft[pft_id, flux_type] += value
+      let fluxes.monthly_fluxes_pft[month, flux_type] += value
+      let fluxes.daily_fluxes_pft[day, flux_type] += value
+      in fluxes
+\end{minted}
 
-\subsection*{Calling convention semantic differences}
-\begin{enumerate}
-  \item pay attention to side effects
-  \item when to create a new object, when to inplace update
-  \item Caller updates state with return values,
-  \item only return the values that are actually modified
-  \item dont return something that could be, but is not, modified
-\end{enumerate}
+Hower, it is not possible to do this. Ditching the addition-assignment operator, and using the current \texttt{with} syntax, we get the following error:
 
-\subsection*{Translation conventions}\cite{smallarraysbad} \cite{futhark}
-\begin{enumerate}
-  \item C++ classes translate into Futhark records and methods translate to functions receiving and returning the same records.
-  \item Futhark has no non-constant values, but names can be reused and will shadow.
-  \item Modules may be of interest, but do not seem to be necessary.
-  \item Global constants translate to global value declarations.
-  \item Enumerators translate to series of i8 constants, as there is no equivalent construct.
-  \item The .h .cpp distinction, with the principle of dependency inversion, causes some problems for doing a direct file-to-file translation. Eg: photosynthesis() is declared in canexch.h and defined in canexch.cpp, but it is called in canexch.h. Should canexch.h.fut then import canexch.cpp.fut, or the other way around? Or both, creating a circular dependency? Will it be necessary to use module types and copy the structure? The solution (now) is to have one large combination for each of these two files, and then have them segmented with large comments to denote what part is from the header file, and what from the other. Since the codebase already has behavior in the header files, and also in the regular cpp files, the convention has perhaps not been followed.
-\end{enumerate}
+\begin{minted}{bash}
+Types
+  [dim₁][dim₂]src₀
+and
+  {annual_fluxes_per_pft: [npft][NPERPFTFLUXTYPES]f64,
+   daily_fluxes_patch: [365][NPERPATCHFLUXTYPES]f64,
+   daily_fluxes_pft: [365][NPERPFTFLUXTYPES]f64,
+   monthly_fluxes_patch: [12][NPERPATCHFLUXTYPES]f64,
+   monthly_fluxes_pft: [12][NPERPFTFLUXTYPES]f64}
+do not match.
+\end{minted}
 
-\begin{enumerate}
-  \item Identify a C++ function to translate.
-  \item analyse function
-  \item define (document) minimal input and output, fields of objects etc
-  \item write specialised print out the read and written fields
-  \item create test
-  \item specify what global state that is touched by function, read or written
-  \item privatization oppportunites
-\end{enumerate}
-parameterize floats as reals
+adding some parenthesis solve this error, and we get the following rendering to the same effect as the one intended above. Lets also just look at the function body, since the signature is the same:
 
-\subsection{Circular data dependencies}
-Many objects are contained in parent objects, and also hold references to the same parents. They often access fields of parents, and parents call methods on children, and or access their fields. This circularity is only possible with references, which Futhark does not have. Even worse, the c++ code often has constructors of objects call constructors for children, the same constructors refering to fields in their parents.
+\begin{minted}{futhark}
+let fluxes = fluxes with annual_fluxes_per_pft =
+  (fluxes.annual_fluxes_per_pft with [pft_id, flux_type] =
+    fluxes.annual_fluxes_per_pft[pft_id, flux_type] + value)
+let fluxes = fluxes with monthly_fluxes_pft =
+  (fluxes.monthly_fluxes_pft with [pft_id, flux_type] =
+    fluxes.annual_fluxes_per_pft[pft_id, flux_type] + value)
+let fluxes = fluxes with daily_fluxes_pft =
+  (fluxes.daily_fluxes_pft with [day,flux_type] =
+    fluxes.daily_fluxes_pft[day,flux_type] + value)
+in fluxes
+\end{minted}
 
-There is no simple solution for this. The current solution is for the parents to pass the necessary fields to their childrens constructors, rather than references to themselves.
+This is a lot less readable, however, it is still not permitted. We get the following error:
+\begin{minted}{futhark}
+Error at example.fut:218:8-13:
+Using variable "fluxes", but this was consumed at 219:8-220:54.  (Possibly through aliasing.)
+\end{minted}
+This is a very interesting error. The inner update shadows the definition of fluxes, which can then not be shadowed in the outer update, it seems. This might also explain the size-type error. The language does not seem to expect records of a depth greather than one, or to support these. Two solutions considered are to forget in-place updates and just construct a new record, in this manner:
 
-\subsection{Architecture}
-The original architecture featured both inheritance and composition, and circular dependencies. All of this is troublesome to render in futhark, if not impossible. A simple solution to this is to abolish the circular references, and replace all references to parent objects with indices into global arrays.
+\begin{minted}{futhark}
+{ annual_fluxes_per_pft =
+    annual_fluxes_per_pft with [pft_id, flux_type] =
+      annual_fluxes_per_pft[pft_id, flux_type] + value
+, monthly_fluxes_patch
+, monthly_fluxes_pft =
+    monthly_fluxes_pft with [month, flux_type] =
+      monthly_fluxes_pft[month, flux_type] + value
+, daily_fluxes_patch
+, daily_fluxes_pft =
+    daily_fluxes_pft with [day,flux_type] =
+      daily_fluxes_pft[day,flux_type] + value
+}
+\end{minted}
+This will work, but it results in very verbose code for larger records.
+
+The solution chosen is to use \texttt{copy} whenever there is a consumption-related error, in the following manner:
+
+\begin{minted}{futhark}
+let fluxes = fluxes with annual_fluxes_per_pft =
+  (copy fluxes.annual_fluxes_per_pft with [pft_id, flux_type] =
+    fluxes.annual_fluxes_per_pft[pft_id, flux_type] + value)
+let fluxes = fluxes with monthly_fluxes_pft =
+  (copy fluxes.monthly_fluxes_pft with [pft_id, flux_type] =
+    fluxes.annual_fluxes_per_pft[pft_id, flux_type] + value)
+in fluxes with daily_fluxes_pft =
+  (copy fluxes.daily_fluxes_pft with [day,flux_type] =
+    fluxes.daily_fluxes_pft[day,flux_type] + value)
+\end{minted}
+
+This gets the code past the checker. The danger then is that this might lead to redundant copying. If we compile this version and compare it to the one where we construct a literal of an updated record, using \texttt{futhark dev -s test.fut}, we can see that the two versions compile to effectively identical code. This is probably because intitial optimization steps of the compiler will recognize the copying step as redundant, and optimize it away. Since we are shadowing a value using a modified copy of itself, the original value will never be referenced again, only the modified copy. The optimizer sees this, and just modifies the original data instead of the copy.
+
+\subsection{A common map reduce mattern}
+
+Consider the following common pattern. We modify each member of a collection of values, and we perform some kind of accumulation over the modified values:
+\begin{minted}{cpp}
+double fpar_tree_total=0.0;
+
+vegetation.firstobj();
+while (vegetation.isobj) {
+  Individual& indiv=vegetation.getobj();
+
+  // For this individual ...
+
+  if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) {
+
+    // ...
+
+    indiv.fpar=max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min));
+
+    // ..
+  }
+
+  if (indiv.pft.lifeform==TREE) fpar_tree_total+=indiv.fpar;
+
+  vegetation.nextobj();
+}
+\end{minted}
+
+We can translate this to a map followed by a reduce. However, we have to bind the result of the map, to shadow the old values, so the changes persist. Simply piping the result into the reduction will not make the modifications persistent:
+
+\begin{minted}{futhark}
+let (vegetation) = map (\indiv ->
+  if (pfts[indiv.pft_id].lifeform==GRASS || pfts[indiv.pft_id].lifeform==MOSS) then
+
+    -- ...
+
+    let indiv = indiv with fpar = max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min))
+
+    -- ...
+
+    in indiv
+  else (indiv)
+  ) vegetation
+let fpar_tree_total : real =
+  reduce (+) 0.0 <| map
+    (\i -> if pfts[i.pft_id].lifeform==TREE then i.fpar else 0.0
+    ) vegetation
+\end{minted}
+
+\subsection{Type checker helpers}
+Consider the \texttt{init_canexch} function:
+\begin{minted}{futhark}
+let init_canexch(patch : Patch, climate : Climate, vegetation : [npft]Individual, date : Date, pfts: [npft]Pft) : (Patch, Vegetation) =
+  let vegetation =
+    if (date.day == 0) then
+      map (\indiv ->
+        let indiv = indiv with anpp = 0.0
+        let indiv = indiv with leafndemand = 0.0
+        let indiv = indiv with rootndemand = 0.0
+        let indiv = indiv with sapndemand = 0.0
+        let indiv = indiv with storendemand = 0.0
+        let indiv = indiv with hondemand = 0.0
+        let indiv = indiv with nday_leafon = 0
+        let indiv = indiv with avmaxnlim = 1.0
+        let indiv = indiv with cton_leaf_aavr = 0.0
+        in
+        if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf)) then
+          indiv with cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf
+        else
+          let indiv = indiv with cton_leaf_aopt = pfts[indiv.pft_id].cton_leaf_max
+          let indiv = indiv with mlai = replicate 12 realzero
+          let indiv = indiv with mlai_max = replicate 12 realzero
+          in indiv
+      ) vegetation
+    else vegetation
+  in (patch with wdemand_day = 0, vegetation)
+\end{minted}
+This implementation fails with the following error: (referencing the first inner binding)
+\begin{minted}{bash}
+Error at futsource/modules/canexch.fut:1674:21-41:
+Full type of
+  indiv
+is not known at this point. Add a type annotation to the original record to
+disambiguate.
+\end{minted}
+
+If we modify the line with the \texttt{map} in this manner, to add a type annotation, in this manner:
+
+\begin{minted}{futhark}
+map (\indiv : Individual ->
+\end{minted}
+
+We still get the same error. This same error pattern is present in many places in the code. The current solution is to write functions of this kind:
+
+\begin{minted}{futhark}
+let type_checker_helper8 (i: Individual) : Individual = i
+\end{minted}
+
+And applying it in this manner:
+
+\begin{minted}{futhark}
+let vegetation =
+  if (date.day == 0) then
+    map (\indiv ->
+      let indiv = type_checker_helper8(indiv)
+      let indiv = indiv with anpp = 0.0
+      let indiv = indiv with leafndemand = 0.0
+\end{minted}
+
+It seems that it fails to derive the type of the mapped individual from the collection mapped over, at least in these kinds of cases. The outer array being mapped over is type annotated in the function signature, so there should be no real ambiguity.

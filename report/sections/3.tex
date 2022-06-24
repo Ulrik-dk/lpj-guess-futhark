@@ -1,102 +1,69 @@
 \subsection{The classes, structs and their logical relations}
-WeatherGenState: data
-PhotosynthesisEnvironment: data
-PhotosynthesisStresses: data
-Landcover: data
-Soiltype: data
-Sompool: data
-LitterSolveSOM: Data
-cropphen_struct: data
+The original architecture featured both inheritance and composition, and circular dependencies. All of this is troublesome to render in futhark, if not impossible. A simple solution to this is to abolish the circular references, and replace all references to parent objects with indices into global arrays.
 
-Climate: data + WeatherGenState + gridcell reference
+Many objects are contained in parent objects, and also hold references to the same parents. They often access fields of parents, and parents call methods on children, and or access their fields. This circularity is only possible with references, which Futhark does not have. Even worse, the c++ code often has constructors of objects call constructors for children, the same constructors refering to fields in their parents.
 
-Fluxes: data + patch reference
+There is no simple solution for this. The current solution is for the parents to pass the necessary fields to their childrens constructors, rather than references to themselves.
 
-Pft: data, id
+In order to represent the same data structures in Futhark, they must be flattened. In order to flatten them, it is necessary first to describe their mutual relations. Some are one-to-one, meaning that for every A, there exists one and only one B, and these reference each other. Some are one-to-many, for example Gridcells contain some number of Stands, and these all contain a reference to their parent Gridcell. Still others are one-to-many-kinds, such as Climate, which are shared between several objects of different classes.
 
-cropindiv_struct: data
+One-to-one objects can be combined or composed as is done now. All the others should be offloaded to a global state, and all references should be indirect, as indices into a global array, rather than a pointer.
 
-Individual: data + id + ref to one Pft + PhotosynthesisResult + unnecesary ref to vegetation objc
+My prediction of the contents of a flattened global data structure:
 
-Soil: Data + Soiltype ref + [NSOMPOOL]Sompool + LitterSolveSOM + Patch ref,
+\begin{itemize}
+  \item \texttt{[p]Pft}
+  \item \texttt{[]StandType}
+  \item \texttt{[]ManagementType}
+  \item \texttt{[s]Soiltype}
 
-Patchpft: data + id + reference to Pft
+  \item \texttt{[n]Gridcell}
+  \item \texttt{[n][p]Gridcellpft}
+  \item \texttt{[n][s]Gridcellst}
+  \item \texttt{[n]Climate}
+  \item \texttt{[n]WeatherGenState}
+  \item \texttt{[n]Landcover}
+  \item \texttt{[n]MassBalance}
 
-Patch: data + id + ref to parent Stand + [npft]Patchpft + [npft]Individual + Soil + Fluxes
+  \item \texttt{[n][m]Stand}
+  \item \texttt{[n][m][p]Standpft}
 
-Standpft: id, ref to Pft, PhotosynthesisResult,
+  \item \texttt{[n][m][a]Patch}
+  \item \texttt{[n][m][a]Soil}
+  \item \texttt{[n][m][a]Fluxes}
+  \item \texttt{[n][m][a][p]Patchpft}
+  \item \texttt{[n][m][a][v]Individual}
+\end{itemize}
 
-Stand: [num_patches]Patch, id, [npft]Standpft, Soiltype ref, gridcell ref
-
-Gridcellpft: id, pft ref,
-Gridcellst: id, StandType,
-
-Gridcell: data, Climate, Soiltype, Landcover, []Gridcellpft, []Gridcellst, MassBalance, inherited []Stand
-
-
-
-Global data:
-  []Pft
-  []StandType
-  []ManagementType
-  []Soiltype
-
-gridcellcount:
-  [i]Gridcell
-  [i]Climate
-  [i]WeatherGenState
-  [i]Soiltype
-  [i]Landcover
-  [i]MassBalance
-
-per gridcell:
-  [i]Gridcellst
-  [i]Gridcellpft
-
-  [gridcell_id][stand_id]Stand
-  [gridcell_id][stand_id][stand_pft_id]Standpft
-
-  [gridcell_id][stand_id][patch_id]Patch
-  [gridcell_id][stand_id][patch_id]Soil
-  [gridcell_id][stand_id][patch_id]Fluxes
-  [gridcell_id][stand_id][patch_id][patch_pft_id]Patchpft
-
-  [gridcell_id][stand_id][patch_id][individual_id]Individual
+Where n is the number of Gridcells, m is the number of Stands per Gridcell, p is the absolute number of Pfts, s is the number of Soiltypes, a is the number of Patches per stand, which may involve padding and v is the number of Individuals per Patch.
 
 \subsection{The functions and their logical relations}
-photosynthesis
-  called by
-    photosynthesis_nostress 3x
-      canopy_exchange
-    vmax_nitrogen_stress 2x
-      canopy_exchange
-    wdemand 1x
-      canopy_exchange
-    assimilation_wstress 2x
-      npp
-        canopy_exchange
-      forest_floor_conditions
-        canopy_exchange
+\begin{verbatim}
+  framework calls
+    canopy_exchange (inlineable)
+    ... and others
 
-canopy_exchange
-  init_canexch(patch, climate, vegetation);
-    loops and sets values
-  fpar(patch);
-    lambertbeer
-  photosynthesis_nostress(patch, climate);
-    a lot of indirection
-  ndemand(patch, vegetation);
-    indirection, looping
-  vmax_nitrogen_stress(patch, climate, vegetation);
-    fnuptake(vegetation, tot_nmass_avail);
-    nstore_usage(vegetation);
-    loops
-  loop:
-    wdemand(patch, climate, vegetation, day);
+  canopy_exchange calls
+    init_canexch (inlineable)
+    fpar (inlineable)
+    photosynthesis_nostress (inlineable)
+    ndemand (inlineable)
+    vmax_nitrogen_stress (inlineable)
+    wdemand (inlineable)
+    aet_water_stress (inlineable)
+    water_scalar (inlineable)
+    npp (inlineable)
+    leaf_senescence (inlineable)
+    forest_floor_conditions (inlineable)
 
-    aet_water_stress(patch, vegetation, day);
-    water_scalar(patch, vegetation, day);
-    npp(patch, climate, vegetation, day);
-      respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-    leaf_senescence(vegetation);
-  forest_floor_conditions(patch);
+  photosynthesis is called by
+    photosynthesis_nostress thrice
+    vmax_nitrogen_stress twice
+    wdemand
+    assimilation_wstress twice
+
+  assimilation_wstress is called by
+    npp
+    forest_floor_conditions
+\end{verbatim}
+These are the most substantial functions in the calltree above \texttt{canopy_exchange} (ie. a large branch grows smaller twigs, which grow upwards from it). A lot of inlining can be done. The function \texttt{aet_water_stress} also calls \texttt{irrigated_water_uptake}, \texttt{water_uptake_twolayer} and \texttt{water_uptake} which are not implemented, but the two first can also be inlined. Whether the third can be could be up for debate.
